@@ -1,0 +1,393 @@
+/* Sidebar styles for GD Recruit Assistant */
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  background-color: #f5f5f5;
+  width: 100%;
+  height: 100vh;
+  overflow-x: hidden;
+}
+
+.container {
+  width: 100%;
+  height: 100%;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header and tabs */
+header {
+  padding: 10px 15px;
+  background-color: #284775;
+  color: white;
+}
+
+header h1 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.tabs {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #ccc;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  background-color: #445e88;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.tab-btn:hover {
+  background-color: #536e9e;
+}
+
+.tab-btn.active {
+  background-color: #1a365d;
+  font-weight: bold;
+}
+
+/* Main content area */
+main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-content {
+  display: none;
+  height: 100%;
+  flex: 1;
+}
+
+.tab-content.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Dashboard tab */
+.stats-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: calc(50% - 10px);
+  padding: 10px;
+  background-color: #e9ecef;
+  border-radius: 5px;
+  text-align: center;
+  margin: 0 5px 10px 5px;
+}
+
+.stat-card h3 {
+  font-size: 14px;
+  margin-bottom: 5px;
+  color: #284775;
+}
+
+.stat-card p {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.action-btn {
+  flex-basis: 31%;
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: #284775;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+  background-color: #3a5f8f;
+}
+
+.action-btn:disabled {
+  background-color: #a0a0a0;
+  color: #e0e0e0;
+  cursor: not-allowed;
+  opacity: 0.7;
+  box-shadow: none;
+}
+
+.action-btn:disabled:hover {
+  background-color: #a0a0a0;
+}
+
+.status-box {
+  padding: 10px;
+  background-color: #e9ecef;
+  border-radius: 3px;
+  text-align: center;
+  margin-top: auto;
+  max-height: 100px;
+  overflow-y: auto;
+  word-wrap: break-word;
+}
+
+/* Status message colors */
+.status-success {
+  color: #28a745;
+}
+
+.status-error {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.status-warning {
+  color: #ffc107;
+}
+
+/* Recruits tab */
+.filter-controls {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #e9ecef;
+  border-radius: 3px;
+}
+
+.filter-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.filter-row input,
+.filter-row select {
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+.filter-row input[type="text"] {
+  flex: 2;
+  margin-right: 10px;
+}
+
+.filter-row select {
+  flex: 1;
+}
+
+.rating-filter {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  margin-right: 10px;
+}
+
+.rating-filter label {
+  margin-right: 5px;
+  white-space: nowrap;
+}
+
+.rating-filter input {
+  width: 60px;
+}
+
+.recruits-container {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f0f0f0;
+}
+
+th, td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+
+.pagination button {
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  background-color: #f0f0f0;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Settings tab */
+.settings-group {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f0f0f0;
+  border-radius: 5px;
+}
+
+.settings-group h3 {
+  margin-bottom: 10px;
+  color: #284775;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.setting-btn {
+  flex-basis: 48%;
+  padding: 8px;
+  background-color: #284775;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.setting-btn:hover {
+  background-color: #3a5f8f;
+}
+
+.danger {
+  background-color: #dc3545;
+}
+
+.danger:hover {
+  background-color: #c82333;
+}
+
+.scrape-options {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #e9ecef;
+  border-radius: 3px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-right: 5px;
+}
+
+/* Modal footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 15px;
+  border-top: 1px solid #ddd;
+  margin-top: 15px;
+}
+
+.modal-footer button {
+  margin-left: 10px;
+}
+
+/* Input group styling */
+.input-group {
+  margin: 15px 0;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.input-group input[type="number"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.error-text {
+  color: #dc3545;
+  font-size: 12px;
+  display: block;
+  margin-top: 5px;
+}
+
+/* Secondary button */
+.action-btn.secondary {
+  background-color: #6c757d;
+}
+
+.action-btn.secondary:hover {
+  background-color: #5a6268;
+}
+
+.action-btn.secondary:disabled {
+  background-color: #b0b5b9;
+  color: #e0e0e0;
+}
+
+@media (max-height: 600px) {
+  .stats-container {
+    flex-direction: column;
+  }
+  
+  .stat-card {
+    margin-bottom: 5px;
+  }
+}

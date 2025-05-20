@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GD Recruit Assistant</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>GD Recruit Assistant</h1>
+      <div class="tabs">
+        <button id="tab-dashboard" class="tab-btn active">Dashboard</button>
+        <button id="tab-recruits" class="tab-btn">Recruits</button>
+        <button id="tab-settings" class="tab-btn">Settings</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Dashboard Tab -->
+      <section id="dashboard-section" class="tab-content active">        <div class="stats-container">
+          <div class="stat-card">
+            <h3>Recruits</h3>
+            <p id="recruit-count">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Watchlist</h3>
+            <p id="watchlist-count">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Season</h3>
+            <p id="current-season">N/A</p>
+          </div>
+          <div class="stat-card">
+            <h3>Last Updated</h3>
+            <p id="last-updated">Never</p>
+          </div>
+        </div>
+          <div class="action-buttons">
+          <button id="btn-scrape-recruits" class="action-btn">Scrape Recruits</button>
+          <button id="btn-update-watchlist" class="action-btn">Update Watchlist</button>
+          <button id="btn-update-considering" class="action-btn">Update Considering</button>
+        </div>
+        
+        <div class="scrape-options">
+          <label class="checkbox-label">
+            <input type="checkbox" id="include-lower-divisions">
+            Include Lower Divisions
+          </label>
+        </div>
+        
+        <div class="status-box">
+          <p id="status-message">Ready</p>
+        </div>
+      </section>
+
+      <!-- Recruits Tab -->
+      <section id="recruits-section" class="tab-content">
+        <div class="filter-controls">
+          <div class="filter-row">
+            <input type="text" id="filter-name" placeholder="Filter by name">
+            <select id="filter-position">
+            </select>
+          </div>
+          <div class="filter-row">
+            <div class="rating-filter">
+            </div>
+            <select id="filter-potential">
+            </select>
+          </div>
+        </div>
+
+        <div class="recruits-container">
+          <table id="recruits-table">
+            <thead>
+            </thead>
+            <tbody id="recruits-list">
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <button id="prev-page">Previous</button>
+          <span id="page-info">Page 1 of 1</span>
+          <button id="next-page">Next</button>
+        </div>
+      </section>
+
+      <!-- Settings Tab -->
+      <section id="settings-section" class="tab-content">        <div class="settings-group">
+          <h3>Data Management</h3>
+          <div class="setting-row">
+            <button id="btn-export-data" class="setting-btn">Export Data</button>
+            <button id="btn-import-data" class="setting-btn">Import Data</button>
+          </div>
+          <div class="setting-row">
+            <button id="btn-clear-data" class="setting-btn">Clear Data</button>
+            <button id="btn-check-db" class="setting-btn">Check Database</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>Role Ratings Configuration</h3>
+          <div class="setting-row">
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>About</h3>
+          <p>GD Recruit Assistant v1.0.0</p>
+          <p>A browser extension for Gridiron Dynasty recruiting management</p>        </div>
+      </section>
+
+      <!-- Season Input Modal -->
+      <div id="season-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Initialize Season</h2>
+            <span class="close-button" id="season-modal-close">&times;</span>
+          </div>
+          <div class="modal-body">
+            <p>You are about to initialize recruits for a new season. Please enter the season number:</p>
+            <div class="input-group">
+              <label for="season-number">Season Number:</label>
+              <input type="number" id="season-number" min="1" step="1" value="1">
+              <small id="season-input-error" class="error-text"></small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="season-confirm" class="action-btn">Confirm</button>
+            <button id="season-cancel" class="action-btn secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </main>  </div>
+
+  <script src="sidebar.js" type="module"></script>
+  <script src="error-handler.js" type="module"></script>
+</body>
+</html>

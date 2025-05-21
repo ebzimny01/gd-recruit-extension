@@ -9,15 +9,15 @@ const elements = {
   // Tab navigation
   tabButtons: document.querySelectorAll('.tab-btn'),
   tabSections: document.querySelectorAll('.tab-content'),
-    // Dashboard elements
+  // Dashboard elements
   recruitCount: document.getElementById('recruit-count'),
   watchlistCount: document.getElementById('watchlist-count'),
   lastUpdated: document.getElementById('last-updated'),
   currentSeason: document.getElementById('current-season'),
-  btnScrapeRecruits: document.getElementById('btn-scrape-recruits'),  btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
+  btnScrapeRecruits: document.getElementById('btn-scrape-recruits'), btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
   btnUpdateConsidering: document.getElementById('btn-update-considering'),
   statusMessage: document.getElementById('status-message'),
-  
+
   // Recruits tab elements
   filterName: document.getElementById('filter-name'),
   filterPosition: document.getElementById('filter-position'),
@@ -27,7 +27,7 @@ const elements = {
   prevPageBtn: document.getElementById('prev-page'),
   nextPageBtn: document.getElementById('next-page'),
   pageInfo: document.getElementById('page-info'),
-  
+
   // Settings tab elements
   btnExportData: document.getElementById('btn-export-data'),
   btnImportData: document.getElementById('btn-import-data'),
@@ -55,10 +55,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadData();
   updateDashboardStats();
   await updateButtonState();
-  
+
   // Set up sidebar visibility listener
   sidebarComms.setupSidebarListeners();
-  
+
   // Listen for sidebar visibility events
   document.addEventListener('sidebar-visible', async () => {
     console.log('Sidebar became visible, refreshing data');
@@ -77,55 +77,55 @@ function setupEventListeners() {
       switchTab(tabId);
     });
   });
-  
+
   // Dashboard actions
   elements.btnScrapeRecruits.addEventListener('click', handleScrapeRecruits);
   elements.btnUpdateWatchlist.addEventListener('click', handleUpdateWatchlist);
   elements.btnUpdateConsidering.addEventListener('click', handleUpdateConsidering);
-  
+
   // Recruit filtering
   if (elements.filterName) {
     elements.filterName.addEventListener('input', applyFilters);
   }
-  
+
   if (elements.filterPosition) {
     elements.filterPosition.addEventListener('change', applyFilters);
   }
-  
+
   if (elements.filterMinRating) {
     elements.filterMinRating.addEventListener('input', applyFilters);
   }
-  
+
   if (elements.filterPotential) {
     elements.filterPotential.addEventListener('change', applyFilters);
   }
-  
+
   // Pagination
   if (elements.prevPageBtn) {
     elements.prevPageBtn.addEventListener('click', () => changePage(-1));
   }
-  
+
   if (elements.nextPageBtn) {
     elements.nextPageBtn.addEventListener('click', () => changePage(1));
   }
-  
+
   // Settings actions
   if (elements.btnExportData) {
     elements.btnExportData.addEventListener('click', handleExportData);
   }
-  
+
   if (elements.btnImportData) {
     elements.btnImportData.addEventListener('click', handleImportData);
   }
-  
+
   if (elements.btnClearData) {
     elements.btnClearData.addEventListener('click', handleClearData);
   }
-  
+
   if (elements.btnEditRoleRatings) {
     elements.btnEditRoleRatings.addEventListener('click', handleEditRoleRatings);
   }
-  
+
   // Add event listener for database check button
   const btnCheckDb = document.getElementById('btn-check-db');
   if (btnCheckDb) {
@@ -139,7 +139,7 @@ function switchTab(tabId) {
   elements.tabButtons.forEach(button => {
     button.classList.toggle('active', button.id === `tab-${tabId}`);
   });
-  
+
   // Show active tab section
   elements.tabSections.forEach(section => {
     section.classList.toggle('active', section.id === `${tabId}-section`);
@@ -152,17 +152,17 @@ async function loadData() {
     // Get recruits from storage
     const response = await sendMessageToBackground({ action: 'getRecruits' });
     state.recruits = response.recruits || [];
-    
+
     // Populate position filter if it exists
     if (elements.filterPosition) {
       populatePositionFilter();
     }
-    
+
     // Populate potential filter if it exists
     if (elements.filterPotential) {
       populatePotentialFilter();
     }
-    
+
     // Apply filters and update list
     applyFilters();
   } catch (error) {
@@ -178,7 +178,7 @@ function updateDashboardStats() {
       elements.recruitCount.textContent = state.recruits.length;
       elements.watchlistCount.textContent = stats.watchlistCount || 0;
       elements.lastUpdated.textContent = formatDate(stats.lastUpdated) || 'Never';
-      
+
       // Store and display season number if available
       if (stats.currentSeason) {
         state.currentSeason = stats.currentSeason;
@@ -201,19 +201,19 @@ function applyFilters() {
   state.filters.position = elements.filterPosition ? elements.filterPosition.value : '';
   state.filters.minRating = elements.filterMinRating ? parseFloat(elements.filterMinRating.value) || 0 : 0;
   state.filters.potential = elements.filterPotential ? elements.filterPotential.value : '';
-  
+
   // Apply filters to recruits
   state.filteredRecruits = state.recruits.filter(recruit => {
     // Name filter
     if (state.filters.name && !recruit.name.toLowerCase().includes(state.filters.name)) {
       return false;
     }
-    
+
     // Position filter
     if (state.filters.position && recruit.pos !== state.filters.position) {
       return false;
     }
-    
+
     // Rating filter
     if (state.filters.minRating > 0) {
       const rating = recruit.ovr || 0;
@@ -221,18 +221,18 @@ function applyFilters() {
         return false;
       }
     }
-    
+
     // Potential filter
     if (state.filters.potential && recruit.potential !== state.filters.potential) {
       return false;
     }
-    
+
     return true;
   });
-  
+
   // Reset to first page
   state.currentPage = 1;
-  
+
   // Update the list
   updateRecruitsList();
 }
@@ -240,15 +240,15 @@ function applyFilters() {
 // Update recruits list in the UI
 function updateRecruitsList() {
   if (!elements.recruitsList) return;
-  
+
   // Calculate pagination
   const startIndex = (state.currentPage - 1) * state.itemsPerPage;
   const endIndex = startIndex + state.itemsPerPage;
   const pageRecruits = state.filteredRecruits.slice(startIndex, endIndex);
-  
+
   // Clear current list
   elements.recruitsList.innerHTML = '';
-  
+
   // Add recruits to list
   if (pageRecruits.length === 0) {
     const emptyRow = document.createElement('tr');
@@ -261,39 +261,39 @@ function updateRecruitsList() {
   } else {
     pageRecruits.forEach(recruit => {
       const row = document.createElement('tr');
-      
+
       // Create cells for recruit data
       const nameCell = document.createElement('td');
       nameCell.textContent = recruit.name;
-      
+
       const positionCell = document.createElement('td');
       positionCell.textContent = recruit.pos;
-      
+
       const ratingCell = document.createElement('td');
       ratingCell.textContent = recruit.ovr || 'N/A';
-      
+
       const potentialCell = document.createElement('td');
       potentialCell.textContent = recruit.potential || 'N/A';
-      
+
       const actionsCell = document.createElement('td');
       const viewButton = document.createElement('button');
       viewButton.textContent = 'View';
       viewButton.className = 'view-btn';
       viewButton.addEventListener('click', () => handleViewRecruit(recruit.id));
       actionsCell.appendChild(viewButton);
-      
+
       // Add cells to row
       row.appendChild(nameCell);
       row.appendChild(positionCell);
       row.appendChild(ratingCell);
       row.appendChild(potentialCell);
       row.appendChild(actionsCell);
-      
+
       // Add row to table
       elements.recruitsList.appendChild(row);
     });
   }
-  
+
   // Update pagination controls
   const totalPages = Math.ceil(state.filteredRecruits.length / state.itemsPerPage);
   elements.pageInfo.textContent = `Page ${state.currentPage} of ${totalPages || 1}`;
@@ -312,16 +312,16 @@ function changePage(direction) {
 function populatePositionFilter() {
   // Get unique positions
   const positions = [...new Set(state.recruits.map(recruit => recruit.pos))].sort();
-  
+
   // Clear current options
   elements.filterPosition.innerHTML = '';
-  
+
   // Add default option
   const defaultOption = document.createElement('option');
   defaultOption.value = '';
   defaultOption.textContent = 'All Positions';
   elements.filterPosition.appendChild(defaultOption);
-  
+
   // Add position options
   positions.forEach(position => {
     const option = document.createElement('option');
@@ -335,13 +335,13 @@ function populatePositionFilter() {
 function populatePotentialFilter() {
   // Clear current options
   elements.filterPotential.innerHTML = '';
-  
+
   // Add default option
   const defaultOption = document.createElement('option');
   defaultOption.value = '';
   defaultOption.textContent = 'All Potentials';
   elements.filterPotential.appendChild(defaultOption);
-  
+
   // Add potential options
   const potentials = ['0-VL', '1-L', '2-A', '3-H', '4-VH'];
   potentials.forEach(potential => {
@@ -356,96 +356,96 @@ function populatePotentialFilter() {
 function handleViewRecruit(recruitId) {
   // Find recruit by ID
   const recruit = state.recruits.find(r => r.id === recruitId);
-  
+
   if (!recruit) {
     console.error('Recruit not found:', recruitId);
     return;
   }
-  
+
   // Open a modal or navigate to a detailed view
   // For now, just log the recruit
   console.log('Viewing recruit:', recruit);
-  
+
   // In a real implementation, you would show a detailed view here
 }
 
 // Handle scrape recruits action
 async function handleScrapeRecruits() {
   setStatusMessage('Preparing to fetch recruit data...');
-  
+
   try {
     // Check if the user is logged in first
     const loginCheck = await sendMessageToBackground({
       action: 'checkLogin'
     });
-    
+
     if (!loginCheck.loggedIn) {
       setStatusMessage('Error: Not authenticated. Please log in to WhatifsIports.com in another tab first.', 'error');
       return;
     }
-    
+
     // Check if this is an initialization or a new season
     const stats = await sendMessageToBackground({ action: 'getStats' });
     const recruitCount = stats.recruitCount || 0;
     const hasSeason = stats.currentSeason !== null && stats.currentSeason !== undefined;
     const isNewSeason = recruitCount > 0 || hasSeason;
-    
+
     // If this is a new season, confirm with the user
     if (isNewSeason) {
       const confirmed = confirm(
         "You are about to initialize a new season. This will delete all existing recruit data. Are you sure you want to proceed?"
       );
-      
+
       if (!confirmed) {
         setStatusMessage('New season initialization cancelled');
         return;
       }
-      
+
       // Clear all data
       setStatusMessage('Clearing existing data...');
       await sendMessageToBackground({ action: 'clearAllData' });
-      
+
       // Reset local state
       state.currentSeason = null;
-      
+
       // Disable watchlist buttons immediately
       if (elements.btnUpdateWatchlist) {
         elements.btnUpdateWatchlist.disabled = true;
       }
-      
+
       if (elements.btnUpdateConsidering) {
         elements.btnUpdateConsidering.disabled = true;
       }
-      
+
       // Update the UI to reflect cleared data
       if (elements.currentSeason) {
         elements.currentSeason.textContent = 'N/A';
       }
-      
+
       if (elements.lastUpdated) {
         elements.lastUpdated.textContent = 'Never';
       }
-      
+
       if (elements.recruitCount) {
         elements.recruitCount.textContent = '0';
       }
-      
+
       if (elements.watchlistCount) {
         elements.watchlistCount.textContent = '0';
       }
     }
-    
+
     // Now proceed with season initialization (for both new season and first-time init)
     let seasonNumber = null;
     let includeLowerDivisions = false;
-    
+
     try {
       const modalResult = await showSeasonInputModal();
       seasonNumber = modalResult.seasonNumber;
       includeLowerDivisions = modalResult.includeLowerDivisions;
       console.log('Season number from modal:', seasonNumber);
       console.log('Include lower divisions from modal:', includeLowerDivisions);
-      
+
       // If we have a valid season number, update the dashboard immediately
       if (seasonNumber) {
         // Manually update the current season in the UI right away
@@ -459,7 +459,7 @@ async function handleScrapeRecruits() {
       setStatusMessage('Initialization cancelled');
       return;
     }
-    
+
     // Send request to background script to fetch and scrape recruits
     setStatusMessage('Opening recruit page and starting scrape...');
     console.log('Sending fetchAndScrapeRecruits with seasonNumber:', seasonNumber);
@@ -468,40 +468,40 @@ async function handleScrapeRecruits() {
       includeLowerDivisions: includeLowerDivisions,
       seasonNumber: seasonNumber
     });
-    
+
     if (!result.success) {
       console.error('Error in fetch and scrape process:', result.error);
       throw new Error(result.error || 'Unknown error occurred');
     }
-    
+
     setStatusMessage('Scraping in progress. A new tab will open briefly and close when done...');
-    
+
     // Set up a listener for the scraped data
     const handleScrapeComplete = (message) => {
       if (message.action === 'scrapeComplete') {
         // Remove this listener
         chrome.runtime.onMessage.removeListener(handleScrapeComplete);
-        
+
         // Reload data
         loadData().then(() => {
           // Make sure to update the dashboard stats to reflect the new season
           updateDashboardStats();
           updateButtonState();
-          
+
           // Show success message with season number
-            // Get the actual recruit count from state.recruits which was updated by loadData()
-            if (seasonNumber) {
+          // Get the actual recruit count from state.recruits which was updated by loadData()
+          if (seasonNumber) {
             setStatusMessage(`Scrape completed successfully with ${state.recruits.length} recruits for Season ${seasonNumber}`, 'success');
-            } else {
+          } else {
             setStatusMessage(`Scrape completed successfully with ${state.recruits.length} recruits`, 'success');
           }
         });
       }
     };
-    
+
     // Add the listener
     chrome.runtime.onMessage.addListener(handleScrapeComplete);
-    
+
     // Set a timeout to remove the listener if no response within 2 minutes
     setTimeout(() => {
       chrome.runtime.onMessage.removeListener(handleScrapeComplete);
@@ -509,7 +509,7 @@ async function handleScrapeRecruits() {
     }, 120000); // 2 minutes
   } catch (error) {
     console.error('Error scraping recruits:', error);
-    
+
     // Check for common error types and provide better messages
     if (error.message.includes('403')) {
       setStatusMessage('Error: Not authenticated. Please log in to WhatifsIports.com in another tab first.', 'error');
@@ -524,32 +524,32 @@ async function handleScrapeRecruits() {
 // Handle update watchlist action
 async function handleUpdateWatchlist() {
   setStatusMessage('Checking for recruiting summary page...');
-  
+
   try {
     // Check if we're on a recruiting page
     const isOnRecruitingPage = await sidebarComms.isOnRecruitingPage();
-    
+
     if (!isOnRecruitingPage) {
       setStatusMessage('Please navigate to the Recruiting Summary page first');
       return;
     }
-    
+
     // Check if we're not on the Advanced page
     const isOnAdvancedPage = await sidebarComms.isOnAdvancedRecruitingPage();
-    
+
     if (isOnAdvancedPage) {
       setStatusMessage('Please navigate to the Recruiting Summary page, not Advanced');
       return;
     }
-    
+
     // Get the active tab
     const activeTab = await sidebarComms.getActiveTab();
-    
+
     if (!activeTab) {
       setStatusMessage('No active tab found');
       return;
     }
-    
+
     // Send message to content script to trigger watchlist scrape
     setStatusMessage('Updating watchlist...');
     await sendMessageToBackground({
@@ -557,7 +557,7 @@ async function handleUpdateWatchlist() {
       tabId: activeTab.id,
       message: { action: 'triggerWatchlistScrape' }
     });
-    
+
     // Wait a bit for scraping to complete
     setTimeout(async () => {
       // Reload data
@@ -574,17 +574,17 @@ async function handleUpdateWatchlist() {
 // Handle update considering action
 async function handleUpdateConsidering() {
   setStatusMessage('Starting considering status update...');
-  
+
   try {
     // Request background script to update considering status
     const result = await sendMessageToBackground({
       action: 'updateConsideringStatus'
     });
-    
+
     // Reload data
     await loadData();
     updateDashboardStats();
-    
+
     setStatusMessage(`Updated considering status for ${result.count} recruits`);
   } catch (error) {
     console.error('Error updating considering status:', error);
@@ -595,33 +595,33 @@ async function handleUpdateConsidering() {
 // Handle export data action
 async function handleExportData() {
   setStatusMessage('Exporting data...');
-  
+
   try {
     // Request data from background script
     const data = await sendMessageToBackground({
       action: 'exportAllData'
     });
-    
+
     // Convert to JSON string
     const jsonData = JSON.stringify(data, null, 2);
-    
+
     // Create blob and download link
     const blob = new Blob([jsonData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    
+
     // Create download link
     const a = document.createElement('a');
     a.href = url;
     a.download = `gd_recruit_data_${formatDateForFile(new Date())}.json`;
     document.body.appendChild(a);
     a.click();
-    
+
     // Clean up
     setTimeout(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 0);
-    
+
     setStatusMessage('Data exported successfully');
   } catch (error) {
     console.error('Error exporting data:', error);
@@ -632,41 +632,41 @@ async function handleExportData() {
 // Handle import data action
 function handleImportData() {
   setStatusMessage('Select a JSON file to import...');
-  
+
   // Create file input
   const fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.accept = '.json';
-  
+
   fileInput.addEventListener('change', async (event) => {
     if (!event.target.files || event.target.files.length === 0) {
       return;
     }
-    
+
     const file = event.target.files[0];
-    
+
     try {
       // Read file
       const text = await file.text();
       const data = JSON.parse(text);
-      
+
       // Import data
       await sendMessageToBackground({
         action: 'importData',
         data
       });
-        // Reload data
+      // Reload data
       await loadData();
       updateDashboardStats();
       await updateButtonState();
-      
+
       setStatusMessage('Data imported successfully');
     } catch (error) {
       console.error('Error importing data:', error);
       setStatusMessage('Error importing data: ' + error.message);
     }
   });
-  
+
   // Trigger file selection
   fileInput.click();
 }
@@ -676,41 +676,41 @@ async function handleClearData() {
   if (!confirm('Are you sure you want to clear all data? This cannot be undone.')) {
     return;
   }
-  
+
   setStatusMessage('Clearing all data...');
-  
+
   try {
     // Clear data
     const result = await sendMessageToBackground({
       action: 'clearAllData'
     });
-    
+
     console.log('Clear data result:', result);
-    
+
     // Check for error in the response
     if (result && result.error) {
       throw new Error(result.error);
     }
-      // Check for warning
+    // Check for warning
     if (result && result.warning) {
       console.warn('Warning during clear operation:', result.warning);
       setStatusMessage(`Data cleared with warning: ${result.warning}`);
     } else {
       // Reset local state for season
       state.currentSeason = null;
-      
+
       // Reload data
       await loadData();
       updateDashboardStats();
       await updateButtonState();
-      
+
       setStatusMessage('All data and season information cleared successfully');
     }
   } catch (error) {
     console.error('Error clearing data:', error);
     // Format error message properly to avoid [object Object]
     let errorMessage;
-    
+
     if (error instanceof Error) {
       errorMessage = error.message;
     } else if (typeof error === 'string') {
@@ -720,7 +720,7 @@ async function handleClearData() {
     } else {
       errorMessage = 'Unknown error';
     }
-    
+
     setStatusMessage('Error clearing data: ' + errorMessage);
   }
 }
@@ -734,13 +734,13 @@ function handleEditRoleRatings() {
 // Handle check database action
 async function handleCheckDatabase() {
   setStatusMessage('Checking database status...');
-  
+
   try {
     // Request diagnostic data from background script
     const diagnosticResult = await sendMessageToBackground({
       action: 'checkDatabaseStatus'
     });
-    
+
     // Display diagnostic information
     if (diagnosticResult.success) {
       const dbInfo = diagnosticResult.dbInfo;
@@ -751,10 +751,10 @@ Object stores: ${dbInfo.objectStores.join(', ')}
 Recruit count: ${dbInfo.recruitCount}
 Last error: ${dbInfo.lastError || 'None'}
       `;
-      
+
       // Create a modal to display the information
       showDiagnosticModal('Database Diagnostic Results', message);
-      
+
       setStatusMessage('Database check completed');
     } else {
       throw new Error(diagnosticResult.error || 'Unknown error checking database');
@@ -775,53 +775,53 @@ function showSeasonInputModal() {
     const seasonInput = document.getElementById('season-number');
     const errorText = document.getElementById('season-input-error');
     const includeLowerDivisions = document.getElementById('include-lower-divisions');
-    
+
     // Clear previous errors and reset input
     errorText.textContent = '';
     seasonInput.value = '1';
     includeLowerDivisions.checked = false;
-    
+
     // Show the modal
     modal.style.display = 'block';
-    
+
     // Focus the input field
     seasonInput.focus();
-    
+
     // Handle close button click
     closeBtn.onclick = () => {
       modal.style.display = 'none';
       reject(new Error('Season input cancelled'));
     };
-    
+
     // Handle cancel button click
     cancelBtn.onclick = () => {
       modal.style.display = 'none';
       reject(new Error('Season input cancelled'));
     };
-      // Handle confirm button click
+    // Handle confirm button click
     confirmBtn.onclick = () => {
       const seasonNumber = parseInt(seasonInput.value);
       console.log('Confirm button clicked, parsed season number:', seasonNumber, 'from input value:', seasonInput.value);
-      
+
       if (!seasonNumber || seasonNumber < 1 || !Number.isInteger(seasonNumber)) {
         errorText.textContent = 'Please enter a valid season number (positive integer)';
         return;
       }
-      
+
       modal.style.display = 'none';
       resolve({
         seasonNumber,
         includeLowerDivisions: includeLowerDivisions.checked
       });
     };
-    
+
     // Handle Enter key in input
     seasonInput.addEventListener('keyup', (event) => {
       if (event.key === 'Enter') {
         confirmBtn.click();
       }
     });
-    
+
     // Handle click outside the modal to close
     window.onclick = (event) => {
       if (event.target === modal) {
@@ -838,18 +838,18 @@ async function updateButtonState() {
     // Get stats from background
     const stats = await sendMessageToBackground({ action: 'getStats' });
     const recruitCount = stats.recruitCount || 0;
-    
+
     // Change button text based on whether recruits exist
     if (elements.btnScrapeRecruits) {
-      elements.btnScrapeRecruits.textContent = 
+      elements.btnScrapeRecruits.textContent =
         recruitCount > 0 ? "Initialize New Season" : "Initialize Season";
     }
-    
+
     // Disable/enable Update Watchlist and Update Considering buttons
     if (elements.btnUpdateWatchlist) {
       elements.btnUpdateWatchlist.disabled = recruitCount === 0;
     }
-    
+
     if (elements.btnUpdateConsidering) {
       elements.btnUpdateConsidering.disabled = recruitCount === 0;
     }
@@ -863,43 +863,43 @@ function showDiagnosticModal(title, message) {
   // Create modal elements
   const modal = document.createElement('div');
   modal.classList.add('modal');
-  
+
   const modalContent = document.createElement('div');
   modalContent.classList.add('modal-content');
-  
+
   const modalHeader = document.createElement('div');
   modalHeader.classList.add('modal-header');
-  
+
   const modalTitle = document.createElement('h2');
   modalTitle.textContent = title;
-  
+
   const closeButton = document.createElement('span');
   closeButton.classList.add('close-button');
   closeButton.innerHTML = '&times;';
   closeButton.addEventListener('click', () => {
     document.body.removeChild(modal);
   });
-  
+
   const modalBody = document.createElement('div');
   modalBody.classList.add('modal-body');
-  
+
   const preElement = document.createElement('pre');
   preElement.textContent = message;
-  
+
   // Assemble modal
   modalHeader.appendChild(modalTitle);
   modalHeader.appendChild(closeButton);
-  
+
   modalBody.appendChild(preElement);
-  
+
   modalContent.appendChild(modalHeader);
   modalContent.appendChild(modalBody);
-  
+
   modal.appendChild(modalContent);
-  
+
   // Add modal to page
   document.body.appendChild(modal);
-  
+
   // Add modal styles if they don't exist
   if (!document.getElementById('modal-styles')) {
     const style = document.createElement('style');
@@ -967,10 +967,10 @@ function sendMessageToBackground(message) {
 // Helper function to set status message
 function setStatusMessage(message, type = 'info') {
   if (!elements.statusMessage) return;
-  
+
   // Reset all status classes
   elements.statusMessage.classList.remove('status-success', 'status-error', 'status-warning');
-  
+
   // Set appropriate class based on message type
   if (type === 'success') {
     elements.statusMessage.classList.add('status-success');
@@ -979,14 +979,14 @@ function setStatusMessage(message, type = 'info') {
   } else if (type === 'warning') {
     elements.statusMessage.classList.add('status-warning');
   }
-  
+
   elements.statusMessage.textContent = message;
 }
 
 // Helper function to format date
 function formatDate(dateStr) {
   if (!dateStr) return 'Never';
-  
+
   const date = new Date(dateStr);
   return date.toLocaleString();
 }
@@ -998,7 +998,7 @@ function formatDateForFile(date) {
   const day = String(date.getDate()).padStart(2, '0');
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
-  
+
   return `${year}${month}${day}_${hours}${minutes}`;
 }
 

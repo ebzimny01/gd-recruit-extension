@@ -229,7 +229,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: false, error: error.message });
         });
         return true; // Indicate asynchronous response
-          case 'closeScraperTab':
+      case 'closeScraperTab':
         // Close the tab after the content script has received our response
         if (message.tabId) {
           chrome.tabs.get(message.tabId)
@@ -309,7 +309,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ error: error.message });
         });
         return true; // Indicate asynchronous response
-          case 'clearAllData':
+      case 'clearAllData':
         // Clear all extension data
         console.log('Handling clearAllData request');
         withErrorHandling(async () => {
@@ -317,7 +317,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse(result);
         })(message, sender, sendResponse);
         return true; // Indicate asynchronous response
-          case 'checkDatabaseStatus':
+      case 'checkDatabaseStatus':
         // Check database diagnostic status
         console.log('Handling checkDatabaseStatus request');
         withErrorHandling(async () => {
@@ -575,12 +575,12 @@ async function clearAllData() {
     if (!clearResult.success) {
       console.warn('Warning during clear operation:', clearResult.warning);
     }
-      // Reset stats regardless of warning
+    // Clear lastUpdated instead of setting to current time
     try {
-      await recruitStorage.saveConfig('lastUpdated', new Date().toISOString());
-      console.log('Successfully reset lastUpdated timestamp');
+      await recruitStorage.saveConfig('lastUpdated', null);
+      console.log('Successfully cleared lastUpdated timestamp');
     } catch (configError) {
-      console.error('Error resetting lastUpdated config:', configError);
+      console.error('Error clearing lastUpdated config:', configError);
       // Continue with other operations despite this error
     }
     

@@ -38,19 +38,11 @@
           </div>
         </div>
           <div class="action-buttons">
-          <button id="btn-scrape-recruits" class="action-btn">Scrape Recruits</button>
+          <button id="btn-scrape-recruits" class="action-btn">Initialize Season</button>
           <button id="btn-update-watchlist" class="action-btn">Update Watchlist</button>
           <button id="btn-update-considering" class="action-btn">Update Considering</button>
         </div>
-        
-        <div class="scrape-options">
-          <label class="checkbox-label">
-            <input type="checkbox" id="include-lower-divisions">
-            Include Lower Divisions
-          </label>
-        </div>
-        
-        <div class="status-box">
+          <div class="status-box">
           <p id="status-message">Ready</p>
         </div>
       </section>
@@ -121,10 +113,15 @@
           </div>
           <div class="modal-body">
             <p>You are about to initialize recruits for a new season. Please enter the season number:</p>
-            <div class="input-group">
-              <label for="season-number">Season Number:</label>
+            <div class="input-group">              <label for="season-number">Season Number:</label>
               <input type="number" id="season-number" min="1" step="1" value="1">
               <small id="season-input-error" class="error-text"></small>
+            </div>
+            <div class="input-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="include-lower-divisions">
+                Include Lower Divisions
+              </label>
             </div>
           </div>
           <div class="modal-footer">

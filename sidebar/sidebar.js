@@ -14,11 +14,9 @@ const elements = {
   watchlistCount: document.getElementById('watchlist-count'),
   lastUpdated: document.getElementById('last-updated'),
   currentSeason: document.getElementById('current-season'),
-  btnScrapeRecruits: document.getElementById('btn-scrape-recruits'),
-  btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
+  btnScrapeRecruits: document.getElementById('btn-scrape-recruits'),  btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
   btnUpdateConsidering: document.getElementById('btn-update-considering'),
   statusMessage: document.getElementById('status-message'),
-  includeLowerDivisions: document.getElementById('include-lower-divisions'),
   
   // Recruits tab elements
   filterName: document.getElementById('filter-name'),
@@ -385,35 +383,84 @@ async function handleScrapeRecruits() {
       setStatusMessage('Error: Not authenticated. Please log in to WhatifsIports.com in another tab first.', 'error');
       return;
     }
-      // Check if this is an initialization or a regular scrape
+    
+    // Check if this is an initialization or a new season
     const stats = await sendMessageToBackground({ action: 'getStats' });
     const recruitCount = stats.recruitCount || 0;
-    const isInitializing = recruitCount === 0;    // If this is an initialization, get the season number
-    let seasonNumber = null;
-    if (isInitializing) {
-      try {
-        seasonNumber = await showSeasonInputModal();
-        console.log('Season number from modal:', seasonNumber);
-        
-        // If we have a valid season number, update the dashboard immediately
-        if (seasonNumber) {
-          // Manually update the current season in the UI right away
-          state.currentSeason = seasonNumber;
-          if (elements.currentSeason) {
-            elements.currentSeason.textContent = seasonNumber;
-          }
-        }
-      } catch (error) {
-        // User cancelled the season input
-        setStatusMessage('Initialization cancelled');
+    const hasSeason = stats.currentSeason !== null && stats.currentSeason !== undefined;
+    const isNewSeason = recruitCount > 0 || hasSeason;
+    
+    // If this is a new season, confirm with the user
+    if (isNewSeason) {
+      const confirmed = confirm(
+        "You are about to initialize a new season. This will delete all existing recruit data. Are you sure you want to proceed?"
+      );
+      
+      if (!confirmed) {
+        setStatusMessage('New season initialization cancelled');
         return;
+      }
+      
+      // Clear all data
+      setStatusMessage('Clearing existing data...');
+      await sendMessageToBackground({ action: 'clearAllData' });
+      
+      // Reset local state
+      state.currentSeason = null;
+      
+      // Disable watchlist buttons immediately
+      if (elements.btnUpdateWatchlist) {
+        elements.btnUpdateWatchlist.disabled = true;
+      }
+      
+      if (elements.btnUpdateConsidering) {
+        elements.btnUpdateConsidering.disabled = true;
+      }
+      
+      // Update the UI to reflect cleared data
+      if (elements.currentSeason) {
+        elements.currentSeason.textContent = 'N/A';
+      }
+      
+      if (elements.lastUpdated) {
+        elements.lastUpdated.textContent = 'Never';
+      }
+      
+      if (elements.recruitCount) {
+        elements.recruitCount.textContent = '0';
+      }
+      
+      if (elements.watchlistCount) {
+        elements.watchlistCount.textContent = '0';
       }
     }
     
-    // Check if user wants to include lower divisions
-    const includeLowerDivisions = elements.includeLowerDivisions.checked;
-    console.log(`Scraping recruits with includeLowerDivisions: ${includeLowerDivisions}`);
-      // Send request to background script to fetch and scrape recruits
+    // Now proceed with season initialization (for both new season and first-time init)
+    let seasonNumber = null;
+    let includeLowerDivisions = false;
+    
+    try {
+      const modalResult = await showSeasonInputModal();
+      seasonNumber = modalResult.seasonNumber;
+      includeLowerDivisions = modalResult.includeLowerDivisions;
+      console.log('Season number from modal:', seasonNumber);
+      console.log('Include lower divisions from modal:', includeLowerDivisions);
+      
+      // If we have a valid season number, update the dashboard immediately
+      if (seasonNumber) {
+        // Manually update the current season in the UI right away
+        state.currentSeason = seasonNumber;
+        if (elements.currentSeason) {
+          elements.currentSeason.textContent = seasonNumber;
+        }
+      }
+    } catch (error) {
+      // User cancelled the season input
+      setStatusMessage('Initialization cancelled');
+      return;
+    }
+    
+    // Send request to background script to fetch and scrape recruits
     setStatusMessage('Opening recruit page and starting scrape...');
     console.log('Sending fetchAndScrapeRecruits with seasonNumber:', seasonNumber);
     const result = await sendMessageToBackground({
@@ -428,22 +475,25 @@ async function handleScrapeRecruits() {
     }
     
     setStatusMessage('Scraping in progress. A new tab will open briefly and close when done...');
-      // Set up a listener for the scraped data
+    
+    // Set up a listener for the scraped data
     const handleScrapeComplete = (message) => {
       if (message.action === 'scrapeComplete') {
         // Remove this listener
         chrome.runtime.onMessage.removeListener(handleScrapeComplete);
-          // Reload data
+        
+        // Reload data
         loadData().then(() => {
           // Make sure to update the dashboard stats to reflect the new season
           updateDashboardStats();
           updateButtonState();
           
-          // If we have a season number from initialization, show it in the status message
-          if (seasonNumber && isInitializing) {
-            setStatusMessage(`Scrape completed successfully with ${message.count} recruits for Season ${seasonNumber}`);
-          } else {
-            setStatusMessage(`Scrape completed successfully with ${message.count} recruits`);
+          // Show success message with season number
+            // Get the actual recruit count from state.recruits which was updated by loadData()
+            if (seasonNumber) {
+            setStatusMessage(`Scrape completed successfully with ${state.recruits.length} recruits for Season ${seasonNumber}`, 'success');
+            } else {
+            setStatusMessage(`Scrape completed successfully with ${state.recruits.length} recruits`, 'success');
           }
         });
       }
@@ -455,18 +505,18 @@ async function handleScrapeRecruits() {
     // Set a timeout to remove the listener if no response within 2 minutes
     setTimeout(() => {
       chrome.runtime.onMessage.removeListener(handleScrapeComplete);
-      setStatusMessage('Scraping timed out. Please try again.');
+      setStatusMessage('Scraping timed out. Please try again.', 'warning');
     }, 120000); // 2 minutes
   } catch (error) {
     console.error('Error scraping recruits:', error);
     
     // Check for common error types and provide better messages
     if (error.message.includes('403')) {
-      setStatusMessage('Error: Not authenticated. Please log in to WhatifsIports.com in another tab first.');
+      setStatusMessage('Error: Not authenticated. Please log in to WhatifsIports.com in another tab first.', 'error');
     } else if (error.message.includes('Failed to fetch')) {
-      setStatusMessage('Error connecting to WhatifsIports.com. Check your internet connection and login status.');
+      setStatusMessage('Error connecting to WhatifsIports.com. Check your internet connection and login status.', 'error');
     } else {
-      setStatusMessage('Error scraping recruits: ' + error.message);
+      setStatusMessage('Error scraping recruits: ' + error.message, 'error');
     }
   }
 }
@@ -724,10 +774,12 @@ function showSeasonInputModal() {
     const cancelBtn = document.getElementById('season-cancel');
     const seasonInput = document.getElementById('season-number');
     const errorText = document.getElementById('season-input-error');
+    const includeLowerDivisions = document.getElementById('include-lower-divisions');
     
     // Clear previous errors and reset input
     errorText.textContent = '';
     seasonInput.value = '1';
+    includeLowerDivisions.checked = false;
     
     // Show the modal
     modal.style.display = 'block';
@@ -757,7 +809,10 @@ function showSeasonInputModal() {
       }
       
       modal.style.display = 'none';
-      resolve(seasonNumber);
+      resolve({
+        seasonNumber,
+        includeLowerDivisions: includeLowerDivisions.checked
+      });
     };
     
     // Handle Enter key in input
@@ -787,7 +842,7 @@ async function updateButtonState() {
     // Change button text based on whether recruits exist
     if (elements.btnScrapeRecruits) {
       elements.btnScrapeRecruits.textContent = 
-        recruitCount > 0 ? "Scrape Recruits" : "Initialize Recruits";
+        recruitCount > 0 ? "Initialize New Season" : "Initialize Season";
     }
     
     // Disable/enable Update Watchlist and Update Considering buttons

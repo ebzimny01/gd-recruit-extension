@@ -20,7 +20,7 @@ const elements = {
   btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
   btnUpdateConsidering: document.getElementById('btn-update-considering'),
   statusMessage: document.getElementById('status-message'),
-  // Recruits tab elements  filterName: document.getElementById('filter-name'),
+  // Recruits tab elements
   filterPosition: document.getElementById('filter-position'),
   filterWatched: document.getElementById('filter-watched'),
   filterMinRating: document.getElementById('filter-min-rating'),
@@ -50,8 +50,8 @@ let state = {
   sorting: {
     column: null,
     direction: 'asc' // 'asc' or 'desc'
-  },  filters: {
-    name: '',
+  },
+    filters: {
     position: '',
     watched: '',
     minRating: 0,
@@ -118,11 +118,7 @@ function setupEventListeners() {
   elements.btnScrapeRecruits.addEventListener('click', handleScrapeRecruits);
   elements.btnUpdateWatchlist.addEventListener('click', handleUpdateWatchlist);
   elements.btnUpdateConsidering.addEventListener('click', handleUpdateConsidering);
-
   // Recruit filtering
-  if (elements.filterName) {
-    elements.filterName.addEventListener('input', applyFilters);
-  }
   if (elements.filterPosition) {
     elements.filterPosition.addEventListener('change', applyFilters);
   }
@@ -306,10 +302,8 @@ function updateSchoolNameDisplay(schoolName, teamInfo) {
       element.title = tooltip;
     }
   });
-}
-
-// Apply filters to recruits list
-function applyFilters() {  // Update filter values  state.filters.name = elements.filterName ? elements.filterName.value.toLowerCase() : '';
+}  // Apply filters to recruits list
+function applyFilters() {  // Update filter values
   state.filters.position = elements.filterPosition ? elements.filterPosition.value : '';
   state.filters.watched = elements.filterWatched ? elements.filterWatched.value : '';
   state.filters.minRating = elements.filterMinRating ? parseFloat(elements.filterMinRating.value) || 0 : 0;
@@ -320,10 +314,7 @@ function applyFilters() {  // Update filter values  state.filters.name = element
 
   // Apply filters to recruits
   state.filteredRecruits = state.recruits.filter(recruit => {
-    // Name filter
-    if (state.filters.name && !recruit.name.toLowerCase().includes(state.filters.name)) {
-      return false;
-    }    // Position filter
+    // Position filter
     if (state.filters.position && recruit.pos !== state.filters.position) {
       return false;
     }

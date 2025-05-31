@@ -19,9 +19,9 @@ const elements = {
   btnScrapeRecruits: document.getElementById('btn-scrape-recruits'), btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
   btnUpdateConsidering: document.getElementById('btn-update-considering'),
   statusMessage: document.getElementById('status-message'),
-  // Recruits tab elements
-  filterName: document.getElementById('filter-name'),
+  // Recruits tab elements  filterName: document.getElementById('filter-name'),
   filterPosition: document.getElementById('filter-position'),
+  filterWatched: document.getElementById('filter-watched'),
   filterMinRating: document.getElementById('filter-min-rating'),
   filterPotential: document.getElementById('filter-potential'),
   filterDistance: document.getElementById('filter-distance'),
@@ -51,6 +51,7 @@ let state = {
   },  filters: {
     name: '',
     position: '',
+    watched: '',
     minRating: 0,
     potential: '',
     distance: '',
@@ -119,9 +120,12 @@ function setupEventListeners() {
   if (elements.filterName) {
     elements.filterName.addEventListener('input', applyFilters);
   }
-
   if (elements.filterPosition) {
     elements.filterPosition.addEventListener('change', applyFilters);
+  }
+
+  if (elements.filterWatched) {
+    elements.filterWatched.addEventListener('change', applyFilters);
   }
 
   if (elements.filterMinRating) {
@@ -223,6 +227,11 @@ async function loadData() {
       populateSignedFilter();
     }
 
+    // Populate watched filter if it exists
+    if (elements.filterWatched) {
+      populateWatchedFilter();
+    }
+
     // Apply filters and update list
     applyFilters();
     
@@ -289,10 +298,10 @@ function updateSchoolNameDisplay(schoolName, teamInfo) {
 }
 
 // Apply filters to recruits list
-function applyFilters() {
-  // Update filter values
+function applyFilters() {  // Update filter values
   state.filters.name = elements.filterName ? elements.filterName.value.toLowerCase() : '';
   state.filters.position = elements.filterPosition ? elements.filterPosition.value : '';
+  state.filters.watched = elements.filterWatched ? elements.filterWatched.value : '';
   state.filters.minRating = elements.filterMinRating ? parseFloat(elements.filterMinRating.value) || 0 : 0;
   state.filters.potential = elements.filterPotential ? elements.filterPotential.value : '';
   state.filters.distance = elements.filterDistance ? elements.filterDistance.value : '';
@@ -303,12 +312,26 @@ function applyFilters() {
     // Name filter
     if (state.filters.name && !recruit.name.toLowerCase().includes(state.filters.name)) {
       return false;
-    }
-
-    // Position filter
+    }    // Position filter
     if (state.filters.position && recruit.pos !== state.filters.position) {
       return false;
-    }    // Rating filter
+    }
+
+    // Watched filter
+    if (state.filters.watched) {
+      const isWatched = recruit.watched === 1;
+      switch (state.filters.watched) {
+        case 'Yes':
+          if (!isWatched) return false;
+          break;
+        case 'No':
+          if (isWatched) return false;
+          break;
+        // 'Any' doesn't filter anything
+      }
+    }
+
+    // Rating filter
     if (state.filters.minRating > 0) {
       const rating = recruit.rating || 0;
       if (rating < state.filters.minRating) {
@@ -710,6 +733,29 @@ function populateSignedFilter() {
     option.value = signedOption;
     option.textContent = signedOption;
     elements.filterSigned.appendChild(option);
+  });
+}
+
+// Populate watched filter
+function populateWatchedFilter() {
+  if (!elements.filterWatched) return;
+
+  // Clear current options
+  elements.filterWatched.innerHTML = '';
+
+  // Add default option
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'Any Watched Status';
+  elements.filterWatched.appendChild(defaultOption);
+
+  // Add watched options
+  const watchedOptions = ['No', 'Yes'];
+  watchedOptions.forEach(watchedOption => {
+    const option = document.createElement('option');
+    option.value = watchedOption;
+    option.textContent = watchedOption;
+    elements.filterWatched.appendChild(option);
   });
 }
 

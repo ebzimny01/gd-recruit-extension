@@ -24,7 +24,6 @@ const elements = {
   filterName: document.getElementById('filter-name'),
   filterPosition: document.getElementById('filter-position'),
   filterWatched: document.getElementById('filter-watched'),
-  filterMinRating: document.getElementById('filter-min-rating'),
   filterPotential: document.getElementById('filter-potential'),
   filterPriority: document.getElementById('filter-priority'),
   filterDistance: document.getElementById('filter-distance'),
@@ -56,7 +55,6 @@ let state = {
     name: '',
     position: '',
     watched: '',
-    minRating: 0,
     potential: '',
     priority: '',
     distance: '',
@@ -133,9 +131,6 @@ function setupEventListeners() {
     elements.filterWatched.addEventListener('change', applyFilters);
   }
 
-  if (elements.filterMinRating) {
-    elements.filterMinRating.addEventListener('input', applyFilters);
-  }
   if (elements.filterPotential) {
     elements.filterPotential.addEventListener('change', applyFilters);
   }
@@ -309,7 +304,6 @@ function applyFilters() {
   state.filters.name = elements.filterName ? elements.filterName.value.toLowerCase() : '';
   state.filters.position = elements.filterPosition ? elements.filterPosition.value : '';
   state.filters.watched = elements.filterWatched ? elements.filterWatched.checked : false;
-  state.filters.minRating = elements.filterMinRating ? parseFloat(elements.filterMinRating.value) || 0 : 0;
   state.filters.potential = elements.filterPotential ? elements.filterPotential.value : '';
   state.filters.priority = elements.filterPriority ? elements.filterPriority.value : '';
   state.filters.distance = elements.filterDistance ? elements.filterDistance.value : '';
@@ -325,14 +319,6 @@ function applyFilters() {
     // Watched filter (changed to checkbox)
     if (state.filters.watched && recruit.watched !== 1) {
       return false;
-    }
-
-    // Rating filter
-    if (state.filters.minRating > 0) {
-      const rating = recruit.rating || 0;
-      if (rating < state.filters.minRating) {
-        return false;
-      }
     }
 
     // Potential filter

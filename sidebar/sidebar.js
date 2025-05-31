@@ -19,8 +19,8 @@ const elements = {
   btnScrapeRecruits: document.getElementById('btn-scrape-recruits'),
   btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
   btnUpdateConsidering: document.getElementById('btn-update-considering'),
-  statusMessage: document.getElementById('status-message'),
-  // Recruits tab elements
+ statusMessage: document.getElementById('status-message'),
+  // Recruits tab elements  filterName: document.getElementById('filter-name'),
   filterPosition: document.getElementById('filter-position'),
   filterWatched: document.getElementById('filter-watched'),
   filterMinRating: document.getElementById('filter-min-rating'),
@@ -47,11 +47,12 @@ let state = {
   currentPage: 1,
   itemsPerPage: 10, // Default value
   showAllResults: false, // Track if showing all results
-  sorting: {
+ sorting: {
     column: null,
     direction: 'asc' // 'asc' or 'desc'
   },
     filters: {
+    name: '',
     position: '',
     watched: '',
     minRating: 0,
@@ -118,7 +119,11 @@ function setupEventListeners() {
   elements.btnScrapeRecruits.addEventListener('click', handleScrapeRecruits);
   elements.btnUpdateWatchlist.addEventListener('click', handleUpdateWatchlist);
   elements.btnUpdateConsidering.addEventListener('click', handleUpdateConsidering);
+
   // Recruit filtering
+  if (elements.filterName) {
+    elements.filterName.addEventListener('input', applyFilters);
+  }
   if (elements.filterPosition) {
     elements.filterPosition.addEventListener('change', applyFilters);
   }
@@ -214,7 +219,9 @@ async function loadData() {
     // Populate position filter if it exists
     if (elements.filterPosition) {
       populatePositionFilter();
-    }    // Populate potential filter if it exists
+    }
+    
+    // Populate potential filter if it exists
     if (elements.filterPotential) {
       populatePotentialFilter();
     }
@@ -234,10 +241,10 @@ async function loadData() {
       populateSignedFilter();
     }
 
-    // Populate watched filter if it exists
-    if (elements.filterWatched) {
-      populateWatchedFilter();
-    }
+    // Remove this line as we no longer need to populate a watched dropdown
+    // if (elements.filterWatched) {
+    //   populateWatchedFilter();
+    // }
 
     // Apply filters and update list
     applyFilters();
@@ -302,10 +309,12 @@ function updateSchoolNameDisplay(schoolName, teamInfo) {
       element.title = tooltip;
     }
   });
-}  // Apply filters to recruits list
-function applyFilters() {  // Update filter values
+}
+
+// Apply filters to recruits list
+function applyFilters() {  // Update filter values  state.filters.name = elements.filterName ? elements.filterName.value.toLowerCase() : '';
   state.filters.position = elements.filterPosition ? elements.filterPosition.value : '';
-  state.filters.watched = elements.filterWatched ? elements.filterWatched.value : '';
+  state.filters.watched = elements.filterWatched ? elements.filterWatched.checked : false; // Changed to boolean
   state.filters.minRating = elements.filterMinRating ? parseFloat(elements.filterMinRating.value) || 0 : 0;
   state.filters.potential = elements.filterPotential ? elements.filterPotential.value : '';
   state.filters.priority = elements.filterPriority ? elements.filterPriority.value : '';
@@ -319,18 +328,9 @@ function applyFilters() {  // Update filter values
       return false;
     }
 
-    // Watched filter
-    if (state.filters.watched) {
-      const isWatched = recruit.watched === 1;
-      switch (state.filters.watched) {
-        case 'Yes':
-          if (!isWatched) return false;
-          break;
-        case 'No':
-          if (isWatched) return false;
-          break;
-        // 'Any' doesn't filter anything
-      }
+    // Watched filter (changed to checkbox)
+    if (state.filters.watched && recruit.watched !== 1) {
+      return false;
     }
 
     // Rating filter
@@ -785,29 +785,6 @@ function populateSignedFilter() {
     option.value = signedOption;
     option.textContent = signedOption;
     elements.filterSigned.appendChild(option);
-  });
-}
-
-// Populate watched filter
-function populateWatchedFilter() {
-  if (!elements.filterWatched) return;
-
-  // Clear current options
-  elements.filterWatched.innerHTML = '';
-
-  // Add default option
-  const defaultOption = document.createElement('option');
-  defaultOption.value = '';
-  defaultOption.textContent = 'Any Watched Status';
-  elements.filterWatched.appendChild(defaultOption);
-
-  // Add watched options
-  const watchedOptions = ['No', 'Yes'];
-  watchedOptions.forEach(watchedOption => {
-    const option = document.createElement('option');
-    option.value = watchedOption;
-    option.textContent = watchedOption;
-    elements.filterWatched.appendChild(option);
   });
 }
 

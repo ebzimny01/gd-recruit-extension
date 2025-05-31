@@ -23,7 +23,7 @@
       <!-- Dashboard Tab -->
       <section id="dashboard-section" class="tab-content active">        <div class="stats-container">
           <div class="stat-card">
-            <h3>School</h3>
+            <h3>School</h3
             <p id="dashboardSchoolName" class="stat-value">-</p>
           </div>
           <div class="stat-card">
@@ -51,33 +51,51 @@
           <div class="status-box">
           <p id="status-message">Ready</p>
         </div>
-      </section>      <!-- Recruits Tab -->
-      <section id="recruits-section" class="tab-content">        <div class="filter-controls">          <div class="filter-row">
-            <select id="filter-position" title="Filter by position">
-            </select>
-          </div>
-          <div class="filter-row">
-            <select id="filter-watched" title="Filter by watched status">
-            </select>
-          </div>          <div class="filter-row">
-            <div class="rating-filter">
+      </section>      <!-- Recruits Tab -->      <section id="recruits-section" class="tab-content">        <div class="filter-controls">
+          <div class="filter-section">
+            <div class="filter-item">
+              <label for="filter-position">Position:</label>
+              <select id="filter-position" title="Filter by position">
+              </select>
             </div>
-            <select id="filter-potential" title="Filter by potential">
-            </select>
-            <select id="filter-priority" title="Filter by priority">
-            </select>
+            <div class="filter-item checkbox-filter">
+              <label for="filter-watched">
+                <input type="checkbox" id="filter-watched" title="Show only watched recruits">
+                <span class="checkbox-label-text">Watched Only</span>
+              </label>
+            </div>
+            <div class="filter-item">
+              <label for="filter-potential">Potential:</label>
+              <select id="filter-potential" title="Filter by potential">
+              </select>
+            </div>
           </div>
-          <div class="filter-row">
-            <select id="filter-distance" title="Filter by distance">
-            </select>
-            <select id="filter-signed" title="Filter by signed status">
-            </select>
+          
+          <div class="filter-section">
+            <div class="filter-item">
+              <label for="filter-priority">Priority:</label>
+              <select id="filter-priority" title="Filter by priority">
+              </select>
+            </div>
+            <div class="filter-item">
+              <label for="filter-distance">Distance:</label>
+              <select id="filter-distance" title="Filter by distance">
+              </select>
+            </div>
+            <div class="filter-item">
+              <label for="filter-signed">Signed:</label>
+              <select id="filter-signed" title="Filter by signed status">
+              </select>
+            </div>
+          </div>          <div class="filter-section">
+            <div class="filter-item rating-filter">
+              <label for="filter-min-rating">Minimum Rating:</label>
+              <input type="number" id="filter-min-rating" min="0" max="100" step="1" placeholder="Min">
+            </div>
           </div>
-        </div>
-
-        <div class="pagination-controls">
+        </div>        <div class="pagination-controls">
           <div class="page-size-control">
-            <label for="page-size-select">Results per page:</label>
+            <label for="page-size-select">Results per page</label>
             <select id="page-size-select" title="Select number of results per page">
               <option value="10">10</option>
               <option value="25">25</option>
@@ -86,7 +104,7 @@
               <option value="all">All</option>
             </select>
           </div>
-        </div>        <div class="recruits-container">
+        </div><div class="recruits-container">
           <table id="recruits-table">            <thead>
               <tr>                <th>Name</th>
                 <th>Pos</th>

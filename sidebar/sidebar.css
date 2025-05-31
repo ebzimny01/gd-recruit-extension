@@ -216,52 +216,106 @@ main {
 /* Recruits tab */
 .filter-controls {
   flex-shrink: 0; /* Don't shrink this section */
-  margin-bottom: 15px;
-  padding: 10px;
-  background-color: #e9ecef;
-  border-radius: 3px;
-}
-
-.filter-row {
-  display: flex;
-  justify-content: space-between;
   margin-bottom: 10px;
+  padding: 8px;
+  background-color: #f0f2f4;
+  border-radius: 5px;
+  border: 1px solid #dde0e3;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
-.filter-row:last-child {
+.filter-section {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.filter-section:last-child {
   margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
-.filter-row input,
-.filter-row select {
-  padding: 5px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-}
-
-.filter-row input[type="text"] {
-  flex: 2;
-  margin-right: 10px;
-}
-
-.filter-row select {
+.filter-item {
+  display: flex;
+  flex-direction: column;
   flex: 1;
+  min-width: 80px;
+  max-width: calc(33.33% - 4px);
+}
+
+@media (max-width: 500px) {
+  .filter-item {
+    min-width: 70px;
+    max-width: calc(50% - 3px);
+  }
+}
+
+.filter-item label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.filter-item select {
+  padding: 3px 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 12px;
+  height: 26px;
+  width: 100%;
+}
+
+.filter-item select:focus, 
+.rating-filter input:focus {
+  border-color: #667eea;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.filter-item select:hover, 
+.rating-filter input:hover {
+  border-color: #bdc3c7;
 }
 
 .rating-filter {
-  flex: 1;
   display: flex;
-  align-items: center;
-  margin-right: 10px;
+  flex-direction: column;
+  flex: 1;
+  min-width: 120px;
 }
 
 .rating-filter label {
-  margin-right: 5px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #495057;
+  margin-bottom: 3px;
   white-space: nowrap;
 }
 
 .rating-filter input {
-  width: 60px;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 12px;
+  height: 26px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.rating-filter input:focus {
+  border-color: #667eea;
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.25);
 }
 
 .recruits-container {
@@ -497,14 +551,26 @@ tbody tr:hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: auto;
+  padding: 8px;
+  margin-top: 8px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
 }
 
 .pagination button {
-  padding: 5px 10px;
+  padding: 4px 10px;
   border: 1px solid #ccc;
-  background-color: #f0f0f0;
+  background-color: #fff;
+  border-radius: 4px;
   cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.pagination button:hover:not(:disabled) {
+  background-color: #f0f0f0;
+  border-color: #bbb;
 }
 
 .pagination button:disabled {
@@ -516,11 +582,13 @@ tbody tr:hover {
 .pagination-controls {
   flex-shrink: 0; /* Don't shrink this section */
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  margin: 10px 0;
-  padding: 8px 0;
-  border-bottom: 1px solid #e9ecef;
+  margin: 8px 0;
+  padding: 6px;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
 }
 
 .page-size-control {
@@ -530,17 +598,20 @@ tbody tr:hover {
 }
 
 .page-size-control label {
-  font-size: 12px;
-  color: #6c757d;
-  font-weight: 500;
+  font-size: 11px;
+  color: #495057;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .page-size-control select {
-  padding: 4px 8px;
+  padding: 3px 5px;
   border: 1px solid #ccc;
-  border-radius: 3px;
+  border-radius: 4px;
   background-color: white;
   font-size: 12px;
+  height: 26px;
   cursor: pointer;
 }
 
@@ -548,6 +619,10 @@ tbody tr:hover {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.page-size-control select:hover {
+  border-color: #bdc3c7;
 }
 
 /* Update pagination to show better information */
@@ -619,6 +694,30 @@ tbody tr:hover {
 
 .checkbox-label input[type="checkbox"] {
   margin-right: 5px;
+}
+
+/* Checkbox filter styling */
+.checkbox-filter {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-filter label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 12px;
+  color: #495057;
+  margin: 0;
+}
+
+.checkbox-filter input[type="checkbox"] {
+  margin-right: 5px;
+  cursor: pointer;
+}
+
+.checkbox-label-text {
+  font-weight: 600;
 }
 
 /* Modal styles */

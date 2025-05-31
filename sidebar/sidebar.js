@@ -400,18 +400,21 @@ function updateRecruitsList() {
 
   // Clear current list
   elements.recruitsList.innerHTML = '';
+  
   // Add recruits to list
   if (pageRecruits.length === 0) {
     const emptyRow = document.createElement('tr');
     const emptyCell = document.createElement('td');
-    emptyCell.colSpan = 34; // Updated to match number of columns
+    emptyCell.colSpan = 33; // Updated from 34 to 33 (removed Actions column)
     emptyCell.textContent = 'No recruits found matching your filters';
     emptyCell.style.textAlign = 'center';
     emptyRow.appendChild(emptyCell);
     elements.recruitsList.appendChild(emptyRow);
   } else {
     pageRecruits.forEach(recruit => {
-      const row = document.createElement('tr');      // Helper function to create a cell with text content
+      const row = document.createElement('tr');
+      
+      // Helper function to create a cell with text content
       const createCell = (text, isNumeric = false) => {
         const cell = document.createElement('td');
         if (text === null || text === undefined || text === '') {
@@ -436,7 +439,9 @@ function updateRecruitsList() {
           case 5: return '5th';
           default: return 'Unprioritized';
         }
-      };      // Create cells for all recruit data
+      };
+
+      // Create cells for all recruit data (removed Actions cell)
       row.appendChild(createCell(recruit.name));
       row.appendChild(createCell(recruit.pos));
       row.appendChild(createCell(recruit.watched === 1 ? 'Yes' : 'No'));
@@ -477,19 +482,11 @@ function updateRecruitsList() {
       consideringCell.title = considering; // Show full text on hover
       row.appendChild(consideringCell);
 
-      // Actions cell
-      const actionsCell = document.createElement('td');
-      const viewButton = document.createElement('button');
-      viewButton.textContent = 'View';
-      viewButton.className = 'view-btn';
-      viewButton.addEventListener('click', () => handleViewRecruit(recruit.id));
-      actionsCell.appendChild(viewButton);
-      row.appendChild(actionsCell);
-
       // Add row to table
       elements.recruitsList.appendChild(row);
     });
   }
+  
   // Update pagination display
   updatePaginationDisplay(totalItems, totalPages, startIndex, endIndex);
   
@@ -856,7 +853,8 @@ function updateTableHeaders() {
     'name', 'pos', 'watched', 'potential', 'priority', 'height', 'weight', 'rating', 'rank',
     'hometown', 'division', 'miles', 'signed', 'gpa', 'ath', 'spd', 'dur',
     'we', 'sta', 'str', 'blk', 'tkl', 'han', 'gi', 'elu', 'tec', 'r1', 'r2',
-    'r3', 'r4', 'r5', 'r6', 'considering', 'actions'
+    'r3', 'r4', 'r5', 'r6', 'considering'
+    // Removed 'actions' from mapping
   ];
 
   headers.forEach((header, index) => {
@@ -865,8 +863,7 @@ function updateTableHeaders() {
 
     const columnName = columnMapping[index];
     
-    // Skip actions column
-    if (columnName === 'actions') return;
+    // Remove actions column check since it no longer exists
 
     // Add sort class if this is the active sort column
     if (state.sorting.column === columnName) {
@@ -882,19 +879,19 @@ function setupTableSorting() {
     'name', 'pos', 'watched', 'potential', 'priority', 'height', 'weight', 'rating', 'rank',
     'hometown', 'division', 'miles', 'signed', 'gpa', 'ath', 'spd', 'dur',
     'we', 'sta', 'str', 'blk', 'tkl', 'han', 'gi', 'elu', 'tec', 'r1', 'r2',
-    'r3', 'r4', 'r5', 'r6', 'considering', 'actions'
+    'r3', 'r4', 'r5', 'r6', 'considering'
+    // Removed 'actions' from mapping
   ];
 
   headers.forEach((header, index) => {
     const columnName = columnMapping[index];
     
-    // Skip actions column
-    if (columnName === 'actions') return;
-
+    // Remove actions column check since it no longer exists
+    
     // Skip if already set up (prevent duplicate event listeners)
     if (header.dataset.sortingSetup === 'true') return;
 
-    // Make header clickable
+    // Make header clickable for all columns
     header.style.cursor = 'pointer';
     header.style.userSelect = 'none';
     header.addEventListener('click', () => sortRecruits(columnName));
@@ -902,23 +899,6 @@ function setupTableSorting() {
     // Mark as set up
     header.dataset.sortingSetup = 'true';
   });
-}
-
-// Handle view recruit details
-function handleViewRecruit(recruitId) {
-  // Find recruit by ID
-  const recruit = state.recruits.find(r => r.id === recruitId);
-
-  if (!recruit) {
-    console.error('Recruit not found:', recruitId);
-    return;
-  }
-
-  // Open a modal or navigate to a detailed view
-  // For now, just log the recruit
-  console.log('Viewing recruit:', recruit);
-
-  // In a real implementation, you would show a detailed view here
 }
 
 // Handle scrape recruits action

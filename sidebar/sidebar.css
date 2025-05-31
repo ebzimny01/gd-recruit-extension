@@ -422,17 +422,6 @@ th:nth-child(33), td:nth-child(33) {
   text-overflow: ellipsis;
 }
 
-/* Actions column */
-td:nth-child(34) {
-  min-width: 80px;
-  text-align: center;
-  position: sticky;
-  right: 0;
-  background-color: #f8f9fa;
-  z-index: 5;
-  box-shadow: -2px 0 4px rgba(0,0,0,0.05);
-}
-
 /* Table sorting styles */
 .recruits-table thead th {
   position: relative;
@@ -515,22 +504,6 @@ thead th:nth-child(33) {
 
 tbody tr:hover {
   background-color: #f5f5f5;
-}
-
-/* View button styling */
-.view-btn {
-  padding: 4px 8px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 11px;
-  transition: background-color 0.2s;
-}
-
-.view-btn:hover {
-  background-color: #0056b3;
 }
 
 /* Responsive table scrolling hint */

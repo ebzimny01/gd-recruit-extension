@@ -19,20 +19,21 @@ const elements = {
   btnScrapeRecruits: document.getElementById('btn-scrape-recruits'),
   btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
   btnUpdateConsidering: document.getElementById('btn-update-considering'),
- statusMessage: document.getElementById('status-message'),
-  // Recruits tab elements  filterName: document.getElementById('filter-name'),
+  statusMessage: document.getElementById('status-message'),
+  // Recruits tab elements
+  filterName: document.getElementById('filter-name'),
   filterPosition: document.getElementById('filter-position'),
   filterWatched: document.getElementById('filter-watched'),
   filterMinRating: document.getElementById('filter-min-rating'),
   filterPotential: document.getElementById('filter-potential'),
   filterPriority: document.getElementById('filter-priority'),
   filterDistance: document.getElementById('filter-distance'),
-  filterSigned: document.getElementById('filter-signed'),
-  recruitsList: document.getElementById('recruits-list'),prevPageBtn: document.getElementById('prev-page'),
+  filterHideSigned: document.getElementById('filter-hide-signed'),
+  recruitsList: document.getElementById('recruits-list'),
+  prevPageBtn: document.getElementById('prev-page'),
   nextPageBtn: document.getElementById('next-page'),
   pageInfo: document.getElementById('page-info'),
   pageSizeSelect: document.getElementById('page-size-select'),
-
   // Settings tab elements
   btnExportData: document.getElementById('btn-export-data'),
   btnImportData: document.getElementById('btn-import-data'),
@@ -47,11 +48,11 @@ let state = {
   currentPage: 1,
   itemsPerPage: 10, // Default value
   showAllResults: false, // Track if showing all results
- sorting: {
+  sorting: {
     column: null,
     direction: 'asc' // 'asc' or 'desc'
   },
-    filters: {
+  filters: {
     name: '',
     position: '',
     watched: '',
@@ -59,7 +60,7 @@ let state = {
     potential: '',
     priority: '',
     distance: '',
-    signed: ''
+    hideSigned: false
   }
 };
 
@@ -134,7 +135,8 @@ function setupEventListeners() {
 
   if (elements.filterMinRating) {
     elements.filterMinRating.addEventListener('input', applyFilters);
-  }  if (elements.filterPotential) {
+  }
+  if (elements.filterPotential) {
     elements.filterPotential.addEventListener('change', applyFilters);
   }
 
@@ -146,8 +148,8 @@ function setupEventListeners() {
     elements.filterDistance.addEventListener('change', applyFilters);
   }
 
-  if (elements.filterSigned) {
-    elements.filterSigned.addEventListener('change', applyFilters);
+  if (elements.filterHideSigned) {
+    elements.filterHideSigned.addEventListener('change', applyFilters);
   }
   // Pagination
   if (elements.prevPageBtn) {
@@ -236,16 +238,6 @@ async function loadData() {
       populateDistanceFilter();
     }
 
-    // Populate signed filter if it exists
-    if (elements.filterSigned) {
-      populateSignedFilter();
-    }
-
-    // Remove this line as we no longer need to populate a watched dropdown
-    // if (elements.filterWatched) {
-    //   populateWatchedFilter();
-    // }
-
     // Apply filters and update list
     applyFilters();
     
@@ -312,14 +304,16 @@ function updateSchoolNameDisplay(schoolName, teamInfo) {
 }
 
 // Apply filters to recruits list
-function applyFilters() {  // Update filter values  state.filters.name = elements.filterName ? elements.filterName.value.toLowerCase() : '';
+function applyFilters() {
+  // Update filter values
+  state.filters.name = elements.filterName ? elements.filterName.value.toLowerCase() : '';
   state.filters.position = elements.filterPosition ? elements.filterPosition.value : '';
-  state.filters.watched = elements.filterWatched ? elements.filterWatched.checked : false; // Changed to boolean
+  state.filters.watched = elements.filterWatched ? elements.filterWatched.checked : false;
   state.filters.minRating = elements.filterMinRating ? parseFloat(elements.filterMinRating.value) || 0 : 0;
   state.filters.potential = elements.filterPotential ? elements.filterPotential.value : '';
   state.filters.priority = elements.filterPriority ? elements.filterPriority.value : '';
   state.filters.distance = elements.filterDistance ? elements.filterDistance.value : '';
-  state.filters.signed = elements.filterSigned ? elements.filterSigned.value : '';
+  state.filters.hideSigned = elements.filterHideSigned ? elements.filterHideSigned.checked : false;
 
   // Apply filters to recruits
   state.filteredRecruits = state.recruits.filter(recruit => {
@@ -339,7 +333,9 @@ function applyFilters() {  // Update filter values  state.filters.name = element
       if (rating < state.filters.minRating) {
         return false;
       }
-    }    // Potential filter
+    }
+
+    // Potential filter
     if (state.filters.potential && recruit.potential !== state.filters.potential) {
       return false;
     }
@@ -364,22 +360,16 @@ function applyFilters() {  // Update filter values  state.filters.name = element
           break;
         // 'Any' doesn't filter anything
       }
-    }    // Signed filter
-    if (state.filters.signed) {
-      const isSigned = recruit.signed === 1;
-      switch (state.filters.signed) {
-        case 'Yes':
-          if (!isSigned) return false;
-          break;
-        case 'No':
-          if (isSigned) return false;
-          break;
-        // 'Any' doesn't filter anything
-      }
+    }
+
+    // Hide signed filter - if checked, only show unsigned recruits (signed=0)
+    if (state.filters.hideSigned && recruit.signed === 1) {
+      return false;
     }
 
     return true;
   });
+
   // Update state based on current display mode
   if (state.showAllResults) {
     state.itemsPerPage = Math.max(state.filteredRecruits.length, 1);

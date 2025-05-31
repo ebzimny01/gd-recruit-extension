@@ -17,7 +17,6 @@ const elements = {
   lastUpdated: document.getElementById('last-updated'),
   currentSeason: document.getElementById('current-season'),
   btnScrapeRecruits: document.getElementById('btn-scrape-recruits'),
-  btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
   btnUpdateConsidering: document.getElementById('btn-update-considering'),
   statusMessage: document.getElementById('status-message'),
   // Recruits tab elements
@@ -116,7 +115,6 @@ function setupEventListeners() {
 
   // Dashboard actions
   elements.btnScrapeRecruits.addEventListener('click', handleScrapeRecruits);
-  elements.btnUpdateWatchlist.addEventListener('click', handleUpdateWatchlist);
   elements.btnUpdateConsidering.addEventListener('click', handleUpdateConsidering);
 
   // Recruit filtering
@@ -1053,56 +1051,6 @@ async function handleScrapeRecruits() {
   }
 }
 
-// Handle update watchlist action
-async function handleUpdateWatchlist() {
-  setStatusMessage('Checking for recruiting summary page...');
-
-  try {
-    // Check if we're on a recruiting page
-    const isOnRecruitingPage = await sidebarComms.isOnRecruitingPage();
-
-    if (!isOnRecruitingPage) {
-      setStatusMessage('Please navigate to the Recruiting Summary page first');
-      return;
-    }
-
-    // Check if we're not on the Advanced page
-    const isOnAdvancedPage = await sidebarComms.isOnAdvancedRecruitingPage();
-
-    if (isOnAdvancedPage) {
-      setStatusMessage('Please navigate to the Recruiting Summary page, not Advanced');
-      return;
-    }
-
-    // Get the active tab
-    const activeTab = await sidebarComms.getActiveTab();
-
-    if (!activeTab) {
-      setStatusMessage('No active tab found');
-      return;
-    }
-
-    // Send message to content script to trigger watchlist scrape
-    setStatusMessage('Updating watchlist...');
-    await sendMessageToBackground({
-      action: 'sendToContentScript',
-      tabId: activeTab.id,
-      message: { action: 'triggerWatchlistScrape' }
-    });
-
-    // Wait a bit for scraping to complete
-    setTimeout(async () => {
-      // Reload data
-      await loadData();
-      updateDashboardStats();
-      setStatusMessage('Watchlist updated successfully');
-    }, 2000);
-  } catch (error) {
-    console.error('Error updating watchlist:', error);
-    setStatusMessage('Error updating watchlist: ' + error.message);
-  }
-}
-
 // Handle update considering action
 async function handleUpdateConsidering() {
   setStatusMessage('Starting considering status update...');
@@ -1377,11 +1325,7 @@ async function updateButtonState() {
         recruitCount > 0 ? "Initialize New Season" : "Initialize Season";
     }
 
-    // Disable/enable Update Watchlist and Update Considering buttons
-    if (elements.btnUpdateWatchlist) {
-      elements.btnUpdateWatchlist.disabled = recruitCount === 0;
-    }
-
+    // Enable/disable Update Considering button
     if (elements.btnUpdateConsidering) {
       elements.btnUpdateConsidering.disabled = recruitCount === 0;
     }

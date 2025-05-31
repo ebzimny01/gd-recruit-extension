@@ -515,49 +515,12 @@ async function updateConsideringStatus() {
   return { count: updatedCount };
 }
 
-// Update watchlist data
-async function updateWatchlist(watchlist) {
-  console.log('Updating watchlist data', watchlist);
-
-  if (!watchlist || Object.keys(watchlist).length === 0) {
-    throw new Error('No watchlist data provided');
-  }
-
-  let updatedCount = 0;
-
-  // Update each recruit in the watchlist
-  for (const [id, potential] of Object.entries(watchlist)) {
-    const recruit = await recruitStorage.getRecruitById(id);    if (recruit) {
-      recruit.potential = potential;
-      recruit.watched = 1;
-      await recruitStorage.saveRecruit(recruit);
-      updatedCount++;
-    }
-  }
-
-  // Update watchlist count in config
-  await recruitStorage.saveConfig('watchlistCount', updatedCount);
-
-  return { count: updatedCount };
-}
-
-// Inject a content script into a tab
-async function injectContentScript(scriptPath, tabId) {
-  console.log(`Injecting script ${scriptPath} into tab ${tabId}`);
-
-  return chrome.scripting.executeScript({
-    target: { tabId },
-    files: [scriptPath]
-  });
-}
-
-// Get extension stats
+// Update the getStats function to calculate watchlist count directly from recruit data
 async function getStats() {
   console.log('Getting extension stats');
 
   const lastUpdated = await recruitStorage.getConfig('lastUpdated');
-  const watchlistCount = await recruitStorage.getConfig('watchlistCount') || 0;
-
+  
   // Get current season, making sure to handle both null and undefined
   let currentSeason = await recruitStorage.getConfig('currentSeason');
   console.log('Retrieved current season from storage:', currentSeason);
@@ -586,9 +549,15 @@ async function getStats() {
     console.error('Error getting team/school information:', error);
   }
 
-  // Get total recruit count
+  // Get total recruit count and calculate watchlist count
   const recruits = await recruitStorage.getAllRecruits();
   const recruitCount = recruits.length;
+  
+  // Calculate watchlist count directly from recruits data
+  const watchlistCount = recruits.filter(recruit => recruit.watched === 1).length;
+  
+  // Update the stored watchlist count for consistency
+  await recruitStorage.saveConfig('watchlistCount', watchlistCount);
 
   return {
     lastUpdated,
@@ -598,6 +567,23 @@ async function getStats() {
     schoolName,
     teamInfo
   };
+}
+
+// You can simplify or remove the updateWatchlist function since it won't be called directly anymore
+// However, if you're calling it elsewhere in the code, keep it but simplify it:
+async function updateWatchlist(watchlist) {
+  console.log('This function is deprecated. Watchlist is now calculated directly from recruit data.');
+  return { count: 0 };
+}
+
+// Inject a content script into a tab
+async function injectContentScript(scriptPath, tabId) {
+  console.log(`Injecting script ${scriptPath} into tab ${tabId}`);
+
+  return chrome.scripting.executeScript({
+    target: { tabId },
+    files: [scriptPath]
+  });
 }
 
 // Export all data

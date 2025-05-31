@@ -45,11 +45,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
       break;
       
+    // Remove this case or keep for backward compatibility with an empty implementation
     case 'triggerWatchlistScrape':
-      console.log('Triggering manual watchlist scrape');
-      // Load the watchlist scraper if not already loaded
-      injectScript('content/watchlist-scraper.js');
-      sendResponse({ success: true });
+      console.log('Watchlist scrape is deprecated - using main scraper for all recruit data');
+      sendResponse({ success: false, message: 'Watchlist scraping deprecated' });
       break;
       
     case 'getPageInfo':

@@ -291,6 +291,18 @@ thead th {
   border-right: 1px solid #ddd;
 }
 
+/* Specific styling for the first column header to ensure it's sticky in both directions */
+thead th:first-child {
+  position: sticky;
+  top: 0;
+  left: 0;
+  background-color: #f0f0f0 !important; /* Use !important to override other rules and ensure visibility */
+  z-index: 20; /* Much higher z-index to ensure it's always on top */
+  border-right: 1px solid #ddd;
+  font-weight: bold;
+  box-shadow: 2px 0 4px rgba(0,0,0,0.1); /* Add shadow to make it more visible */
+}
+
 th, td {
   padding: 6px 8px;
   text-align: left;
@@ -300,14 +312,15 @@ th, td {
   font-size: 12px;
 }
 
-/* Special styling for specific columns */
-th:first-child, td:first-child {
+/* Special styling for specific columns - excluding first child to avoid conflicts */
+td:first-child {
   position: sticky;
   left: 0;
   background-color: #f8f9fa;
-  z-index: 5;
+  z-index: 5; /* Lower z-index for data cells */
   font-weight: 500;
   min-width: 150px;
+  box-shadow: 2px 0 4px rgba(0,0,0,0.05);
 }
 
 /* Position column */
@@ -349,13 +362,26 @@ th:nth-child(32), td:nth-child(32) {
 }
 
 /* Actions column */
-th:nth-child(33), td:nth-child(33) {
+td:nth-child(33) {
   min-width: 80px;
   text-align: center;
   position: sticky;
   right: 0;
   background-color: #f8f9fa;
   z-index: 5;
+  box-shadow: -2px 0 4px rgba(0,0,0,0.05);
+}
+
+/* Specific styling for the actions column header */
+thead th:nth-child(33) {
+  position: sticky;
+  top: 0;
+  right: 0;
+  background-color: #f0f0f0 !important;
+  z-index: 20; /* Higher z-index for sticky header that's also sticky horizontally */
+  min-width: 80px;
+  text-align: center;
+  box-shadow: -2px 0 4px rgba(0,0,0,0.1);
 }
 
 tbody tr:hover {

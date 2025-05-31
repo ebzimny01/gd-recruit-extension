@@ -311,6 +311,56 @@ tbody tr:hover {
   cursor: not-allowed;
 }
 
+/* Pagination controls for page size selection */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.page-size-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-size-control label {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.page-size-control select {
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background-color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.page-size-control select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+/* Update pagination to show better information */
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.results-summary {
+  font-weight: 500;
+}
+
 /* Settings tab */
 .settings-group {
   margin-bottom: 20px;

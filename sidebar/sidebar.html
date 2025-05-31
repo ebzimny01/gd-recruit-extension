@@ -68,6 +68,19 @@
           </div>
         </div>
 
+        <div class="pagination-controls">
+          <div class="page-size-control">
+            <label for="page-size-select">Results per page:</label>
+            <select id="page-size-select" title="Select number of results per page">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+        </div>
+
         <div class="recruits-container">
           <table id="recruits-table">
             <thead>
@@ -75,11 +88,11 @@
             <tbody id="recruits-list">
             </tbody>
           </table>
-        </div>
-
-        <div class="pagination">
+        </div>        <div class="pagination">
           <button id="prev-page">Previous</button>
-          <span id="page-info">Page 1 of 1</span>
+          <div class="pagination-info">
+            <span id="page-info">Page 1 of 1</span>
+          </div>
           <button id="next-page">Next</button>
         </div>
       </section>

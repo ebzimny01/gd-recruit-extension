@@ -351,14 +351,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const result = await clearAllData();
         sendResponse(result);
       })(message, sender, sendResponse);
-      return true; // Indicate asynchronous response
-    case 'checkDatabaseStatus':
+      return true; // Indicate asynchronous response    case 'checkDatabaseStatus':
       // Check database diagnostic status
       console.log('Handling checkDatabaseStatus request');
       withErrorHandling(async () => {
         const dbInfo = await checkDatabaseStatus();
         sendResponse({ success: true, dbInfo });
       })(message, sender, sendResponse);
+      return true; // Indicate asynchronous response
+
+    case 'saveConfig':
+      // Save configuration setting
+      console.log(`Saving config: ${message.key} = ${message.value}`);
+      recruitStorage.saveConfig(message.key, message.value)
+        .then(() => {
+          sendResponse({ success: true });
+        })
+        .catch(error => {
+          console.error('Error saving config:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Indicate asynchronous response
+
+    case 'getConfig':
+      // Get configuration setting
+      console.log(`Getting config: ${message.key}`);
+      recruitStorage.getConfig(message.key)
+        .then(value => {
+          sendResponse({ success: true, value });
+        })
+        .catch(error => {
+          console.error('Error getting config:', error);
+          sendResponse({ success: false, error: error.message });
+        });
       return true; // Indicate asynchronous response
   }
 });

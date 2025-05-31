@@ -25,10 +25,10 @@ const elements = {
   filterPosition: document.getElementById('filter-position'),
   filterMinRating: document.getElementById('filter-min-rating'),
   filterPotential: document.getElementById('filter-potential'),
-  recruitsList: document.getElementById('recruits-list'),
-  prevPageBtn: document.getElementById('prev-page'),
+  recruitsList: document.getElementById('recruits-list'),  prevPageBtn: document.getElementById('prev-page'),
   nextPageBtn: document.getElementById('next-page'),
   pageInfo: document.getElementById('page-info'),
+  pageSizeSelect: document.getElementById('page-size-select'),
 
   // Settings tab elements
   btnExportData: document.getElementById('btn-export-data'),
@@ -42,7 +42,8 @@ let state = {
   recruits: [],
   filteredRecruits: [],
   currentPage: 1,
-  itemsPerPage: 10,
+  itemsPerPage: 10, // Default value
+  showAllResults: false, // Track if showing all results
   filters: {
     name: '',
     position: '',
@@ -51,11 +52,21 @@ let state = {
   }
 };
 
+// Configuration constants
+const PAGE_SIZE_OPTIONS = {
+  SMALL: 10,
+  MEDIUM: 25,
+  LARGE: 50,
+  EXTRA_LARGE: 100
+};
+
+const DEFAULT_PAGE_SIZE = PAGE_SIZE_OPTIONS.SMALL;
+const PAGE_SIZE_STORAGE_KEY = 'preferredPageSize';
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
-  
-  // Set initial loading state for school name
+    // Set initial loading state for school name
   const schoolNameElements = [elements.schoolName, elements.dashboardSchoolName];
   schoolNameElements.forEach(element => {
     if (element) element.textContent = 'Loading...';
@@ -108,7 +119,6 @@ function setupEventListeners() {
   if (elements.filterPotential) {
     elements.filterPotential.addEventListener('change', applyFilters);
   }
-
   // Pagination
   if (elements.prevPageBtn) {
     elements.prevPageBtn.addEventListener('click', () => changePage(-1));
@@ -116,6 +126,11 @@ function setupEventListeners() {
 
   if (elements.nextPageBtn) {
     elements.nextPageBtn.addEventListener('click', () => changePage(1));
+  }
+  
+  // Page size selection
+  if (elements.pageSizeSelect) {
+    elements.pageSizeSelect.addEventListener('change', handlePageSizeChange);
   }
 
   // Settings actions
@@ -158,9 +173,18 @@ function switchTab(tabId) {
 // Load data from background script
 async function loadData() {
   try {
-    // Get recruits from storage
-    const response = await sendMessageToBackground({ action: 'getRecruits' });
+    // Get recruits from storage and load page size preference in parallel
+    const [response] = await Promise.all([
+      sendMessageToBackground({ action: 'getRecruits' }),
+      loadPageSizePreference()
+    ]);
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+
     state.recruits = response.recruits || [];
+    console.log(`Loaded ${state.recruits.length} recruits from storage`);
 
     // Populate position filter if it exists
     if (elements.filterPosition) {
@@ -176,7 +200,12 @@ async function loadData() {
     applyFilters();
   } catch (error) {
     console.error('Error loading data:', error);
-    setStatusMessage('Error loading data');
+    setStatusMessage(`Error loading data: ${error.message}`, 'error');
+    
+    // Reset to safe defaults
+    state.recruits = [];
+    state.filteredRecruits = [];
+    updateRecruitsList();
   }
 }
 
@@ -236,7 +265,6 @@ function applyFilters() {
   state.filters.position = elements.filterPosition ? elements.filterPosition.value : '';
   state.filters.minRating = elements.filterMinRating ? parseFloat(elements.filterMinRating.value) || 0 : 0;
   state.filters.potential = elements.filterPotential ? elements.filterPotential.value : '';
-
   // Apply filters to recruits
   state.filteredRecruits = state.recruits.filter(recruit => {
     // Name filter
@@ -265,20 +293,42 @@ function applyFilters() {
     return true;
   });
 
-  // Reset to first page
+  // Update state based on current display mode
+  if (state.showAllResults) {
+    state.itemsPerPage = Math.max(state.filteredRecruits.length, 1);
+  }
+
+  // Reset to first page when filters change
   state.currentPage = 1;
 
   // Update the list
   updateRecruitsList();
+
+  console.log(`Applied filters: ${state.filteredRecruits.length} recruits match criteria`);
 }
 
 // Update recruits list in the UI
 function updateRecruitsList() {
   if (!elements.recruitsList) return;
 
+  // Update itemsPerPage if showing all results and filtered recruits changed
+  if (state.showAllResults) {
+    state.itemsPerPage = Math.max(state.filteredRecruits.length, 1);
+  }
+
   // Calculate pagination
-  const startIndex = (state.currentPage - 1) * state.itemsPerPage;
-  const endIndex = startIndex + state.itemsPerPage;
+  const totalItems = state.filteredRecruits.length;
+  const totalPages = state.showAllResults ? 1 : Math.ceil(totalItems / state.itemsPerPage);
+  
+  // Ensure current page is valid
+  if (state.currentPage > totalPages && totalPages > 0) {
+    state.currentPage = totalPages;
+  } else if (state.currentPage < 1) {
+    state.currentPage = 1;
+  }
+
+  const startIndex = state.showAllResults ? 0 : (state.currentPage - 1) * state.itemsPerPage;
+  const endIndex = state.showAllResults ? totalItems : startIndex + state.itemsPerPage;
   const pageRecruits = state.filteredRecruits.slice(startIndex, endIndex);
 
   // Clear current list
@@ -329,18 +379,153 @@ function updateRecruitsList() {
     });
   }
 
-  // Update pagination controls
-  const totalPages = Math.ceil(state.filteredRecruits.length / state.itemsPerPage);
-  elements.pageInfo.textContent = `Page ${state.currentPage} of ${totalPages || 1}`;
-  elements.prevPageBtn.disabled = state.currentPage <= 1;
-  elements.nextPageBtn.disabled = state.currentPage >= totalPages;
+  // Update pagination display
+  updatePaginationDisplay(totalItems, totalPages, startIndex, endIndex);
 }
 
 // Change page for pagination
 function changePage(direction) {
+  // Don't paginate if showing all results
+  if (state.showAllResults) {
+    return;
+  }
+  
   const totalPages = Math.ceil(state.filteredRecruits.length / state.itemsPerPage);
-  state.currentPage = Math.max(1, Math.min(totalPages, state.currentPage + direction));
-  updateRecruitsList();
+  const newPage = state.currentPage + direction;
+  
+  // Validate new page number
+  if (newPage >= 1 && newPage <= totalPages) {
+    state.currentPage = newPage;
+    updateRecruitsList();
+  }
+}
+
+// Handle page size changes
+async function handlePageSizeChange() {
+  const selectedValue = elements.pageSizeSelect.value;
+  
+  try {
+    if (selectedValue === 'all') {
+      state.showAllResults = true;
+      state.itemsPerPage = state.filteredRecruits.length || 1; // Avoid division by zero
+    } else {
+      state.showAllResults = false;
+      state.itemsPerPage = parseInt(selectedValue, 10);
+      
+      // Validate the parsed value
+      if (isNaN(state.itemsPerPage) || state.itemsPerPage <= 0) {
+        console.warn('Invalid page size selected, using default');
+        state.itemsPerPage = DEFAULT_PAGE_SIZE;
+      }
+    }
+    
+    // Save user preference
+    await savePageSizePreference(selectedValue);
+    
+    // Reset to first page when changing page size
+    state.currentPage = 1;
+    
+    // Update the display
+    updateRecruitsList();
+    
+    console.log(`Page size changed to: ${selectedValue} (${state.itemsPerPage} items)`);
+    
+  } catch (error) {
+    console.error('Error handling page size change:', error);
+    setStatusMessage(`Error changing page size: ${error.message}`, 'error');
+    
+    // Reset to default on error
+    state.itemsPerPage = DEFAULT_PAGE_SIZE;
+    state.showAllResults = false;
+    elements.pageSizeSelect.value = DEFAULT_PAGE_SIZE.toString();
+    updateRecruitsList();
+  }
+}
+
+// Function to save page size preference
+async function savePageSizePreference(pageSize) {
+  try {
+    await sendMessageToBackground({
+      action: 'saveConfig',
+      key: PAGE_SIZE_STORAGE_KEY,
+      value: pageSize
+    });
+  } catch (error) {
+    console.warn('Could not save page size preference:', error);
+    // Non-critical error, continue operation
+  }
+}
+
+// Function to load page size preference
+async function loadPageSizePreference() {
+  try {
+    const response = await sendMessageToBackground({
+      action: 'getConfig',
+      key: PAGE_SIZE_STORAGE_KEY
+    });
+    
+    if (response && response.value) {
+      const savedPageSize = response.value;
+      
+      // Set the select element value
+      if (elements.pageSizeSelect) {
+        elements.pageSizeSelect.value = savedPageSize;
+      }
+      
+      // Update state based on saved preference
+      if (savedPageSize === 'all') {
+        state.showAllResults = true;
+        state.itemsPerPage = state.filteredRecruits.length || DEFAULT_PAGE_SIZE;
+      } else {
+        state.showAllResults = false;
+        const parsedSize = parseInt(savedPageSize, 10);
+        state.itemsPerPage = isNaN(parsedSize) ? DEFAULT_PAGE_SIZE : parsedSize;
+      }
+      
+      console.log(`Loaded page size preference: ${savedPageSize}`);
+    } else {
+      // No saved preference, use default
+      state.itemsPerPage = DEFAULT_PAGE_SIZE;
+      state.showAllResults = false;
+      if (elements.pageSizeSelect) {
+        elements.pageSizeSelect.value = DEFAULT_PAGE_SIZE.toString();
+      }
+    }
+  } catch (error) {
+    console.warn('Could not load page size preference, using default:', error);
+    state.itemsPerPage = DEFAULT_PAGE_SIZE;
+    state.showAllResults = false;
+  }
+}
+
+// Function to update pagination display
+function updatePaginationDisplay(totalItems, totalPages, startIndex, endIndex) {
+  if (!elements.pageInfo || !elements.prevPageBtn || !elements.nextPageBtn) return;
+
+  if (state.showAllResults) {
+    // Show all results mode
+    elements.pageInfo.innerHTML = `
+      <span class="results-summary">Showing all ${totalItems} results</span>
+    `;
+    elements.prevPageBtn.disabled = true;
+    elements.nextPageBtn.disabled = true;
+    elements.prevPageBtn.style.display = 'none';
+    elements.nextPageBtn.style.display = 'none';
+  } else {
+    // Paginated mode
+    const displayStart = totalItems === 0 ? 0 : startIndex + 1;
+    const displayEnd = Math.min(endIndex, totalItems);
+    
+    elements.pageInfo.innerHTML = `
+      <span class="results-summary">Showing ${displayStart}-${displayEnd} of ${totalItems}</span>
+      <span>Page ${state.currentPage} of ${totalPages || 1}</span>
+    `;
+    
+    elements.prevPageBtn.disabled = state.currentPage <= 1;
+    elements.nextPageBtn.disabled = state.currentPage >= totalPages;
+    elements.prevPageBtn.style.display = '';
+    elements.nextPageBtn.style.display = '';
+  }
 }
 
 // Populate position filter

@@ -493,13 +493,26 @@ th:nth-child(33), td:nth-child(33) {
 }
 
 /* Specific styling for the actions column header */
-thead th:nth-child(33) {
+/* thead th:nth-child(33) {
   position: sticky;
   top: 0;
   right: 0;
   background-color: #f0f0f0 !important;
-  z-index: 20; /* Higher z-index for sticky header that's also sticky horizontally */
-  cursor: default !important; /* Override the clickable cursor for actions column */
+  z-index: 20;
+  cursor: default !important;
+} */
+
+/* Replace with standard vertical sticky header only */
+thead th:nth-child(33) {
+  position: sticky;
+  top: 0;
+  background-color: #f0f0f0;
+  font-weight: bold;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10;
+  border-right: 1px solid #ddd;
+  cursor: default !important; /* Keep this since it's not sortable */
 }
 
 tbody tr:hover {
@@ -637,19 +650,6 @@ tbody tr:hover {
   color: white;
   border: none;
   border-radius: 3px;
-  cursor: pointer;
-}
-
-.setting-btn:hover {
-  background-color: #3a5f8f;
-}
-
-.danger {
-  background-color: #dc3545;
-}
-
-.danger:hover {
-  background-color: #c82333;
 }
 
 .scrape-options {

@@ -308,11 +308,9 @@ function applyFilters() {
     // Position filter
     if (state.filters.position && recruit.pos !== state.filters.position) {
       return false;
-    }
-
-    // Rating filter
+    }    // Rating filter
     if (state.filters.minRating > 0) {
-      const rating = recruit.ovr || 0;
+      const rating = recruit.rating || 0;
       if (rating < state.filters.minRating) {
         return false;
       }
@@ -338,11 +336,9 @@ function applyFilters() {
           break;
         // 'Any' doesn't filter anything
       }
-    }
-
-    // Signed filter
+    }    // Signed filter
     if (state.filters.signed) {
-      const isSigned = recruit.signed === true || recruit.signed === 'Yes' || recruit.signed === 'yes';
+      const isSigned = recruit.signed === 1;
       switch (state.filters.signed) {
         case 'Yes':
           if (!isSigned) return false;
@@ -422,12 +418,10 @@ function updateRecruitsList() {
           cell.textContent = text.toString();
         }
         return cell;
-      };
-
-      // Create cells for all recruit data
+      };      // Create cells for all recruit data
       row.appendChild(createCell(recruit.name));
       row.appendChild(createCell(recruit.pos));
-      row.appendChild(createCell(recruit.ovr, true));
+      row.appendChild(createCell(recruit.watched === 1 ? 'Yes' : 'No'));
       row.appendChild(createCell(recruit.potential));
       row.appendChild(createCell(recruit.height));
       row.appendChild(createCell(recruit.weight, true));
@@ -436,7 +430,7 @@ function updateRecruitsList() {
       row.appendChild(createCell(recruit.hometown));
       row.appendChild(createCell(recruit.division));
       row.appendChild(createCell(recruit.miles, true));
-      row.appendChild(createCell(recruit.signed ? 'Yes' : 'No'));
+      row.appendChild(createCell(recruit.signed === 1 ? 'Yes' : 'No'));
       row.appendChild(createCell(recruit.gpa ? recruit.gpa.toFixed(1) : 'N/A'));
       row.appendChild(createCell(recruit.ath, true));
       row.appendChild(createCell(recruit.spd, true));
@@ -722,13 +716,12 @@ function populateSignedFilter() {
 // Unified sorting function
 function applySorting() {
   if (!state.sorting.column) return;
-  
-  state.filteredRecruits.sort((a, b) => {
+    state.filteredRecruits.sort((a, b) => {
     const getValue = (recruit, col) => {
       switch (col) {
         case 'name': return recruit.name ? recruit.name.toLowerCase() : '';
         case 'pos': return recruit.pos || '';
-        case 'ovr': return recruit.ovr || 0;
+        case 'watched': return recruit.watched || 0;
         case 'potential': return recruit.potential || '';
         case 'height': return recruit.height || '';
         case 'weight': return recruit.weight || 0;
@@ -737,7 +730,7 @@ function applySorting() {
         case 'hometown': return recruit.hometown ? recruit.hometown.toLowerCase() : '';
         case 'division': return recruit.division || '';
         case 'miles': return recruit.miles || 0;
-        case 'signed': return recruit.signed ? 1 : 0;
+        case 'signed': return recruit.signed || 0;
         case 'gpa': return recruit.gpa || 0;
         case 'ath': return recruit.ath || 0;
         case 'spd': return recruit.spd || 0;
@@ -760,7 +753,9 @@ function applySorting() {
         case 'considering': return recruit.considering ? recruit.considering.toLowerCase() : '';
         default: return '';
       }
-    };    const aValue = getValue(a, state.sorting.column);
+    };
+
+    const aValue = getValue(a, state.sorting.column);
     const bValue = getValue(b, state.sorting.column);
 
     // Handle numeric vs string comparison
@@ -807,7 +802,7 @@ function sortRecruits(column) {
 function updateTableHeaders() {
   const headers = document.querySelectorAll('#recruits-table thead th');
   const columnMapping = [
-    'name', 'pos', 'ovr', 'potential', 'height', 'weight', 'rating', 'rank',
+    'name', 'pos', 'watched', 'potential', 'height', 'weight', 'rating', 'rank',
     'hometown', 'division', 'miles', 'signed', 'gpa', 'ath', 'spd', 'dur',
     'we', 'sta', 'str', 'blk', 'tkl', 'han', 'gi', 'elu', 'tec', 'r1', 'r2',
     'r3', 'r4', 'r5', 'r6', 'considering', 'actions'
@@ -833,7 +828,7 @@ function updateTableHeaders() {
 function setupTableSorting() {
   const headers = document.querySelectorAll('#recruits-table thead th');
   const columnMapping = [
-    'name', 'pos', 'ovr', 'potential', 'height', 'weight', 'rating', 'rank',
+    'name', 'pos', 'watched', 'potential', 'height', 'weight', 'rating', 'rank',
     'hometown', 'division', 'miles', 'signed', 'gpa', 'ath', 'spd', 'dur',
     'we', 'sta', 'str', 'blk', 'tkl', 'han', 'gi', 'elu', 'tec', 'r1', 'r2',
     'r3', 'r4', 'r5', 'r6', 'considering', 'actions'

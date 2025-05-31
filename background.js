@@ -527,11 +527,9 @@ async function updateWatchlist(watchlist) {
 
   // Update each recruit in the watchlist
   for (const [id, potential] of Object.entries(watchlist)) {
-    const recruit = await recruitStorage.getRecruitById(id);
-
-    if (recruit) {
+    const recruit = await recruitStorage.getRecruitById(id);    if (recruit) {
       recruit.potential = potential;
-      recruit.watched = true;
+      recruit.watched = 1;
       await recruitStorage.saveRecruit(recruit);
       updatedCount++;
     }

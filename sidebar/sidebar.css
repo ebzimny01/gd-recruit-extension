@@ -329,32 +329,39 @@ th:nth-child(2), td:nth-child(2) {
   text-align: center;
 }
 
+/* Priority column */
+th:nth-child(5), td:nth-child(5) {
+  min-width: 85px;
+  text-align: center;
+  background-color: #ffe8e8;
+}
+
 /* Rating columns */
 th:nth-child(3), td:nth-child(3),
-th:nth-child(7), td:nth-child(7),
-th:nth-child(8), td:nth-child(8) {
+th:nth-child(8), td:nth-child(8),
+th:nth-child(9), td:nth-child(9) {
   min-width: 50px;
   text-align: center;
 }
 
 /* Stat columns (Ath, Spd, etc.) */
-th:nth-child(n+14):nth-child(-n+25), 
-td:nth-child(n+14):nth-child(-n+25) {
+th:nth-child(n+15):nth-child(-n+26), 
+td:nth-child(n+15):nth-child(-n+26) {
   min-width: 40px;
   text-align: center;
   background-color: #fafbfc;
 }
 
 /* Role rating columns (R1-R6) */
-th:nth-child(n+26):nth-child(-n+31), 
-td:nth-child(n+26):nth-child(-n+31) {
+th:nth-child(n+27):nth-child(-n+32), 
+td:nth-child(n+27):nth-child(-n+32) {
   min-width: 40px;
   text-align: center;
   background-color: #fff3cd;
 }
 
 /* Considering column */
-th:nth-child(32), td:nth-child(32) {
+th:nth-child(33), td:nth-child(33) {
   min-width: 200px;
   max-width: 250px;
   overflow: hidden;
@@ -362,7 +369,7 @@ th:nth-child(32), td:nth-child(32) {
 }
 
 /* Actions column */
-td:nth-child(33) {
+td:nth-child(34) {
   min-width: 80px;
   text-align: center;
   position: sticky;

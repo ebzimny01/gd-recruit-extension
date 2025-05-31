@@ -16,7 +16,8 @@ const elements = {
   watchlistCount: document.getElementById('watchlist-count'),
   lastUpdated: document.getElementById('last-updated'),
   currentSeason: document.getElementById('current-season'),
-  btnScrapeRecruits: document.getElementById('btn-scrape-recruits'), btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
+  btnScrapeRecruits: document.getElementById('btn-scrape-recruits'),
+  btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
   btnUpdateConsidering: document.getElementById('btn-update-considering'),
   statusMessage: document.getElementById('status-message'),
   // Recruits tab elements  filterName: document.getElementById('filter-name'),
@@ -24,6 +25,7 @@ const elements = {
   filterWatched: document.getElementById('filter-watched'),
   filterMinRating: document.getElementById('filter-min-rating'),
   filterPotential: document.getElementById('filter-potential'),
+  filterPriority: document.getElementById('filter-priority'),
   filterDistance: document.getElementById('filter-distance'),
   filterSigned: document.getElementById('filter-signed'),
   recruitsList: document.getElementById('recruits-list'),prevPageBtn: document.getElementById('prev-page'),
@@ -54,6 +56,7 @@ let state = {
     watched: '',
     minRating: 0,
     potential: '',
+    priority: '',
     distance: '',
     signed: ''
   }
@@ -130,9 +133,12 @@ function setupEventListeners() {
 
   if (elements.filterMinRating) {
     elements.filterMinRating.addEventListener('input', applyFilters);
-  }
-  if (elements.filterPotential) {
+  }  if (elements.filterPotential) {
     elements.filterPotential.addEventListener('change', applyFilters);
+  }
+
+  if (elements.filterPriority) {
+    elements.filterPriority.addEventListener('change', applyFilters);
   }
 
   if (elements.filterDistance) {
@@ -216,6 +222,11 @@ async function loadData() {
     if (elements.filterPotential) {
       populatePotentialFilter();
     }
+    
+    // Populate priority filter if it exists
+    if (elements.filterPriority) {
+      populatePriorityFilter();
+    }
 
     // Populate distance filter if it exists
     if (elements.filterDistance) {
@@ -298,12 +309,12 @@ function updateSchoolNameDisplay(schoolName, teamInfo) {
 }
 
 // Apply filters to recruits list
-function applyFilters() {  // Update filter values
-  state.filters.name = elements.filterName ? elements.filterName.value.toLowerCase() : '';
+function applyFilters() {  // Update filter values  state.filters.name = elements.filterName ? elements.filterName.value.toLowerCase() : '';
   state.filters.position = elements.filterPosition ? elements.filterPosition.value : '';
   state.filters.watched = elements.filterWatched ? elements.filterWatched.value : '';
   state.filters.minRating = elements.filterMinRating ? parseFloat(elements.filterMinRating.value) || 0 : 0;
   state.filters.potential = elements.filterPotential ? elements.filterPotential.value : '';
+  state.filters.priority = elements.filterPriority ? elements.filterPriority.value : '';
   state.filters.distance = elements.filterDistance ? elements.filterDistance.value : '';
   state.filters.signed = elements.filterSigned ? elements.filterSigned.value : '';
 
@@ -337,10 +348,13 @@ function applyFilters() {  // Update filter values
       if (rating < state.filters.minRating) {
         return false;
       }
+    }    // Potential filter
+    if (state.filters.potential && recruit.potential !== state.filters.potential) {
+      return false;
     }
 
-    // Potential filter
-    if (state.filters.potential && recruit.potential !== state.filters.potential) {
+    // Priority filter
+    if (state.filters.priority && parseInt(recruit.priority) !== parseInt(state.filters.priority)) {
       return false;
     }
 
@@ -423,7 +437,7 @@ function updateRecruitsList() {
   if (pageRecruits.length === 0) {
     const emptyRow = document.createElement('tr');
     const emptyCell = document.createElement('td');
-    emptyCell.colSpan = 33; // Updated to match number of columns
+    emptyCell.colSpan = 34; // Updated to match number of columns
     emptyCell.textContent = 'No recruits found matching your filters';
     emptyCell.style.textAlign = 'center';
     emptyRow.appendChild(emptyCell);
@@ -441,11 +455,26 @@ function updateRecruitsList() {
           cell.textContent = text.toString();
         }
         return cell;
+      };
+
+      // Helper function to format priority value
+      const formatPriority = (priority) => {
+        if (priority === null || priority === undefined) return 'N/A';
+        switch (parseInt(priority)) {
+          case 0: return 'Unprioritized';
+          case 1: return '1st';
+          case 2: return '2nd';
+          case 3: return '3rd';
+          case 4: return '4th';
+          case 5: return '5th';
+          default: return 'Unprioritized';
+        }
       };      // Create cells for all recruit data
       row.appendChild(createCell(recruit.name));
       row.appendChild(createCell(recruit.pos));
       row.appendChild(createCell(recruit.watched === 1 ? 'Yes' : 'No'));
       row.appendChild(createCell(recruit.potential));
+      row.appendChild(createCell(formatPriority(recruit.priority)));
       row.appendChild(createCell(recruit.height));
       row.appendChild(createCell(recruit.weight, true));
       row.appendChild(createCell(recruit.rating, true));
@@ -690,6 +719,38 @@ function populatePotentialFilter() {
   });
 }
 
+// Populate priority filter
+function populatePriorityFilter() {
+  if (!elements.filterPriority) return;
+
+  // Clear current options
+  elements.filterPriority.innerHTML = '';
+
+  // Add default option
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'Any Priority';
+  elements.filterPriority.appendChild(defaultOption);
+
+  // Add priority options
+  const priorityLabels = {
+    '0': 'Unprioritized',
+    '1': '1st',
+    '2': '2nd',
+    '3': '3rd',
+    '4': '4th',
+    '5': '5th'
+  };
+  
+  // Create options for 0-5
+  for (let i = 0; i <= 5; i++) {
+    const option = document.createElement('option');
+    option.value = i.toString();
+    option.textContent = priorityLabels[i];
+    elements.filterPriority.appendChild(option);
+  }
+}
+
 // Populate distance filter
 function populateDistanceFilter() {
   if (!elements.filterDistance) return;
@@ -764,11 +825,11 @@ function applySorting() {
   if (!state.sorting.column) return;
     state.filteredRecruits.sort((a, b) => {
     const getValue = (recruit, col) => {
-      switch (col) {
-        case 'name': return recruit.name ? recruit.name.toLowerCase() : '';
+      switch (col) {case 'name': return recruit.name ? recruit.name.toLowerCase() : '';
         case 'pos': return recruit.pos || '';
         case 'watched': return recruit.watched || 0;
         case 'potential': return recruit.potential || '';
+        case 'priority': return recruit.priority || 0;
         case 'height': return recruit.height || '';
         case 'weight': return recruit.weight || 0;
         case 'rating': return recruit.rating || 0;
@@ -848,7 +909,7 @@ function sortRecruits(column) {
 function updateTableHeaders() {
   const headers = document.querySelectorAll('#recruits-table thead th');
   const columnMapping = [
-    'name', 'pos', 'watched', 'potential', 'height', 'weight', 'rating', 'rank',
+    'name', 'pos', 'watched', 'potential', 'priority', 'height', 'weight', 'rating', 'rank',
     'hometown', 'division', 'miles', 'signed', 'gpa', 'ath', 'spd', 'dur',
     'we', 'sta', 'str', 'blk', 'tkl', 'han', 'gi', 'elu', 'tec', 'r1', 'r2',
     'r3', 'r4', 'r5', 'r6', 'considering', 'actions'
@@ -874,7 +935,7 @@ function updateTableHeaders() {
 function setupTableSorting() {
   const headers = document.querySelectorAll('#recruits-table thead th');
   const columnMapping = [
-    'name', 'pos', 'watched', 'potential', 'height', 'weight', 'rating', 'rank',
+    'name', 'pos', 'watched', 'potential', 'priority', 'height', 'weight', 'rating', 'rank',
     'hometown', 'division', 'miles', 'signed', 'gpa', 'ath', 'spd', 'dur',
     'we', 'sta', 'str', 'blk', 'tkl', 'han', 'gi', 'elu', 'tec', 'r1', 'r2',
     'r3', 'r4', 'r5', 'r6', 'considering', 'actions'

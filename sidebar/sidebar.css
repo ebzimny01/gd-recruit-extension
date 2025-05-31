@@ -29,14 +29,27 @@ body {
 /* Header and tabs */
 header {
   padding: 10px 15px;
-  background-color: #284775;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  text-align: center;
+  border-radius: 8px 8px 0 0;
 }
 
 header h1 {
   font-size: 18px;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.school-info {
+  font-size: 12px;
+  opacity: 0.9;
+  font-weight: 500;
   margin-bottom: 10px;
-  text-align: center;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  display: inline-block;
 }
 
 .tabs {
@@ -86,31 +99,58 @@ main {
 
 /* Dashboard tab */
 .stats-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
   margin-bottom: 20px;
 }
 
 .stat-card {
-  flex: 1;
-  min-width: calc(50% - 10px);
-  padding: 10px;
-  background-color: #e9ecef;
-  border-radius: 5px;
+  padding: 15px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
   text-align: center;
-  margin: 0 5px 10px 5px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .stat-card h3 {
-  font-size: 14px;
-  margin-bottom: 5px;
-  color: #284775;
+  font-size: 12px;
+  margin-bottom: 8px;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
-.stat-card p {
-  font-size: 18px;
-  font-weight: bold;
+.stat-card p,
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #495057;
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Special styling for school name stat card */
+.stat-card:first-child {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.stat-card:first-child h3 {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-card:first-child .stat-value {
+  color: white;
 }
 
 .action-buttons {
@@ -329,6 +369,24 @@ tbody tr:hover {
   margin-right: 5px;
 }
 
+/* Modal styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal.hidden {
+  display: none;
+}
+
 /* Modal footer */
 .modal-footer {
   display: flex;
@@ -384,10 +442,34 @@ tbody tr:hover {
 
 @media (max-height: 600px) {
   .stats-container {
-    flex-direction: column;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
   }
   
   .stat-card {
-    margin-bottom: 5px;
+    padding: 10px;
+  }
+  
+  .stat-card h3 {
+    font-size: 11px;
+  }
+  
+  .stat-card p,
+  .stat-value {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 300px) {
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+  
+  header h1 {
+    font-size: 16px;
+  }
+  
+  .school-info {
+    font-size: 11px;
   }
 }

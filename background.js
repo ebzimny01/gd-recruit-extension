@@ -539,6 +539,30 @@ async function getStats() {
   let currentSeason = await recruitStorage.getConfig('currentSeason');
   console.log('Retrieved current season from storage:', currentSeason);
 
+  // Get team information including school name
+  let teamInfo = null;
+  let schoolName = 'Unknown School';
+  
+  try {
+    teamInfo = await getTeamInfoFromCookies();
+    if (teamInfo?.teamId) {
+      // Get school name from GDR data
+      const gdrData = await loadGdrData();
+      const schoolData = gdrData.find(team => team.wis_id === teamInfo.teamId);
+      
+      if (schoolData) {
+        schoolName = schoolData.school_long || schoolData.school_short || 'Unknown School';
+        console.log(`Found school name: ${schoolName}`);
+      } else {
+        console.log('School not found in GDR data for team ID:', teamInfo.teamId);
+      }
+    } else {
+      console.log('No team ID available for school lookup');
+    }
+  } catch (error) {
+    console.error('Error getting team/school information:', error);
+  }
+
   // Get total recruit count
   const recruits = await recruitStorage.getAllRecruits();
   const recruitCount = recruits.length;
@@ -547,7 +571,9 @@ async function getStats() {
     lastUpdated,
     watchlistCount,
     recruitCount,
-    currentSeason: currentSeason || null
+    currentSeason: currentSeason || null,
+    schoolName,
+    teamInfo
   };
 }
 

@@ -6,10 +6,12 @@
   <title>GD Recruit Assistant</title>
   <link rel="stylesheet" href="sidebar.css">
 </head>
-<body>
-  <div class="container">
+<body>  <div class="container">
     <header>
       <h1>GD Recruit Assistant</h1>
+      <div class="school-info">
+        <span id="schoolName">Loading...</span>
+      </div>
       <div class="tabs">
         <button id="tab-dashboard" class="tab-btn active">Dashboard</button>
         <button id="tab-recruits" class="tab-btn">Recruits</button>
@@ -20,6 +22,10 @@
     <main>
       <!-- Dashboard Tab -->
       <section id="dashboard-section" class="tab-content active">        <div class="stats-container">
+          <div class="stat-card">
+            <h3>School</h3>
+            <p id="dashboardSchoolName" class="stat-value">-</p>
+          </div>
           <div class="stat-card">
             <h3>Recruits</h3>
             <p id="recruit-count">0</p>
@@ -48,17 +54,16 @@
       </section>
 
       <!-- Recruits Tab -->
-      <section id="recruits-section" class="tab-content">
-        <div class="filter-controls">
+      <section id="recruits-section" class="tab-content">        <div class="filter-controls">
           <div class="filter-row">
             <input type="text" id="filter-name" placeholder="Filter by name">
-            <select id="filter-position">
+            <select id="filter-position" title="Filter by position">
             </select>
           </div>
           <div class="filter-row">
             <div class="rating-filter">
             </div>
-            <select id="filter-potential">
+            <select id="filter-potential" title="Filter by potential">
             </select>
           </div>
         </div>
@@ -102,10 +107,8 @@
           <h3>About</h3>
           <p>GD Recruit Assistant v1.0.0</p>
           <p>A browser extension for Gridiron Dynasty recruiting management</p>        </div>
-      </section>
-
-      <!-- Season Input Modal -->
-      <div id="season-modal" class="modal" style="display: none;">
+      </section>      <!-- Season Input Modal -->
+      <div id="season-modal" class="modal hidden">
         <div class="modal-content">
           <div class="modal-header">
             <h2>Initialize Season</h2>

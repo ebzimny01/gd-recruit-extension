@@ -10,6 +10,8 @@ const elements = {
   tabButtons: document.querySelectorAll('.tab-btn'),
   tabSections: document.querySelectorAll('.tab-content'),
   // Dashboard elements
+  schoolName: document.getElementById('schoolName'),
+  dashboardSchoolName: document.getElementById('dashboardSchoolName'),
   recruitCount: document.getElementById('recruit-count'),
   watchlistCount: document.getElementById('watchlist-count'),
   lastUpdated: document.getElementById('last-updated'),
@@ -52,6 +54,13 @@ let state = {
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
+  
+  // Set initial loading state for school name
+  const schoolNameElements = [elements.schoolName, elements.dashboardSchoolName];
+  schoolNameElements.forEach(element => {
+    if (element) element.textContent = 'Loading...';
+  });
+  
   await loadData();
   updateDashboardStats();
   await updateButtonState();
@@ -175,6 +184,10 @@ async function loadData() {
 function updateDashboardStats() {
   sendMessageToBackground({ action: 'getStats' })
     .then(stats => {
+      // Update school name displays
+      updateSchoolNameDisplay(stats.schoolName, stats.teamInfo);
+
+      // Update other stats
       elements.recruitCount.textContent = state.recruits.length;
       elements.watchlistCount.textContent = stats.watchlistCount || 0;
       elements.lastUpdated.textContent = formatDate(stats.lastUpdated) || 'Never';
@@ -191,7 +204,29 @@ function updateDashboardStats() {
     })
     .catch(error => {
       console.error('Error getting stats:', error);
+      
+      // Set fallback values for school name elements
+      const schoolNameElements = [elements.schoolName, elements.dashboardSchoolName];
+      schoolNameElements.forEach(element => {
+        if (element) element.textContent = 'Error loading school';
+      });
     });
+}
+
+// Helper function to update school name elements safely
+function updateSchoolNameDisplay(schoolName, teamInfo) {
+  const schoolNameElements = [elements.schoolName, elements.dashboardSchoolName];
+  const displayName = schoolName || 'Unknown School';
+  const tooltip = teamInfo?.division ? 
+    `Division: ${teamInfo.division}` : 
+    'Division information not available';
+    
+  schoolNameElements.forEach(element => {
+    if (element) {
+      element.textContent = displayName;
+      element.title = tooltip;
+    }
+  });
 }
 
 // Apply filters to recruits list

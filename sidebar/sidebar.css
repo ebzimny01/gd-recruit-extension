@@ -265,31 +265,128 @@ main {
 
 .recruits-container {
   flex: 1;
-  overflow-y: auto;
+  overflow: auto; /* Enable both horizontal and vertical scrolling */
   margin-bottom: 15px;
   border: 1px solid #ccc;
   border-radius: 3px;
+  max-height: 500px; /* Set a max height to ensure scrolling works */
 }
 
 table {
-  width: 100%;
+  min-width: 2000px; /* Ensure table is wide enough for all columns */
   border-collapse: collapse;
+  table-layout: auto; /* Allow flexible column sizing */
 }
 
 thead th {
   position: sticky;
   top: 0;
   background-color: #f0f0f0;
+  font-weight: bold;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10; /* Ensure headers stay on top */
+  border-right: 1px solid #ddd;
 }
 
 th, td {
-  padding: 8px;
+  padding: 6px 8px;
   text-align: left;
   border-bottom: 1px solid #ddd;
+  border-right: 1px solid #e9ecef;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+/* Special styling for specific columns */
+th:first-child, td:first-child {
+  position: sticky;
+  left: 0;
+  background-color: #f8f9fa;
+  z-index: 5;
+  font-weight: 500;
+  min-width: 150px;
+}
+
+/* Position column */
+th:nth-child(2), td:nth-child(2) {
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Rating columns */
+th:nth-child(3), td:nth-child(3),
+th:nth-child(7), td:nth-child(7),
+th:nth-child(8), td:nth-child(8) {
+  min-width: 50px;
+  text-align: center;
+}
+
+/* Stat columns (Ath, Spd, etc.) */
+th:nth-child(n+14):nth-child(-n+25), 
+td:nth-child(n+14):nth-child(-n+25) {
+  min-width: 40px;
+  text-align: center;
+  background-color: #fafbfc;
+}
+
+/* Role rating columns (R1-R6) */
+th:nth-child(n+26):nth-child(-n+31), 
+td:nth-child(n+26):nth-child(-n+31) {
+  min-width: 40px;
+  text-align: center;
+  background-color: #fff3cd;
+}
+
+/* Considering column */
+th:nth-child(32), td:nth-child(32) {
+  min-width: 200px;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Actions column */
+th:nth-child(33), td:nth-child(33) {
+  min-width: 80px;
+  text-align: center;
+  position: sticky;
+  right: 0;
+  background-color: #f8f9fa;
+  z-index: 5;
 }
 
 tbody tr:hover {
   background-color: #f5f5f5;
+}
+
+/* View button styling */
+.view-btn {
+  padding: 4px 8px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background-color 0.2s;
+}
+
+.view-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Responsive table scrolling hint */
+.recruits-container::before {
+  content: "← Scroll horizontally to see all columns →";
+  display: block;
+  text-align: center;
+  padding: 5px;
+  background-color: #e3f2fd;
+  color: #1976d2;
+  font-size: 11px;
+  font-style: italic;
+  border-bottom: 1px solid #ddd;
 }
 
 .pagination {

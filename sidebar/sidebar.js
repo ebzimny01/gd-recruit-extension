@@ -333,45 +333,77 @@ function updateRecruitsList() {
 
   // Clear current list
   elements.recruitsList.innerHTML = '';
-
   // Add recruits to list
   if (pageRecruits.length === 0) {
     const emptyRow = document.createElement('tr');
     const emptyCell = document.createElement('td');
-    emptyCell.colSpan = 5;
+    emptyCell.colSpan = 33; // Updated to match number of columns
     emptyCell.textContent = 'No recruits found matching your filters';
     emptyCell.style.textAlign = 'center';
     emptyRow.appendChild(emptyCell);
     elements.recruitsList.appendChild(emptyRow);
   } else {
     pageRecruits.forEach(recruit => {
-      const row = document.createElement('tr');
+      const row = document.createElement('tr');      // Helper function to create a cell with text content
+      const createCell = (text, isNumeric = false) => {
+        const cell = document.createElement('td');
+        if (text === null || text === undefined || text === '') {
+          cell.textContent = 'N/A';
+        } else if (isNumeric && typeof text === 'number') {
+          cell.textContent = text.toString();
+        } else {
+          cell.textContent = text.toString();
+        }
+        return cell;
+      };
 
-      // Create cells for recruit data
-      const nameCell = document.createElement('td');
-      nameCell.textContent = recruit.name;
+      // Create cells for all recruit data
+      row.appendChild(createCell(recruit.name));
+      row.appendChild(createCell(recruit.pos));
+      row.appendChild(createCell(recruit.ovr, true));
+      row.appendChild(createCell(recruit.potential));
+      row.appendChild(createCell(recruit.height));
+      row.appendChild(createCell(recruit.weight, true));
+      row.appendChild(createCell(recruit.rating, true));
+      row.appendChild(createCell(recruit.rank === 999 ? 'NR' : recruit.rank, true));
+      row.appendChild(createCell(recruit.hometown));
+      row.appendChild(createCell(recruit.division));
+      row.appendChild(createCell(recruit.miles, true));
+      row.appendChild(createCell(recruit.signed ? 'Yes' : 'No'));
+      row.appendChild(createCell(recruit.gpa ? recruit.gpa.toFixed(1) : 'N/A'));
+      row.appendChild(createCell(recruit.ath, true));
+      row.appendChild(createCell(recruit.spd, true));
+      row.appendChild(createCell(recruit.dur, true));
+      row.appendChild(createCell(recruit.we, true));
+      row.appendChild(createCell(recruit.sta, true));
+      row.appendChild(createCell(recruit.str, true));
+      row.appendChild(createCell(recruit.blk, true));
+      row.appendChild(createCell(recruit.tkl, true));
+      row.appendChild(createCell(recruit.han, true));
+      row.appendChild(createCell(recruit.gi, true));
+      row.appendChild(createCell(recruit.elu, true));
+      row.appendChild(createCell(recruit.tec, true));
+      row.appendChild(createCell(recruit.r1, true));
+      row.appendChild(createCell(recruit.r2, true));
+      row.appendChild(createCell(recruit.r3, true));
+      row.appendChild(createCell(recruit.r4, true));
+      row.appendChild(createCell(recruit.r5, true));
+      row.appendChild(createCell(recruit.r6, true));
+      
+      // Considering schools cell - truncate if too long
+      const consideringCell = document.createElement('td');
+      const considering = recruit.considering || 'undecided';
+      consideringCell.textContent = considering.length > 50 ? considering.substring(0, 47) + '...' : considering;
+      consideringCell.title = considering; // Show full text on hover
+      row.appendChild(consideringCell);
 
-      const positionCell = document.createElement('td');
-      positionCell.textContent = recruit.pos;
-
-      const ratingCell = document.createElement('td');
-      ratingCell.textContent = recruit.ovr || 'N/A';
-
-      const potentialCell = document.createElement('td');
-      potentialCell.textContent = recruit.potential || 'N/A';
-
+      // Actions cell
       const actionsCell = document.createElement('td');
       const viewButton = document.createElement('button');
       viewButton.textContent = 'View';
       viewButton.className = 'view-btn';
       viewButton.addEventListener('click', () => handleViewRecruit(recruit.id));
       actionsCell.appendChild(viewButton);
-
-      // Add cells to row
-      row.appendChild(nameCell);
-      row.appendChild(positionCell);
-      row.appendChild(ratingCell);
-      row.appendChild(potentialCell);
       row.appendChild(actionsCell);
 
       // Add row to table

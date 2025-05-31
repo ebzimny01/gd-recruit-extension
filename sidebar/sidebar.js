@@ -19,13 +19,14 @@ const elements = {
   btnScrapeRecruits: document.getElementById('btn-scrape-recruits'), btnUpdateWatchlist: document.getElementById('btn-update-watchlist'),
   btnUpdateConsidering: document.getElementById('btn-update-considering'),
   statusMessage: document.getElementById('status-message'),
-
   // Recruits tab elements
   filterName: document.getElementById('filter-name'),
   filterPosition: document.getElementById('filter-position'),
   filterMinRating: document.getElementById('filter-min-rating'),
   filterPotential: document.getElementById('filter-potential'),
-  recruitsList: document.getElementById('recruits-list'),  prevPageBtn: document.getElementById('prev-page'),
+  filterDistance: document.getElementById('filter-distance'),
+  filterSigned: document.getElementById('filter-signed'),
+  recruitsList: document.getElementById('recruits-list'),prevPageBtn: document.getElementById('prev-page'),
   nextPageBtn: document.getElementById('next-page'),
   pageInfo: document.getElementById('page-info'),
   pageSizeSelect: document.getElementById('page-size-select'),
@@ -47,12 +48,13 @@ let state = {
   sorting: {
     column: null,
     direction: 'asc' // 'asc' or 'desc'
-  },
-  filters: {
+  },  filters: {
     name: '',
     position: '',
     minRating: 0,
-    potential: ''
+    potential: '',
+    distance: '',
+    signed: ''
   }
 };
 
@@ -125,9 +127,16 @@ function setupEventListeners() {
   if (elements.filterMinRating) {
     elements.filterMinRating.addEventListener('input', applyFilters);
   }
-
   if (elements.filterPotential) {
     elements.filterPotential.addEventListener('change', applyFilters);
+  }
+
+  if (elements.filterDistance) {
+    elements.filterDistance.addEventListener('change', applyFilters);
+  }
+
+  if (elements.filterSigned) {
+    elements.filterSigned.addEventListener('change', applyFilters);
   }
   // Pagination
   if (elements.prevPageBtn) {
@@ -199,12 +208,22 @@ async function loadData() {
     // Populate position filter if it exists
     if (elements.filterPosition) {
       populatePositionFilter();
-    }
-
-    // Populate potential filter if it exists
+    }    // Populate potential filter if it exists
     if (elements.filterPotential) {
       populatePotentialFilter();
-    }    // Apply filters and update list
+    }
+
+    // Populate distance filter if it exists
+    if (elements.filterDistance) {
+      populateDistanceFilter();
+    }
+
+    // Populate signed filter if it exists
+    if (elements.filterSigned) {
+      populateSignedFilter();
+    }
+
+    // Apply filters and update list
     applyFilters();
     
     // Set up table sorting after data is loaded
@@ -276,6 +295,9 @@ function applyFilters() {
   state.filters.position = elements.filterPosition ? elements.filterPosition.value : '';
   state.filters.minRating = elements.filterMinRating ? parseFloat(elements.filterMinRating.value) || 0 : 0;
   state.filters.potential = elements.filterPotential ? elements.filterPotential.value : '';
+  state.filters.distance = elements.filterDistance ? elements.filterDistance.value : '';
+  state.filters.signed = elements.filterSigned ? elements.filterSigned.value : '';
+
   // Apply filters to recruits
   state.filteredRecruits = state.recruits.filter(recruit => {
     // Name filter
@@ -299,6 +321,37 @@ function applyFilters() {
     // Potential filter
     if (state.filters.potential && recruit.potential !== state.filters.potential) {
       return false;
+    }
+
+    // Distance filter
+    if (state.filters.distance) {
+      const miles = recruit.miles || 0;
+      switch (state.filters.distance) {
+        case '< 180 miles':
+          if (miles >= 180) return false;
+          break;
+        case '< 360 miles':
+          if (miles >= 360) return false;
+          break;
+        case '< 1400 miles':
+          if (miles >= 1400) return false;
+          break;
+        // 'Any' doesn't filter anything
+      }
+    }
+
+    // Signed filter
+    if (state.filters.signed) {
+      const isSigned = recruit.signed === true || recruit.signed === 'Yes' || recruit.signed === 'yes';
+      switch (state.filters.signed) {
+        case 'Yes':
+          if (!isSigned) return false;
+          break;
+        case 'No':
+          if (isSigned) return false;
+          break;
+        // 'Any' doesn't filter anything
+      }
     }
 
     return true;
@@ -617,6 +670,52 @@ function populatePotentialFilter() {
     option.value = potential;
     option.textContent = potential;
     elements.filterPotential.appendChild(option);
+  });
+}
+
+// Populate distance filter
+function populateDistanceFilter() {
+  if (!elements.filterDistance) return;
+
+  // Clear current options
+  elements.filterDistance.innerHTML = '';
+
+  // Add default option
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'Any Distance';
+  elements.filterDistance.appendChild(defaultOption);
+
+  // Add distance options
+  const distances = ['< 180 miles', '< 360 miles', '< 1400 miles'];
+  distances.forEach(distance => {
+    const option = document.createElement('option');
+    option.value = distance;
+    option.textContent = distance;
+    elements.filterDistance.appendChild(option);
+  });
+}
+
+// Populate signed filter
+function populateSignedFilter() {
+  if (!elements.filterSigned) return;
+
+  // Clear current options
+  elements.filterSigned.innerHTML = '';
+
+  // Add default option
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'Any Signed Status';
+  elements.filterSigned.appendChild(defaultOption);
+
+  // Add signed options
+  const signedOptions = ['No', 'Yes'];
+  signedOptions.forEach(signedOption => {
+    const option = document.createElement('option');
+    option.value = signedOption;
+    option.textContent = signedOption;
+    elements.filterSigned.appendChild(option);
   });
 }
 

@@ -44,6 +44,10 @@ let state = {
   currentPage: 1,
   itemsPerPage: 10, // Default value
   showAllResults: false, // Track if showing all results
+  sorting: {
+    column: null,
+    direction: 'asc' // 'asc' or 'desc'
+  },
   filters: {
     name: '',
     position: '',
@@ -66,7 +70,8 @@ const PAGE_SIZE_STORAGE_KEY = 'preferredPageSize';
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
-    // Set initial loading state for school name
+  
+  // Set initial loading state for school name
   const schoolNameElements = [elements.schoolName, elements.dashboardSchoolName];
   schoolNameElements.forEach(element => {
     if (element) element.textContent = 'Loading...';
@@ -75,6 +80,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadData();
   updateDashboardStats();
   await updateButtonState();
+
+  // Set up table sorting after data is loaded
+  setupTableSorting();
 
   // Set up sidebar visibility listener
   sidebarComms.setupSidebarListeners();
@@ -85,6 +93,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     updateDashboardStats();
     await updateButtonState();
+    // Re-setup sorting after data refresh
+    setupTableSorting();
   });
 });
 
@@ -194,10 +204,11 @@ async function loadData() {
     // Populate potential filter if it exists
     if (elements.filterPotential) {
       populatePotentialFilter();
-    }
-
-    // Apply filters and update list
+    }    // Apply filters and update list
     applyFilters();
+    
+    // Set up table sorting after data is loaded
+    setupTableSorting();
   } catch (error) {
     console.error('Error loading data:', error);
     setStatusMessage(`Error loading data: ${error.message}`, 'error');
@@ -292,10 +303,13 @@ function applyFilters() {
 
     return true;
   });
-
   // Update state based on current display mode
   if (state.showAllResults) {
     state.itemsPerPage = Math.max(state.filteredRecruits.length, 1);
+  }
+  // Apply existing sorting if there is one
+  if (state.sorting.column) {
+    applySorting();
   }
 
   // Reset to first page when filters change
@@ -410,9 +424,11 @@ function updateRecruitsList() {
       elements.recruitsList.appendChild(row);
     });
   }
-
   // Update pagination display
   updatePaginationDisplay(totalItems, totalPages, startIndex, endIndex);
+  
+  // Update table headers to show sort indicators
+  updateTableHeaders();
 }
 
 // Change page for pagination
@@ -601,6 +617,145 @@ function populatePotentialFilter() {
     option.value = potential;
     option.textContent = potential;
     elements.filterPotential.appendChild(option);
+  });
+}
+
+// Unified sorting function
+function applySorting() {
+  if (!state.sorting.column) return;
+  
+  state.filteredRecruits.sort((a, b) => {
+    const getValue = (recruit, col) => {
+      switch (col) {
+        case 'name': return recruit.name ? recruit.name.toLowerCase() : '';
+        case 'pos': return recruit.pos || '';
+        case 'ovr': return recruit.ovr || 0;
+        case 'potential': return recruit.potential || '';
+        case 'height': return recruit.height || '';
+        case 'weight': return recruit.weight || 0;
+        case 'rating': return recruit.rating || 0;
+        case 'rank': return recruit.rank === 999 ? 999 : (recruit.rank || 999);
+        case 'hometown': return recruit.hometown ? recruit.hometown.toLowerCase() : '';
+        case 'division': return recruit.division || '';
+        case 'miles': return recruit.miles || 0;
+        case 'signed': return recruit.signed ? 1 : 0;
+        case 'gpa': return recruit.gpa || 0;
+        case 'ath': return recruit.ath || 0;
+        case 'spd': return recruit.spd || 0;
+        case 'dur': return recruit.dur || 0;
+        case 'we': return recruit.we || 0;
+        case 'sta': return recruit.sta || 0;
+        case 'str': return recruit.str || 0;
+        case 'blk': return recruit.blk || 0;
+        case 'tkl': return recruit.tkl || 0;
+        case 'han': return recruit.han || 0;
+        case 'gi': return recruit.gi || 0;
+        case 'elu': return recruit.elu || 0;
+        case 'tec': return recruit.tec || 0;
+        case 'r1': return recruit.r1 || 0;
+        case 'r2': return recruit.r2 || 0;
+        case 'r3': return recruit.r3 || 0;
+        case 'r4': return recruit.r4 || 0;
+        case 'r5': return recruit.r5 || 0;
+        case 'r6': return recruit.r6 || 0;
+        case 'considering': return recruit.considering ? recruit.considering.toLowerCase() : '';
+        default: return '';
+      }
+    };    const aValue = getValue(a, state.sorting.column);
+    const bValue = getValue(b, state.sorting.column);
+
+    // Handle numeric vs string comparison
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      const result = state.sorting.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      if (Math.random() < 0.01) { // Log 1% of numeric comparisons
+        console.log(`Numeric comparison: ${aValue} vs ${bValue}, direction: ${state.sorting.direction}, result: ${result}`);
+      }
+      return result;
+    } else {
+      const aStr = aValue.toString();
+      const bStr = bValue.toString();
+      if (state.sorting.direction === 'asc') {
+        return aStr.localeCompare(bStr);
+      } else {
+        return bStr.localeCompare(aStr);
+      }
+    }
+  });
+}
+
+// Sorting functionality
+function sortRecruits(column) {
+  // Toggle sorting direction if clicking the same column
+  if (state.sorting.column === column) {
+    state.sorting.direction = state.sorting.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.sorting.column = column;
+    state.sorting.direction = 'asc';
+  }
+
+  // Apply the sorting
+  applySorting();
+
+  // Reset to first page after sorting
+  state.currentPage = 1;
+
+  // Update the display
+  updateRecruitsList();
+  updateTableHeaders();
+}
+
+// Update table headers to show sort indicators
+function updateTableHeaders() {
+  const headers = document.querySelectorAll('#recruits-table thead th');
+  const columnMapping = [
+    'name', 'pos', 'ovr', 'potential', 'height', 'weight', 'rating', 'rank',
+    'hometown', 'division', 'miles', 'signed', 'gpa', 'ath', 'spd', 'dur',
+    'we', 'sta', 'str', 'blk', 'tkl', 'han', 'gi', 'elu', 'tec', 'r1', 'r2',
+    'r3', 'r4', 'r5', 'r6', 'considering', 'actions'
+  ];
+
+  headers.forEach((header, index) => {
+    // Remove existing sort classes
+    header.classList.remove('sort-asc', 'sort-desc');
+
+    const columnName = columnMapping[index];
+    
+    // Skip actions column
+    if (columnName === 'actions') return;
+
+    // Add sort class if this is the active sort column
+    if (state.sorting.column === columnName) {
+      header.classList.add(`sort-${state.sorting.direction}`);
+    }
+  });
+}
+
+// Make headers clickable for sorting
+function setupTableSorting() {
+  const headers = document.querySelectorAll('#recruits-table thead th');
+  const columnMapping = [
+    'name', 'pos', 'ovr', 'potential', 'height', 'weight', 'rating', 'rank',
+    'hometown', 'division', 'miles', 'signed', 'gpa', 'ath', 'spd', 'dur',
+    'we', 'sta', 'str', 'blk', 'tkl', 'han', 'gi', 'elu', 'tec', 'r1', 'r2',
+    'r3', 'r4', 'r5', 'r6', 'considering', 'actions'
+  ];
+
+  headers.forEach((header, index) => {
+    const columnName = columnMapping[index];
+    
+    // Skip actions column
+    if (columnName === 'actions') return;
+
+    // Skip if already set up (prevent duplicate event listeners)
+    if (header.dataset.sortingSetup === 'true') return;
+
+    // Make header clickable
+    header.style.cursor = 'pointer';
+    header.style.userSelect = 'none';
+    header.addEventListener('click', () => sortRecruits(columnName));
+    
+    // Mark as set up
+    header.dataset.sortingSetup = 'true';
   });
 }
 

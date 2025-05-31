@@ -372,6 +372,76 @@ td:nth-child(33) {
   box-shadow: -2px 0 4px rgba(0,0,0,0.05);
 }
 
+/* Table sorting styles */
+.recruits-table thead th {
+  position: relative;
+}
+
+.recruits-table thead th:not(:last-child) {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.recruits-table thead th:not(:last-child):hover {
+  background-color: #e8e8e8 !important;
+}
+
+.recruits-table thead th.sort-asc,
+.recruits-table thead th.sort-desc {
+  background-color: #d4edda !important;
+}
+
+/* Enhanced table sorting experience */
+#recruits-table thead th:not(:last-child)::after {
+  content: '⇅';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.3;
+  font-size: 0.8em;
+  transition: opacity 0.2s ease;
+}
+
+#recruits-table thead th:not(:last-child):hover::after {
+  opacity: 0.6;
+}
+
+#recruits-table thead th.sort-asc::after {
+  content: '▲';
+  opacity: 1;
+  color: #28a745;
+}
+
+#recruits-table thead th.sort-desc::after {
+  content: '▼';
+  opacity: 1;
+  color: #28a745;
+}
+
+/* Make sure the sort indicator doesn't interfere with text */
+#recruits-table thead th:not(:last-child) {
+  padding-right: 24px;
+}
+
+/* Remove the separate sort-indicator since we're using ::after */
+.sort-indicator {
+  display: none;
+}
+
+/* Ensure sorting styles work with sticky headers */
+#recruits-table thead th:first-child:hover,
+#recruits-table thead th:first-child.sort-asc,
+#recruits-table thead th:first-child.sort-desc {
+  background-color: #e8e8e8 !important;
+}
+
+#recruits-table thead th:first-child.sort-asc,
+#recruits-table thead th:first-child.sort-desc {
+  background-color: #d4edda !important;
+}
+
 /* Specific styling for the actions column header */
 thead th:nth-child(33) {
   position: sticky;
@@ -379,9 +449,7 @@ thead th:nth-child(33) {
   right: 0;
   background-color: #f0f0f0 !important;
   z-index: 20; /* Higher z-index for sticky header that's also sticky horizontally */
-  min-width: 80px;
-  text-align: center;
-  box-shadow: -2px 0 4px rgba(0,0,0,0.1);
+  cursor: default !important; /* Override the clickable cursor for actions column */
 }
 
 tbody tr:hover {

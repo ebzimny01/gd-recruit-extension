@@ -462,13 +462,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.error('Error getting config:', error);
           sendResponse({ success: false, error: error.message });
         });
-      return true; // Indicate asynchronous response    
+      return true; // Indicate asynchronous response      
     case 'getRoleRatings':
       // Get current role ratings for editing
       console.log('Getting current role ratings');
       getCurrentRoleRatings()
         .then(ratings => {
-          sendResponse({ success: true, data: ratings });
+          sendResponse({ success: true, ratings: ratings });
         })
         .catch(error => {
           console.error('Error getting role ratings:', error);

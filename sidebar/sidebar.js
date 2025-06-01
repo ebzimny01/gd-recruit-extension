@@ -899,9 +899,17 @@ function setupTableSorting() {
   });
 }
 
-// Handle scrape recruits action
-async function handleScrapeRecruits() {
-  setStatusMessage('Preparing to fetch recruit data...');
+// Handle scrape recruits action with support for refresh mode
+async function handleScrapeRecruits(options = {}) {
+  const isRefreshOnly = options.isRefreshOnly || false;
+  const fieldsToUpdate = options.fieldsToUpdate || [];
+  
+  // Set appropriate status message based on mode
+  if (isRefreshOnly) {
+    setStatusMessage('Preparing to refresh recruit data...');
+  } else {
+    setStatusMessage('Preparing to fetch recruit data...');
+  }
 
   try {
     // Check if the user is logged in first
@@ -914,99 +922,115 @@ async function handleScrapeRecruits() {
       return;
     }
 
-    // Check if this is an initialization or a new season
-    const stats = await sendMessageToBackground({ action: 'getStats' });
-    const recruitCount = stats.recruitCount || 0;
-    const hasSeason = stats.currentSeason !== null && stats.currentSeason !== undefined;
-    const isNewSeason = recruitCount > 0 || hasSeason;
+    // If this is a refresh, we don't need to do season initialization steps
+    if (!isRefreshOnly) {
+      // Check if this is an initialization or a new season
+      const stats = await sendMessageToBackground({ action: 'getStats' });
+      const recruitCount = stats.recruitCount || 0;
+      const hasSeason = stats.currentSeason !== null && stats.currentSeason !== undefined;
+      const isNewSeason = recruitCount > 0 || hasSeason;
 
-    // If this is a new season, confirm with the user
-    if (isNewSeason) {
-      const confirmed = confirm(
-        "You are about to initialize a new season. This will delete all existing recruit data. Are you sure you want to proceed?"
-      );
+      // If this is a new season, confirm with the user
+      if (isNewSeason) {
+        const confirmed = confirm(
+          "You are about to initialize a new season. This will delete all existing recruit data. Are you sure you want to proceed?"
+        );
 
-      if (!confirmed) {
-        setStatusMessage('New season initialization cancelled');
+        if (!confirmed) {
+          setStatusMessage('New season initialization cancelled');
+          return;
+        }
+
+        // Clear all data
+        setStatusMessage('Clearing existing data...');
+        await sendMessageToBackground({ action: 'clearAllData' });
+
+        // Reset local state
+        state.currentSeason = null;
+
+        // Disable watchlist buttons immediately
+        if (elements.btnUpdateWatchlist) {
+          elements.btnUpdateWatchlist.disabled = true;
+        }
+
+        if (elements.btnUpdateConsidering) {
+          elements.btnUpdateConsidering.disabled = true;
+        }
+
+        // Update the UI to reflect cleared data
+        if (elements.currentSeason) {
+          elements.currentSeason.textContent = 'N/A';
+        }
+
+        if (elements.lastUpdated) {
+          elements.lastUpdated.textContent = 'Never';
+        }
+
+        if (elements.recruitCount) {
+          elements.recruitCount.textContent = '0';
+        }
+
+        if (elements.watchlistCount) {
+          elements.watchlistCount.textContent = '0';
+        }
+      }
+
+      // Now proceed with season initialization (for both new season and first-time init)
+      let seasonNumber = null;
+      let includeLowerDivisions = false;
+
+      try {
+        const modalResult = await showSeasonInputModal();
+        seasonNumber = modalResult.seasonNumber;
+        includeLowerDivisions = modalResult.includeLowerDivisions;
+        console.log('Season number from modal:', seasonNumber);
+        console.log('Include lower divisions from modal:', includeLowerDivisions);
+
+        // If we have a valid season number, update the dashboard immediately
+        if (seasonNumber) {
+          // Manually update the current season in the UI right away
+          state.currentSeason = seasonNumber;
+          if (elements.currentSeason) {
+            elements.currentSeason.textContent = seasonNumber;
+          }
+        }
+      } catch (error) {
+        // User cancelled the season input
+        setStatusMessage('Initialization cancelled');
         return;
       }
 
-      // Clear all data
-      setStatusMessage('Clearing existing data...');
-      await sendMessageToBackground({ action: 'clearAllData' });
+      // Send request to background script to fetch and scrape recruits
+      setStatusMessage('Opening recruit page and starting scrape...');
+      console.log('Sending fetchAndScrapeRecruits with seasonNumber:', seasonNumber);
+      const result = await sendMessageToBackground({
+        action: 'fetchAndScrapeRecruits',
+        includeLowerDivisions: includeLowerDivisions,
+        seasonNumber: seasonNumber
+      });
 
-      // Reset local state
-      state.currentSeason = null;
-
-      // Disable watchlist buttons immediately
-      if (elements.btnUpdateWatchlist) {
-        elements.btnUpdateWatchlist.disabled = true;
+      if (!result.success) {
+        console.error('Error in fetch and scrape process:', result.error);
+        throw new Error(result.error || 'Unknown error occurred');
       }
+    } else {
+      // This is just a refresh of existing data
+      setStatusMessage('Refreshing recruit data for specific fields...');
+      const result = await sendMessageToBackground({
+        action: 'fetchAndScrapeRecruits',
+        isRefreshOnly: true,
+        fieldsToUpdate: fieldsToUpdate
+      });
 
-      if (elements.btnUpdateConsidering) {
-        elements.btnUpdateConsidering.disabled = true;
-      }
-
-      // Update the UI to reflect cleared data
-      if (elements.currentSeason) {
-        elements.currentSeason.textContent = 'N/A';
-      }
-
-      if (elements.lastUpdated) {
-        elements.lastUpdated.textContent = 'Never';
-      }
-
-      if (elements.recruitCount) {
-        elements.recruitCount.textContent = '0';
-      }
-
-      if (elements.watchlistCount) {
-        elements.watchlistCount.textContent = '0';
+      if (!result.success) {
+        console.error('Error in refresh process:', result.error);
+        throw new Error(result.error || 'Unknown error occurred');
       }
     }
 
-    // Now proceed with season initialization (for both new season and first-time init)
-    let seasonNumber = null;
-    let includeLowerDivisions = false;
-
-    try {
-      const modalResult = await showSeasonInputModal();
-      seasonNumber = modalResult.seasonNumber;
-      includeLowerDivisions = modalResult.includeLowerDivisions;
-      console.log('Season number from modal:', seasonNumber);
-      console.log('Include lower divisions from modal:', includeLowerDivisions);
-
-      // If we have a valid season number, update the dashboard immediately
-      if (seasonNumber) {
-        // Manually update the current season in the UI right away
-        state.currentSeason = seasonNumber;
-        if (elements.currentSeason) {
-          elements.currentSeason.textContent = seasonNumber;
-        }
-      }
-    } catch (error) {
-      // User cancelled the season input
-      setStatusMessage('Initialization cancelled');
-      return;
-    }
-
-    // Send request to background script to fetch and scrape recruits
-    setStatusMessage('Opening recruit page and starting scrape...');
-    console.log('Sending fetchAndScrapeRecruits with seasonNumber:', seasonNumber);
-    const result = await sendMessageToBackground({
-      action: 'fetchAndScrapeRecruits',
-      includeLowerDivisions: includeLowerDivisions,
-      seasonNumber: seasonNumber
-    });
-
-    if (!result.success) {
-      console.error('Error in fetch and scrape process:', result.error);
-      throw new Error(result.error || 'Unknown error occurred');
-    }
-
-    setStatusMessage('Scraping in progress. A new tab will open briefly and close when done...');
-
-    // Set up a listener for the scraped data
+    setStatusMessage(isRefreshOnly ? 
+      'Refreshing recruit data in progress. A new tab will open briefly and close when done...' :
+      'Scraping in progress. A new tab will open briefly and close when done...');    // Set up a listener for the scraped data
     const handleScrapeComplete = (message) => {
       if (message.action === 'scrapeComplete') {
         // Remove this listener
@@ -1018,10 +1042,12 @@ async function handleScrapeRecruits() {
           updateDashboardStats();
           updateButtonState();
 
-          // Show success message with season number
+          // Show success message with recruit count
           // Get the actual recruit count from state.recruits which was updated by loadData()
-          if (seasonNumber) {
-            setStatusMessage(`Scrape completed successfully with ${state.recruits.length} recruits for Season ${seasonNumber}`, 'success');
+          if (isRefreshOnly) {
+            setStatusMessage(`Refresh completed successfully for ${state.recruits.length} recruits`, 'success');
+          } else if (state.currentSeason) {
+            setStatusMessage(`Scrape completed successfully with ${state.recruits.length} recruits for Season ${state.currentSeason}`, 'success');
           } else {
             setStatusMessage(`Scrape completed successfully with ${state.recruits.length} recruits`, 'success');
           }
@@ -1051,24 +1077,20 @@ async function handleScrapeRecruits() {
   }
 }
 
-// Handle update considering action
+// Handle refresh recruit data action
 async function handleUpdateConsidering() {
-  setStatusMessage('Starting considering status update...');
+  setStatusMessage('Starting recruit data refresh...');
 
   try {
-    // Request background script to update considering status
-    const result = await sendMessageToBackground({
-      action: 'updateConsideringStatus'
+    // Call the scrape recruits function but with a special parameter
+    // to indicate we're only updating existing recruits
+    await handleScrapeRecruits({
+      isRefreshOnly: true,
+      fieldsToUpdate: ['watched', 'potential', 'priority', 'signed', 'considering']
     });
-
-    // Reload data
-    await loadData();
-    updateDashboardStats();
-
-    setStatusMessage(`Updated considering status for ${result.count} recruits`);
   } catch (error) {
-    console.error('Error updating considering status:', error);
-    setStatusMessage('Error updating considering status: ' + error.message);
+    console.error('Error refreshing recruit data:', error);
+    setStatusMessage('Error refreshing recruit data: ' + error.message, 'error');
   }
 }
 

@@ -146,9 +146,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'fetchAndScrapeRecruits':
       console.log('Fetching and scraping recruits from new tab');
 
+      // Handle refresh mode
+      const isRefreshOnly = message.isRefreshOnly || false;
+      const fieldsToUpdate = message.fieldsToUpdate || [];
+      
       // Get season number if provided - Save it BEFORE proceeding with other operations
       let seasonPromise = Promise.resolve();
-      if (message.seasonNumber !== undefined) {
+      if (message.seasonNumber !== undefined && !isRefreshOnly) {
         console.log(`Setting current season to ${message.seasonNumber}`);
         seasonPromise = recruitStorage.saveConfig('currentSeason', message.seasonNumber)
           .then(() => console.log('Season number saved successfully'))
@@ -159,14 +163,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       seasonPromise.then(() => {
         // Get team info to determine appropriate URL
         return getTeamInfoFromCookies();
-      }).then(teamInfo => {
-        // Determine URL based on team division and includeLowerDivisions preference
+      }).then(teamInfo => {        // Determine URL based on team division and includeLowerDivisions preference
         const url = getUrlForDivision(
           teamInfo?.division,
           message.includeLowerDivisions
         );
+        
+        // Add url parameters for auto scrape mode
+        const urlWithParams = isRefreshOnly ? 
+          `${url}&auto_scrape=true&refresh_mode=true` : 
+          `${url}&auto_scrape=true`;
+        
+        // Store the fields to update if this is a refresh
+        if (isRefreshOnly && fieldsToUpdate.length > 0) {
+          recruitStorage.saveConfig('refreshFieldsToUpdate', JSON.stringify(fieldsToUpdate))
+            .catch(error => console.error('Error storing fields to update:', error));
+        }
+        
         // Store the new tab ID when created for future reference
-        chrome.tabs.create({ url: url }).then(tab => {
+        chrome.tabs.create({ url: urlWithParams }).then(tab => {
           currentScrapeTabId = tab.id;
           console.log(`Created new tab with ID ${tab.id} for scraping`);
 
@@ -208,6 +223,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }).catch(error => {
         console.error('Error getting team info:', error);
         sendResponse({ success: false, error: error.message });
+      });
+      return true; // Indicate asynchronous response
+
+    case 'refreshRecruitsComplete':
+      console.log(`Received ${message.recruits.length} updated recruits from refresh operation`);
+      
+      // Update the recruits in the database
+      updateRefreshedRecruits(message.recruits).then(async result => {
+        // Clean up the temporary config
+        recruitStorage.saveConfig('refreshFieldsToUpdate', null)
+          .catch(error => console.error('Error clearing fields to update:', error));
+        
+        // Update the last updated timestamp
+        recruitStorage.saveConfig('lastUpdated', new Date().toISOString());
+        
+        // Recalculate and update the watchlist count to ensure it's accurate
+        const stats = await getStats(); // This will recalculate watchlist count
+        
+        // Send a scrapeComplete message to notify the UI
+        chrome.runtime.sendMessage({
+          action: 'scrapeComplete',
+          success: true,
+          count: result.updated,
+          watchlistCount: stats.watchlistCount
+        });
+        
+        // Respond to the content script
+        sendResponse({
+          success: true,
+          updated: result.updated,
+          watchlistCount: stats.watchlistCount
+        });
+        
+        // Close the tab if requested
+        if (message.closeTab && sender.tab && sender.tab.id) {
+          chrome.tabs.remove(sender.tab.id)
+            .catch(error => console.error('Error closing tab:', error));
+        }
+      }).catch(error => {
+        console.error('Error updating refreshed recruits:', error);
+        sendResponse({
+          success: false,
+          error: error.message
+        });
       });
       return true; // Indicate asynchronous response
 
@@ -706,6 +765,70 @@ async function calculateRatingsForRecruits(recruits) {
   return { success: true };
 }
 
+// Update only specific fields for refreshed recruits
+async function updateRefreshedRecruits(updatedRecruits) {
+  console.log(`Updating ${updatedRecruits.length} refreshed recruits`);
+  
+  if (!Array.isArray(updatedRecruits) || updatedRecruits.length === 0) {
+    return { updated: 0 };
+  }
+  
+  // Log watchlist status before updates
+  const beforeCount = await logWatchlistStatus("BEFORE UPDATE");
+  
+  let updated = 0;
+  
+  // Get all existing recruits for reference
+  const existingRecruits = await recruitStorage.getAllRecruits();
+  const idMap = {};
+  
+  // Create a map of existing recruits by ID
+  existingRecruits.forEach(recruit => {
+    idMap[recruit.id] = recruit;
+  });
+  
+  // Update each recruit
+  for (const recruit of updatedRecruits) {
+    if (!recruit.id || !idMap[recruit.id]) {
+      console.warn(`Skipping update for non-existent recruit ID: ${recruit.id}`);
+      continue;
+    }
+    
+    try {
+      // Get the existing recruit data
+      const existingRecruit = idMap[recruit.id];
+      
+      // IMPORTANT FIX: If we're not specifically updating the watched status, 
+      // preserve the existing watched value from the database
+      if (!recruit.hasOwnProperty('watched') || recruit.watched === undefined) {
+        recruit.watched = existingRecruit.watched || 0;
+      }
+      
+      // Log the existing watched value for debugging
+      if (existingRecruit.watched === 1 || recruit.watched === 1) {
+        console.log(`Recruit ${recruit.id} (${recruit.name}): Existing watched=${existingRecruit.watched}, New watched=${recruit.watched}`);
+      }
+      
+      // Save the updated recruit (the merge of existing and updated data was already done in the scraper)
+      await recruitStorage.saveRecruit(recruit);
+      updated++;
+      
+      // Log progress for every 50 recruits
+      if (updated % 50 === 0) {
+        console.log(`Updated ${updated} of ${updatedRecruits.length} recruits`);
+      }
+    } catch (error) {
+      console.error(`Error updating recruit ${recruit.id}:`, error);
+    }
+  }
+  
+  // Log watchlist status after updates
+  const afterCount = await logWatchlistStatus("AFTER UPDATE");
+  
+  console.log(`Successfully updated ${updated} recruits. Watchlist: ${beforeCount} before, ${afterCount} after.`);
+  return { updated };
+}
+
 // Check if user has authentication cookies for whatifsports.com
 async function checkLogin() {
   console.log('Checking for WhatifsIports authentication cookies');
@@ -1092,6 +1215,7 @@ function withErrorHandling(handler) {
 // Add these lines after your existing imports at the top
 console.log('GD Recruit Assistant extension loaded');
 
+
 // Set up listener for GD Office page
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // Only run when the page is fully loaded
@@ -1247,6 +1371,26 @@ async function checkForWispersistedCookie() {
   } catch (error) {
     console.error('Error checking for wispersisted cookie:', error);
     return null;
+  }
+}
+
+// Function to log watchlist status for debugging purposes
+async function logWatchlistStatus(label = "Current") {
+  try {
+    const recruits = await recruitStorage.getAllRecruits();
+    const watchlistRecruits = recruits.filter(recruit => recruit.watched === 1);
+    console.log(`${label} Watchlist Status: ${watchlistRecruits.length} recruits`);
+    
+    // Log first 5 watchlist recruits for debugging
+    const first5 = watchlistRecruits.slice(0, 5);
+    first5.forEach(recruit => {
+      console.log(`  Watchlist Recruit: ${recruit.id} (${recruit.name}), watched=${recruit.watched}`);
+    });
+    
+    return watchlistRecruits.length;
+  } catch (error) {
+    console.error("Error logging watchlist status:", error);
+    return -1;
   }
 }
 

@@ -402,21 +402,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.error('Error getting stats:', error);
         sendResponse({ error: error.message });
       });
-      return true; // Indicate asynchronous response
-    case 'clearAllData':
+      return true; // Indicate asynchronous response    case 'clearAllData':
       // Clear all extension data
       console.log('Handling clearAllData request');
-      withErrorHandling(async () => {
-        const result = await clearAllData();
-        sendResponse(result);
-      })(message, sender, sendResponse);
-      return true; // Indicate asynchronous response    case 'checkDatabaseStatus':
+      clearAllData()
+        .then(result => {
+          sendResponse(result);
+        })
+        .catch(error => {
+          console.error('Error clearing data:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Indicate asynchronous response
+
+    case 'checkDatabaseStatus':
       // Check database diagnostic status
       console.log('Handling checkDatabaseStatus request');
-      withErrorHandling(async () => {
-        const dbInfo = await checkDatabaseStatus();
-        sendResponse({ success: true, dbInfo });
-      })(message, sender, sendResponse);
+      checkDatabaseStatus()
+        .then(dbInfo => {
+          sendResponse({ success: true, dbInfo });
+        })
+        .catch(error => {
+          console.error('Error checking database status:', error);
+          sendResponse({ success: false, error: error.message });
+        });
       return true; // Indicate asynchronous response
 
     case 'saveConfig':
@@ -1074,9 +1083,8 @@ async function checkDatabaseStatus() {
     factory: indexedDB ? Object.getOwnPropertyNames(indexedDB).join(', ') : 'Not available'
   };
 
-  let lastError = null;
   let dbInfo = {
-    name: null,
+    name: 'gdRecruitDB',
     version: null,
     objectStores: [],
     recruitCount: 0,
@@ -1085,40 +1093,50 @@ async function checkDatabaseStatus() {
   };
 
   try {
-    // Try to manually open the database for diagnosis
+    // Try to use the existing storage module first for safety
+    try {
+      const recruits = await recruitStorage.getAllRecruits();
+      dbInfo.recruitCount = recruits ? recruits.length : 0;
+      dbInfo.lastError = null;
+      dbInfo.objectStores = ['recruits', 'config']; // Known stores from storage.js
+      return dbInfo;
+    } catch (storageError) {
+      console.log('Storage module unavailable, checking database directly:', storageError.message);
+    }
+
+    // Fallback to direct database access for diagnosis
     return new Promise((resolve, reject) => {
-      // 5 second timeout in case of hanging connection
+      // Reduce timeout to 3 seconds to prevent message port closure
       const timeoutId = setTimeout(() => {
-        reject(new Error('Database connection timed out after 5 seconds'));
-      }, 5000);
+        dbInfo.lastError = 'Database connection timed out after 3 seconds';
+        resolve(dbInfo);
+      }, 3000);
 
       try {
         const request = indexedDB.open('gdRecruitDB');
 
         request.onerror = event => {
           clearTimeout(timeoutId);
-          lastError = event.target.error
+          const lastError = event.target.error
             ? `${event.target.error.name}: ${event.target.error.message}`
             : 'Unknown error opening database';
 
           dbInfo.lastError = lastError;
           console.error('Error opening database for diagnosis:', lastError);
-
-          // Still resolve with what info we have
           resolve(dbInfo);
         };
 
-        request.onsuccess = async event => {
+        request.onsuccess = event => {
           clearTimeout(timeoutId);
           const db = event.target.result;
 
-          dbInfo.name = db.name;
-          dbInfo.version = db.version;
-          dbInfo.objectStores = Array.from(db.objectStoreNames);
+          try {
+            dbInfo.name = db.name;
+            dbInfo.version = db.version;
+            dbInfo.objectStores = Array.from(db.objectStoreNames);
 
-          // Check for recruits if the store exists
-          if (dbInfo.objectStores.includes('recruits')) {
-            try {
+            // Check for recruits if the store exists
+            if (dbInfo.objectStores.includes('recruits')) {
               const transaction = db.transaction('recruits', 'readonly');
               const store = transaction.objectStore('recruits');
               const countRequest = store.count();
@@ -1130,7 +1148,7 @@ async function checkDatabaseStatus() {
               };
 
               countRequest.onerror = event => {
-                lastError = event.target.error
+                const lastError = event.target.error
                   ? `${event.target.error.name}: ${event.target.error.message}`
                   : 'Unknown error counting recruits';
 
@@ -1138,30 +1156,24 @@ async function checkDatabaseStatus() {
                 db.close();
                 resolve(dbInfo);
               };
-            } catch (error) {
-              lastError = `Error in transaction: ${error.message}`;
-              dbInfo.lastError = lastError;
+            } else {
+              dbInfo.lastError = 'Recruits store not found in database';
               db.close();
               resolve(dbInfo);
             }
-          } else {
-            // No recruits store
-            dbInfo.lastError = 'Recruits store not found in database';
+          } catch (error) {
+            dbInfo.lastError = `Error in transaction: ${error.message}`;
             db.close();
             resolve(dbInfo);
           }
         };
 
         request.onupgradeneeded = event => {
-          // If this triggers, it means the database doesn't exist or needs upgrade
-          const db = event.target.result;
-
-          // Close the database without making changes
-          dbInfo.lastError = 'Database needed initialization during diagnosis';
           clearTimeout(timeoutId);
-
-          // The onsuccess handler will still be called after this
+          dbInfo.lastError = 'Database needed initialization during diagnosis';
+          resolve(dbInfo);
         };
+
       } catch (error) {
         clearTimeout(timeoutId);
         dbInfo.lastError = `Error setting up diagnosis: ${error.message}`;

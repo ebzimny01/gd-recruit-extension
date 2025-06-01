@@ -5,7 +5,14 @@
 function sendMessageToBackground(message) {
   return new Promise((resolve, reject) => {
     try {
+      // Set up a timeout to prevent hanging
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Message timeout - no response received within 5 seconds'));
+      }, 5000);
+
       chrome.runtime.sendMessage(message, response => {
+        clearTimeout(timeoutId);
+        
         // Handle potential cases where runtime.lastError exists
         if (chrome.runtime.lastError) {
           const errorMessage = chrome.runtime.lastError.message || 'Unknown error';

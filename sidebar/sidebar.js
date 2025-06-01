@@ -1235,7 +1235,7 @@ function handleEditRoleRatings() {
 
 // Handle check database action
 async function handleCheckDatabase() {
-  setStatusMessage('Checking database status...');
+  setStatusMessage('Checking database status...', 'info');
 
   try {
     // Request diagnostic data from background script
@@ -1244,26 +1244,49 @@ async function handleCheckDatabase() {
     });
 
     // Display diagnostic information
-    if (diagnosticResult.success) {
+    if (diagnosticResult && diagnosticResult.success) {
       const dbInfo = diagnosticResult.dbInfo;
       const message = `
-Database name: ${dbInfo.name}
-Database version: ${dbInfo.version}
-Object stores: ${dbInfo.objectStores.join(', ')}
-Recruit count: ${dbInfo.recruitCount}
+Database name: ${dbInfo.name || 'Unknown'}
+Database version: ${dbInfo.version || 'Unknown'}
+Object stores: ${dbInfo.objectStores ? dbInfo.objectStores.join(', ') : 'None'}
+Recruit count: ${dbInfo.recruitCount || 0}
 Last error: ${dbInfo.lastError || 'None'}
+IndexedDB supported: ${dbInfo.idbDetails ? dbInfo.idbDetails.supported : 'Unknown'}
       `;
 
       // Create a modal to display the information
       showDiagnosticModal('Database Diagnostic Results', message);
 
-      setStatusMessage('Database check completed');
+      setStatusMessage('Database check completed successfully', 'success');
     } else {
-      throw new Error(diagnosticResult.error || 'Unknown error checking database');
+      const errorMsg = diagnosticResult?.error || 'Unknown error checking database';
+      throw new Error(errorMsg);
     }
   } catch (error) {
     console.error('Error checking database:', error);
-    setStatusMessage('Error checking database: ' + error.message);
+    let errorMessage = 'Error checking database: ';
+    
+    if (error.message.includes('timeout')) {
+      errorMessage += 'Database check timed out. The database may be busy or locked.';
+    } else if (error.message.includes('port closed')) {
+      errorMessage += 'Connection to background script was lost. Try reloading the extension.';
+    } else {
+      errorMessage += error.message;
+    }
+    
+    setStatusMessage(errorMessage, 'error');
+    
+    // Show basic diagnostic modal even on error
+    showDiagnosticModal('Database Check Error', `
+Error: ${error.message}
+
+Possible solutions:
+- Reload the extension
+- Check if the browser has enough memory
+- Try clearing browser cache
+- Restart the browser if issues persist
+    `);
   }
 }
 

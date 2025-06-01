@@ -166,11 +166,19 @@
             <button id="btn-clear-data" class="setting-btn">Clear Data</button>
             <button id="btn-check-db" class="setting-btn">Check Database</button>
           </div>
-        </div>
-
+        </div>        
         <div class="settings-group">
           <h3>Role Ratings Configuration</h3>
           <div class="setting-row">
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>Attribute Styling Configuration</h3>
+          <p>Configure which attributes should be highlighted for each position:</p>
+          <div class="setting-row">
+            <button id="btn-edit-bold-attributes" class="setting-btn">Edit Attribute Styling</button>
+            <button id="btn-reset-bold-attributes" class="setting-btn">Reset to Defaults</button>
           </div>
         </div>
 
@@ -201,6 +209,42 @@
           <div class="modal-footer">
             <button id="season-confirm" class="action-btn">Confirm</button>
             <button id="season-cancel" class="action-btn secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bold Attributes Configuration Modal -->
+      <div id="bold-attributes-modal" class="modal hidden">
+        <div class="modal-content bold-attributes-modal-content">
+          <div class="modal-header">
+            <h2>Attribute Styling Configuration</h2>
+            <span class="close-button" id="bold-attributes-modal-close">&times;</span>
+          </div>
+          <div class="modal-body">
+            <p>Select which attributes should be highlighted (bold) for each position:</p>
+            
+            <div class="position-selector">
+              <label for="position-select">Position:</label>
+              <select id="position-select">
+                <!-- Options will be populated dynamically -->
+              </select>
+            </div>
+
+            <div class="attributes-grid" id="attributes-grid">
+              <!-- Attribute checkboxes will be populated dynamically -->
+            </div>
+
+            <div class="preview-section">
+              <h4>Preview:</h4>
+              <div class="attribute-preview" id="attribute-preview">
+                <!-- Preview will be shown here -->
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="bold-attributes-save" class="action-btn">Save Changes</button>
+            <button id="bold-attributes-reset-position" class="action-btn secondary">Reset Position</button>
+            <button id="bold-attributes-cancel" class="action-btn secondary">Cancel</button>
           </div>
         </div>
       </div>

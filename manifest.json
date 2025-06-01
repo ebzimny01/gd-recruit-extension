@@ -47,7 +47,12 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },  "web_accessible_resources": [{
-    "resources": ["content/advanced-scraper.js", "data/gdr.csv"],
+    "resources": [
+      "content/advanced-scraper.js", 
+      "data/gdr.csv", 
+      "data/bold_attributes_defaults.json",
+      "modules/bold-attributes-config.js"
+    ],
     "matches": ["https://*.whatifsports.com/*"]
   }]
 }

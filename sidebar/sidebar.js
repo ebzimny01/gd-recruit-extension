@@ -3,6 +3,7 @@
 // Import modules
 import { calculator } from '../lib/calculator.js';
 import { sidebarComms } from './communications.js';
+import boldAttributesConfig from '../modules/bold-attributes-config.js';
 
 // DOM elements
 const elements = {
@@ -32,12 +33,13 @@ const elements = {
   prevPageBtn: document.getElementById('prev-page'),
   nextPageBtn: document.getElementById('next-page'),
   pageInfo: document.getElementById('page-info'),
-  pageSizeSelect: document.getElementById('page-size-select'),
-  // Settings tab elements
+  pageSizeSelect: document.getElementById('page-size-select'),  // Settings tab elements
   btnExportData: document.getElementById('btn-export-data'),
   btnImportData: document.getElementById('btn-import-data'),
   btnClearData: document.getElementById('btn-clear-data'),
-  btnEditRoleRatings: document.getElementById('btn-edit-role-ratings')
+  btnEditRoleRatings: document.getElementById('btn-edit-role-ratings'),
+  btnEditBoldAttributes: document.getElementById('btn-edit-bold-attributes'),
+  btnResetBoldAttributes: document.getElementById('btn-reset-bold-attributes')
 };
 
 // State management
@@ -76,7 +78,17 @@ const PAGE_SIZE_STORAGE_KEY = 'preferredPageSize';
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
-    // Set initial loading state for school name
+  
+  // Initialize bold attributes configuration
+  try {
+    await boldAttributesConfig.init();
+    console.log('Bold attributes configuration initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize bold attributes configuration:', error);
+    setStatusMessage('Warning: Attribute styling configuration failed to load', 'warning');
+  }
+  
+  // Set initial loading state for school name
   const schoolNameElements = [elements.schoolName, elements.dashboardSchoolName];
   schoolNameElements.forEach(element => {
     if (element) element.textContent = 'Loading...';
@@ -173,9 +185,17 @@ function setupEventListeners() {
   if (elements.btnClearData) {
     elements.btnClearData.addEventListener('click', handleClearData);
   }
-
   if (elements.btnEditRoleRatings) {
     elements.btnEditRoleRatings.addEventListener('click', handleEditRoleRatings);
+  }
+
+  // Bold attributes configuration
+  if (elements.btnEditBoldAttributes) {
+    elements.btnEditBoldAttributes.addEventListener('click', handleEditBoldAttributes);
+  }
+
+  if (elements.btnResetBoldAttributes) {
+    elements.btnResetBoldAttributes.addEventListener('click', handleResetBoldAttributes);
   }
 
   // Add event listener for database check button
@@ -444,9 +464,8 @@ async function updateRecruitsList() {
   } else {
     pageRecruits.forEach(recruit => {
       const row = document.createElement('tr');
-      
-      // Helper function to create a cell with text content
-      const createCell = (text, isNumeric = false) => {
+        // Helper function to create a cell with text content and conditional styling
+      const createCell = (text, isNumeric = false, attributeName = null, position = null) => {
         const cell = document.createElement('td');
         if (text === null || text === undefined || text === '') {
           cell.textContent = 'N/A';
@@ -455,8 +474,18 @@ async function updateRecruitsList() {
         } else {
           cell.textContent = text.toString();
         }
+        
+        if (isNumeric) {
+          cell.style.textAlign = 'center';
+        }
+
+        // Apply bold styling if this is an attribute cell and should be bold for this position
+        if (attributeName && position && boldAttributesConfig.shouldBoldAttribute(position, attributeName)) {
+          cell.classList.add('recruit-attribute-bold');
+        }
+
         return cell;
-      };      // Helper function to format priority value
+      };// Helper function to format priority value
       const formatPriority = (priority) => {
         if (priority === null || priority === undefined) return 'N/A';
         switch (parseInt(priority)) {
@@ -536,20 +565,22 @@ async function updateRecruitsList() {
       row.appendChild(createHometownCell(recruit, teamInfo));
       row.appendChild(createCell(recruit.division));
       row.appendChild(createCell(recruit.miles, true));
-      row.appendChild(createCell(recruit.signed === 1 ? 'Yes' : 'No'));
+      row.appendChild(createCell(recruit.signed === 1 ? 'Yes' : 'No'));      
       row.appendChild(createCell(recruit.gpa ? recruit.gpa.toFixed(1) : 'N/A'));
-      row.appendChild(createCell(recruit.ath, true));
-      row.appendChild(createCell(recruit.spd, true));
-      row.appendChild(createCell(recruit.dur, true));
-      row.appendChild(createCell(recruit.we, true));
-      row.appendChild(createCell(recruit.sta, true));
-      row.appendChild(createCell(recruit.str, true));
-      row.appendChild(createCell(recruit.blk, true));
-      row.appendChild(createCell(recruit.tkl, true));
-      row.appendChild(createCell(recruit.han, true));
-      row.appendChild(createCell(recruit.gi, true));
-      row.appendChild(createCell(recruit.elu, true));
-      row.appendChild(createCell(recruit.tec, true));
+      
+      // Update attribute cells with bold styling
+      row.appendChild(createCell(recruit.ath, true, 'ath', recruit.pos));
+      row.appendChild(createCell(recruit.spd, true, 'spd', recruit.pos));
+      row.appendChild(createCell(recruit.dur, true, 'dur', recruit.pos));
+      row.appendChild(createCell(recruit.we, true, 'we', recruit.pos));
+      row.appendChild(createCell(recruit.sta, true, 'sta', recruit.pos));
+      row.appendChild(createCell(recruit.str, true, 'str', recruit.pos));
+      row.appendChild(createCell(recruit.blk, true, 'blk', recruit.pos));
+      row.appendChild(createCell(recruit.tkl, true, 'tkl', recruit.pos));
+      row.appendChild(createCell(recruit.han, true, 'han', recruit.pos));
+      row.appendChild(createCell(recruit.gi, true, 'gi', recruit.pos));
+      row.appendChild(createCell(recruit.elu, true, 'elu', recruit.pos));
+      row.appendChild(createCell(recruit.tec, true, 'tec', recruit.pos));
       row.appendChild(createCell(recruit.r1, true));
       row.appendChild(createCell(recruit.r2, true));
       row.appendChild(createCell(recruit.r3, true));
@@ -1608,6 +1639,283 @@ function formatDateForFile(date) {
   const minutes = String(date.getMinutes()).padStart(2, '0');
 
   return `${year}${month}${day}_${hours}${minutes}`;
+}
+
+// Bold attributes configuration handlers
+async function handleEditBoldAttributes() {
+  try {
+    setStatusMessage('Opening attribute styling configuration...');
+    await showBoldAttributesModal();
+    setStatusMessage('Attribute styling configuration updated successfully', 'success');
+  } catch (error) {
+    console.error('Error with bold attributes configuration:', error);
+    if (error.message !== 'Configuration cancelled') {
+      setStatusMessage('Error with configuration: ' + error.message, 'error');
+    } else {
+      setStatusMessage('Configuration cancelled');
+    }
+  }
+}
+
+async function handleResetBoldAttributes() {
+  if (!confirm('Are you sure you want to reset all attribute styling to defaults? This will remove all your customizations.')) {
+    return;
+  }
+
+  try {
+    setStatusMessage('Resetting attribute styling to defaults...');
+    
+    // Clear user configuration
+    boldAttributesConfig.resetAllToDefault();
+    const success = await boldAttributesConfig.saveUserConfig();
+    
+    if (success) {
+      // Refresh the recruits list to apply new styling
+      await updateRecruitsList();
+      setStatusMessage('Attribute styling reset to defaults successfully', 'success');
+    } else {
+      throw new Error('Failed to save reset configuration');
+    }
+  } catch (error) {
+    console.error('Error resetting bold attributes:', error);
+    setStatusMessage('Error resetting configuration: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Show bold attributes configuration modal
+ * Provides an interactive interface for customizing position-based attribute styling
+ */
+function showBoldAttributesModal() {
+  return new Promise((resolve, reject) => {
+    const modal = document.getElementById('bold-attributes-modal');
+    const closeBtn = document.getElementById('bold-attributes-modal-close');
+    const saveBtn = document.getElementById('bold-attributes-save');
+    const resetPositionBtn = document.getElementById('bold-attributes-reset-position');
+    const cancelBtn = document.getElementById('bold-attributes-cancel');
+    const positionSelect = document.getElementById('position-select');
+    const attributesGrid = document.getElementById('attributes-grid');
+    const attributePreview = document.getElementById('attribute-preview');
+
+    if (!modal || !positionSelect || !attributesGrid || !attributePreview) {
+      reject(new Error('Required modal elements not found'));
+      return;
+    }
+
+    let current_changes = {};
+    let selected_position = '';
+
+    /**
+     * Populate position selector dropdown
+     */
+    function populatePositions() {
+      positionSelect.innerHTML = '';
+      const positions = boldAttributesConfig.getAvailablePositions();
+      
+      if (positions.length === 0) {
+        console.warn('No positions available for configuration');
+        return;
+      }
+      
+      positions.forEach(position => {
+        const option = document.createElement('option');
+        option.value = position.key;
+        option.textContent = `${position.name} (${position.key.toUpperCase()})`;
+        positionSelect.appendChild(option);
+      });
+
+      selected_position = positions[0].key;
+      positionSelect.value = selected_position;
+      updateAttributesGrid();
+    }
+
+    /**
+     * Update attributes grid for selected position
+     */
+    function updateAttributesGrid() {
+      const positionConfig = boldAttributesConfig.getPositionConfig(selected_position);
+      const attributes = boldAttributesConfig.getAvailableAttributes();
+      
+      attributesGrid.innerHTML = '';
+
+      attributes.forEach(attr => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'attribute-checkbox';
+        
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `attr-${attr}`;
+        checkbox.value = attr;
+        
+        // Check if attribute should be bold for this position
+        const should_be_bold = positionConfig ? positionConfig.boldAttributes[attr] === 1 : false;
+        checkbox.checked = should_be_bold;
+        
+        if (should_be_bold) {
+          wrapper.classList.add('checked');
+        }
+
+        const label = document.createElement('label');
+        label.htmlFor = `attr-${attr}`;
+        label.textContent = attr.toUpperCase();
+
+        // Handle checkbox changes
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) {
+            wrapper.classList.add('checked');
+          } else {
+            wrapper.classList.remove('checked');
+          }
+          
+          // Track changes
+          if (!current_changes[selected_position]) {
+            current_changes[selected_position] = {};
+          }
+          current_changes[selected_position][attr] = checkbox.checked ? 1 : 0;
+          
+          updatePreview();
+        });
+
+        // Handle wrapper clicks for better UX
+        wrapper.addEventListener('click', (e) => {
+          if (e.target !== checkbox) {
+            checkbox.click();
+          }
+        });
+
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(label);
+        attributesGrid.appendChild(wrapper);
+      });
+
+      updatePreview();
+    }
+
+    /**
+     * Update preview of how attributes will look
+     */
+    function updatePreview() {
+      const attributes = boldAttributesConfig.getAvailableAttributes();
+      const positionConfig = boldAttributesConfig.getPositionConfig(selected_position);
+      
+      attributePreview.innerHTML = '';
+
+      attributes.forEach(attr => {
+        const previewElement = document.createElement('div');
+        previewElement.className = 'preview-attribute';
+        previewElement.textContent = attr.toUpperCase();
+
+        // Check if this attribute should be bold (considering current changes)
+        let should_be_bold = false;
+        if (current_changes[selected_position] && current_changes[selected_position].hasOwnProperty(attr)) {
+          should_be_bold = current_changes[selected_position][attr] === 1;
+        } else if (positionConfig) {
+          should_be_bold = positionConfig.boldAttributes[attr] === 1;
+        }
+
+        if (should_be_bold) {
+          previewElement.classList.add('bold');
+        }
+
+        attributePreview.appendChild(previewElement);
+      });
+    }
+
+    // Position change handler
+    positionSelect.addEventListener('change', () => {
+      selected_position = positionSelect.value;
+      updateAttributesGrid();
+    });
+
+    // Initialize modal content
+    try {
+      populatePositions();
+      modal.classList.remove('hidden');
+      
+      // Focus management for accessibility
+      positionSelect.focus();
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    // Event handlers
+    const cleanup = () => {
+      modal.classList.add('hidden');
+      // Remove event listeners to prevent memory leaks
+      window.removeEventListener('click', handleOutsideClick);
+    };
+
+    const handleOutsideClick = (event) => {
+      if (event.target === modal) {
+        cleanup();
+        reject(new Error('Configuration cancelled'));
+      }
+    };
+
+    closeBtn.onclick = () => {
+      cleanup();
+      reject(new Error('Configuration cancelled'));
+    };
+
+    cancelBtn.onclick = () => {
+      cleanup();
+      reject(new Error('Configuration cancelled'));
+    };
+
+    resetPositionBtn.onclick = () => {
+      if (confirm(`Reset ${selected_position.toUpperCase()} to default configuration?`)) {
+        // Remove changes for this position
+        delete current_changes[selected_position];
+        updateAttributesGrid();
+      }
+    };
+
+    saveBtn.onclick = async () => {
+      try {
+        // Show loading state
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        
+        // Apply all changes
+        for (const [position, changes] of Object.entries(current_changes)) {
+          boldAttributesConfig.updatePositionConfig(position, changes);
+        }
+
+        // Save to storage
+        const success = await boldAttributesConfig.saveUserConfig();
+        
+        if (success) {
+          cleanup();
+          
+          // Refresh the recruits list to apply new styling
+          await updateRecruitsList();
+          
+          resolve();
+        } else {
+          throw new Error('Failed to save configuration');
+        }
+      } catch (error) {
+        console.error('Error saving bold attributes configuration:', error);
+        alert('Error saving configuration: ' + error.message);
+        
+        // Reset button state
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Changes';
+      }
+    };
+
+    // Handle click outside modal and escape key
+    window.addEventListener('click', handleOutsideClick);
+    
+    document.addEventListener('keydown', function handleEscape(e) {
+      if (e.key === 'Escape') {
+        cleanup();
+        document.removeEventListener('keydown', handleEscape);
+        reject(new Error('Configuration cancelled'));
+      }
+    });
+  });
 }
 
 // Export functions needed for error handler

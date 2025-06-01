@@ -777,6 +777,33 @@ tbody tr:hover {
   color: #e0e0e0;
 }
 
+/* Recruit name link styling */
+.recruits-table td a {
+  color: #007bff;
+  text-decoration: none;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.recruits-table td a:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+.recruits-table td a:visited {
+  color: #6f42c1;
+}
+
+.recruits-table td a:active {
+  color: #495057;
+}
+
+/* Ensure links are easily clickable */
+.recruits-table td a {
+  display: block;
+  padding: 2px 0;
+  min-height: 16px;
+}
+
 @media (max-height: 600px) {
   .stats-container {
     grid-template-columns: 1fr 1fr;

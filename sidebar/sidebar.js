@@ -436,10 +436,24 @@ function updateRecruitsList() {
           case 5: return '5th';
           default: return 'Unprioritized';
         }
-      };
-
-      // Create cells for all recruit data (removed Actions cell)
-      row.appendChild(createCell(recruit.name));
+      };      // Create cells for all recruit data (removed Actions cell)
+      // Create name cell with hyperlink to recruit profile
+      const nameCell = document.createElement('td');
+      const nameLink = document.createElement('a');
+      nameLink.href = `https://www.whatifsports.com/gd/RecruitProfile/Ratings.aspx?rid=${recruit.id}&section=Ratings`;
+      nameLink.target = '_blank';
+      nameLink.textContent = recruit.name || 'N/A';
+      nameLink.style.color = '#007bff';
+      nameLink.style.textDecoration = 'none';
+      nameLink.addEventListener('mouseover', () => {
+        nameLink.style.textDecoration = 'underline';
+      });
+      nameLink.addEventListener('mouseout', () => {
+        nameLink.style.textDecoration = 'none';
+      });
+      nameCell.appendChild(nameLink);
+      row.appendChild(nameCell);
+      
       row.appendChild(createCell(recruit.pos));
       row.appendChild(createCell(recruit.watched === 1 ? 'Yes' : 'No'));
       row.appendChild(createCell(recruit.potential));

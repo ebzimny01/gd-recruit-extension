@@ -7,13 +7,25 @@ import {
   recalculateRoleRatings, 
   saveRoleRatings, 
   getCurrentRoleRatings, 
-  resetRoleRatingsToDefaults 
+  resetRoleRatingsToDefaults,
+  initializeDefaultRatings
 } from './lib/calculator.js';
 
 // Add this code near the top of your background file, where other initialization happens
 
 // Check all existing tabs when extension is first loaded
-chrome.runtime.onStartup.addListener(checkAllTabsForGDOffice);
+chrome.runtime.onStartup.addListener(async () => {
+  // Run existing tab checking
+  checkAllTabsForGDOffice();
+  
+  // Also ensure defaults are initialized on startup
+  try {
+    await initializeDefaultRatings();
+    console.log('Default role ratings verified on startup');
+  } catch (error) {
+    console.error('Error verifying default role ratings on startup:', error);
+  }
+});
 
 // Also check when the extension is installed or updated
 chrome.runtime.onInstalled.addListener(checkAllTabsForGDOffice);
@@ -33,8 +45,17 @@ function checkAllTabsForGDOffice() {
 }
 
 // Initialize when the extension is installed or updated
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async () => {
   console.log('GD Recruit Assistant extension installed');
+
+  try {
+    // Initialize default role ratings FIRST, before other setup
+    await initializeDefaultRatings();
+    console.log('Default role ratings initialized successfully');
+  } catch (error) {
+    console.error('Error initializing default role ratings:', error);
+    // Continue with other initialization even if this fails
+  }
 
   // Set initial stats
   recruitStorage.saveConfig('lastUpdated', new Date().toISOString());

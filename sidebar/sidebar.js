@@ -1,7 +1,6 @@
 // Sidebar script for GD Recruit Assistant
 
 // Import modules
-import { calculator } from '../lib/calculator.js';
 import { sidebarComms } from './communications.js';
 import boldAttributesConfig from '../modules/bold-attributes-config.js';
 
@@ -33,18 +32,28 @@ const elements = {
   prevPageBtn: document.getElementById('prev-page'),
   nextPageBtn: document.getElementById('next-page'),
   pageInfo: document.getElementById('page-info'),
-  pageSizeSelect: document.getElementById('page-size-select'),  // Settings tab elements
-  btnExportData: document.getElementById('btn-export-data'),
+  pageSizeSelect: document.getElementById('page-size-select'),  // Settings tab elements  btnExportData: document.getElementById('btn-export-data'),
   btnImportData: document.getElementById('btn-import-data'),
   btnClearData: document.getElementById('btn-clear-data'),
   btnEditRoleRatings: document.getElementById('btn-edit-role-ratings'),
+  btnResetRoleRatings: document.getElementById('btn-reset-role-ratings'),
   btnEditBoldAttributes: document.getElementById('btn-edit-bold-attributes'),
-  btnResetBoldAttributes: document.getElementById('btn-reset-bold-attributes')
+  btnResetBoldAttributes: document.getElementById('btn-reset-bold-attributes'),
+  // Role ratings modal elements
+  roleRatingsModal: document.getElementById('role-ratings-modal'),
+  roleRatingsModalClose: document.getElementById('role-ratings-modal-close'),
+  roleSelect: document.getElementById('role-select'),
+  currentRoleLabel: document.getElementById('current-role-label'),
+  currentRoleTotal: document.getElementById('current-role-total'),
+  attributesSliders: document.getElementById('attributes-sliders'),
+  roleResetCurrent: document.getElementById('role-reset-current'),
+  roleRecalculate: document.getElementById('role-recalculate'),
+  roleRatingsSave: document.getElementById('role-ratings-save'),
+  roleRatingsCancel: document.getElementById('role-ratings-cancel')
 };
 
 // State management
-let state = {
-  recruits: [],
+let state = {  recruits: [],
   filteredRecruits: [],
   currentPage: 1,
   itemsPerPage: 10, // Default value
@@ -61,6 +70,13 @@ let state = {
     priority: '',
     distance: '',
     hideSigned: false
+  },
+  // Role ratings modal state
+  roleRatings: {
+    data: null,
+    currentRole: null,
+    hasChanges: false,
+    currentRoleData: null
   }
 };
 
@@ -184,9 +200,37 @@ function setupEventListeners() {
 
   if (elements.btnClearData) {
     elements.btnClearData.addEventListener('click', handleClearData);
-  }
-  if (elements.btnEditRoleRatings) {
+  }  if (elements.btnEditRoleRatings) {
     elements.btnEditRoleRatings.addEventListener('click', handleEditRoleRatings);
+  }
+
+  if (elements.btnResetRoleRatings) {
+    elements.btnResetRoleRatings.addEventListener('click', handleResetRoleRatings);
+  }
+
+  // Role ratings modal event listeners
+  if (elements.roleRatingsModalClose) {
+    elements.roleRatingsModalClose.addEventListener('click', closeRoleRatingsModal);
+  }
+
+  if (elements.roleSelect) {
+    elements.roleSelect.addEventListener('change', handleRoleSelectionChange);
+  }
+
+  if (elements.roleResetCurrent) {
+    elements.roleResetCurrent.addEventListener('click', handleResetCurrentRole);
+  }
+
+  if (elements.roleRecalculate) {
+    elements.roleRecalculate.addEventListener('click', handleRecalculateAllRatings);
+  }
+
+  if (elements.roleRatingsSave) {
+    elements.roleRatingsSave.addEventListener('click', handleSaveRoleRatings);
+  }
+
+  if (elements.roleRatingsCancel) {
+    elements.roleRatingsCancel.addEventListener('click', closeRoleRatingsModal);
   }
 
   // Bold attributes configuration
@@ -1346,9 +1390,14 @@ async function handleClearData() {
 }
 
 // Handle edit role ratings action
-function handleEditRoleRatings() {
-  // This would open a modal or navigate to a role ratings editor
-  setStatusMessage('Role ratings editor not implemented yet');
+async function handleEditRoleRatings() {
+  try {
+    setStatusMessage('Loading role ratings configuration...');
+    await showRoleRatingsModal();
+  } catch (error) {
+    console.error('Error opening role ratings editor:', error);
+    setStatusMessage('Error loading role ratings: ' + error.message, 'error');
+  }
 }
 
 // Handle check database action
@@ -1639,6 +1688,435 @@ function formatDateForFile(date) {
   const minutes = String(date.getMinutes()).padStart(2, '0');
 
   return `${year}${month}${day}_${hours}${minutes}`;
+}
+
+// Role Ratings Configuration Functions
+
+/**
+ * Show role ratings configuration modal
+ */
+async function showRoleRatingsModal() {
+  try {
+    // Load current role ratings data
+    const response = await sendMessageToBackground({ action: 'getRoleRatings' });
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to load role ratings');
+    }
+
+    state.roleRatings.data = response.ratings;
+    state.roleRatings.hasChanges = false;
+
+    // Populate role selector
+    populateRoleSelector();
+
+    // Show modal
+    if (elements.roleRatingsModal) {
+      elements.roleRatingsModal.classList.remove('hidden');
+    }
+
+    // Select first available role
+    if (elements.roleSelect && elements.roleSelect.options.length > 0) {
+      elements.roleSelect.selectedIndex = 0;
+      handleRoleSelectionChange();
+    }
+
+    setStatusMessage('Role ratings configuration loaded', 'success');
+
+  } catch (error) {
+    console.error('Error showing role ratings modal:', error);
+    setStatusMessage('Error loading role ratings: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Close role ratings modal with change confirmation
+ */
+function closeRoleRatingsModal() {
+  if (state.roleRatings.hasChanges) {
+    if (!confirm('You have unsaved changes. Are you sure you want to close without saving?')) {
+      return;
+    }
+  }
+
+  if (elements.roleRatingsModal) {
+    elements.roleRatingsModal.classList.add('hidden');
+  }
+
+  // Reset state
+  state.roleRatings.data = null;
+  state.roleRatings.currentRole = null;
+  state.roleRatings.hasChanges = false;
+  state.roleRatings.currentRoleData = null;
+}
+
+/**
+ * Populate the role selector dropdown with available roles
+ */
+function populateRoleSelector() {
+  if (!elements.roleSelect || !state.roleRatings.data) return;
+
+  // Clear existing options
+  elements.roleSelect.innerHTML = '';
+
+  // Get all available roles grouped by position
+  const roleOptions = [];
+
+  for (const [positionKey, positionData] of Object.entries(state.roleRatings.data)) {
+    for (const [roleKey, roleData] of Object.entries(positionData)) {
+      if (roleData.isActive && roleData.roleLabel) {
+        roleOptions.push({
+          value: `${positionKey}.${roleKey}`,
+          label: `${getPositionDisplayName(positionKey)} - ${roleData.roleLabel}`,
+          positionKey,
+          roleKey
+        });
+      }
+    }
+  }
+
+  // Sort by position then by role
+  roleOptions.sort((a, b) => a.label.localeCompare(b.label));
+
+  // Add options to select
+  roleOptions.forEach(option => {
+    const optionElement = document.createElement('option');
+    optionElement.value = option.value;
+    optionElement.textContent = option.label;
+    elements.roleSelect.appendChild(optionElement);
+  });
+}
+
+/**
+ * Get display name for position key
+ */
+function getPositionDisplayName(positionKey) {
+  const displayNames = {
+    'quarterback': 'Quarterback',
+    'runningBack': 'Running Back',
+    'wideReceiver': 'Wide Receiver',
+    'tightEnd': 'Tight End',
+    'offensiveLine': 'Offensive Line',
+    'defensiveLine': 'Defensive Line',
+    'linebacker': 'Linebacker',
+    'defensiveBack': 'Defensive Back',
+    'kicker': 'Kicker',
+    'punter': 'Punter'
+  };
+  return displayNames[positionKey] || positionKey;
+}
+
+/**
+ * Handle role selection change
+ */
+function handleRoleSelectionChange() {
+  if (!elements.roleSelect || !state.roleRatings.data) return;
+
+  const selectedValue = elements.roleSelect.value;
+  if (!selectedValue) return;
+
+  const [positionKey, roleKey] = selectedValue.split('.');
+  const roleData = state.roleRatings.data[positionKey]?.[roleKey];
+
+  if (!roleData) {
+    console.error('Role data not found:', selectedValue);
+    return;
+  }
+
+  state.roleRatings.currentRole = selectedValue;
+  state.roleRatings.currentRoleData = JSON.parse(JSON.stringify(roleData)); // Deep copy
+
+  // Update role info display
+  updateRoleInfoDisplay();
+
+  // Create attribute sliders
+  createAttributeSliders();
+}
+
+/**
+ * Update role info display
+ */
+function updateRoleInfoDisplay() {
+  if (elements.currentRoleLabel && state.roleRatings.currentRoleData) {
+    elements.currentRoleLabel.textContent = state.roleRatings.currentRoleData.roleLabel || '-';
+  }
+
+  updateRoleTotal();
+}
+
+/**
+ * Update role total display and validation
+ */
+function updateRoleTotal() {
+  if (!elements.currentRoleTotal || !state.roleRatings.currentRoleData) return;
+
+  const attributes = state.roleRatings.currentRoleData.attributes || {};
+  const total = Object.values(attributes).reduce((sum, val) => {
+    const numVal = Number(val);
+    return sum + (isNaN(numVal) ? 0 : numVal);
+  }, 0);
+
+  elements.currentRoleTotal.textContent = total.toString();
+
+  // Update styling based on validity
+  const roleInfo = elements.currentRoleTotal.closest('.role-info');
+  if (roleInfo) {
+    roleInfo.classList.remove('valid', 'invalid');
+    roleInfo.classList.add(Math.abs(total - 100) < 0.1 ? 'valid' : 'invalid');
+  }
+}
+
+/**
+ * Create attribute sliders for the current role
+ */
+function createAttributeSliders() {
+  if (!elements.attributesSliders || !state.roleRatings.currentRoleData) return;
+
+  // Clear existing sliders
+  elements.attributesSliders.innerHTML = '';
+
+  const attributes = state.roleRatings.currentRoleData.attributes || {};
+
+  // Attribute definitions for labels
+  const attributeLabels = {
+    'ath': 'Athletics',
+    'spd': 'Speed',
+    'dur': 'Durability',
+    'we': 'Work Ethic',
+    'sta': 'Stamina',
+    'str': 'Strength',
+    'blk': 'Blocking',
+    'tkl': 'Tackling',
+    'han': 'Hands',
+    'gi': 'Game Intelligence',
+    'elu': 'Elusiveness',
+    'tec': 'Technique'
+  };
+
+  // Create slider for each attribute (except total)
+  Object.entries(attributes).forEach(([attr, value]) => {
+    if (attr === 'total') return; // Skip total attribute
+
+    const sliderRow = document.createElement('div');
+    sliderRow.className = 'attribute-slider-row';
+
+    const label = document.createElement('label');
+    label.className = 'attribute-label';
+    label.textContent = attributeLabels[attr] || attr.toUpperCase();
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.className = 'attribute-slider';
+    slider.min = '0';
+    slider.max = '100';
+    slider.step = '1';
+    slider.value = Number(value) || 0;
+    slider.dataset.attribute = attr;
+
+    const valueDisplay = document.createElement('span');
+    valueDisplay.className = 'attribute-value';
+    valueDisplay.textContent = Number(value) || 0;
+
+    // Add event listener for slider changes
+    slider.addEventListener('input', (e) => {
+      const newValue = Number(e.target.value);
+      valueDisplay.textContent = newValue;
+      
+      // Update the role data
+      if (state.roleRatings.currentRoleData && state.roleRatings.currentRoleData.attributes) {
+        state.roleRatings.currentRoleData.attributes[attr] = newValue;
+        state.roleRatings.hasChanges = true;
+        updateRoleTotal();
+      }
+    });
+
+    sliderRow.appendChild(label);
+    sliderRow.appendChild(slider);
+    sliderRow.appendChild(valueDisplay);
+    elements.attributesSliders.appendChild(sliderRow);
+  });
+}
+
+/**
+ * Handle reset current role to defaults
+ */
+async function handleResetCurrentRole() {
+  if (!state.roleRatings.currentRole) {
+    setStatusMessage('No role selected', 'error');
+    return;
+  }
+
+  if (!confirm('Are you sure you want to reset this role to default values?')) {
+    return;
+  }
+
+  try {
+    // Get the original default data
+    const response = await fetch(chrome.runtime.getURL('data/role_ratings_defaults.json'));
+    if (!response.ok) {
+      throw new Error('Failed to load default role ratings');
+    }
+
+    const defaultData = await response.json();
+    const [positionKey, roleKey] = state.roleRatings.currentRole.split('.');
+    const defaultRoleData = defaultData.roleRatings[positionKey]?.[roleKey];
+
+    if (!defaultRoleData) {
+      throw new Error('Default role data not found');
+    }
+
+    // Update current role data
+    state.roleRatings.currentRoleData = JSON.parse(JSON.stringify(defaultRoleData));
+    state.roleRatings.hasChanges = true;
+
+    // Update data in main state
+    const [pos, role] = state.roleRatings.currentRole.split('.');
+    state.roleRatings.data[pos][role] = JSON.parse(JSON.stringify(defaultRoleData));
+
+    // Refresh UI
+    updateRoleInfoDisplay();
+    createAttributeSliders();
+
+    setStatusMessage('Role reset to default values', 'success');
+
+  } catch (error) {
+    console.error('Error resetting role:', error);
+    setStatusMessage('Error resetting role: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Handle recalculate all ratings
+ */
+async function handleRecalculateAllRatings() {
+  if (!confirm('This will recalculate role ratings for all recruits using current settings. This may take a moment. Continue?')) {
+    return;
+  }
+
+  try {
+    setStatusMessage('Recalculating all role ratings...');
+
+    const response = await sendMessageToBackground({ 
+      action: 'recalculateRoleRatings'
+    });
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to recalculate ratings');
+    }
+
+    setStatusMessage(
+      `Successfully recalculated ratings for ${response.recalculated} of ${response.totalRecruits} recruits`,
+      'success'
+    );
+
+    // Refresh recruits list if we're on that tab
+    if (document.querySelector('.tab-btn.active')?.id === 'tab-recruits') {
+      await updateRecruitsList();
+    }
+
+  } catch (error) {
+    console.error('Error recalculating ratings:', error);
+    setStatusMessage('Error recalculating ratings: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Handle save role ratings
+ */
+async function handleSaveRoleRatings() {
+  if (!state.roleRatings.hasChanges) {
+    setStatusMessage('No changes to save', 'info');
+    return;
+  }
+
+  try {
+    setStatusMessage('Saving role ratings...');
+
+    // Validate all active roles have totals of 100
+    const validationErrors = [];
+    for (const [positionKey, positionData] of Object.entries(state.roleRatings.data)) {
+      for (const [roleKey, roleData] of Object.entries(positionData)) {
+        if (roleData.isActive && roleData.attributes) {
+          const total = Object.values(roleData.attributes).reduce((sum, val) => {
+            return sum + (Number(val) || 0);
+          }, 0);
+          
+          if (Math.abs(total - 100) > 0.1) {
+            validationErrors.push(`${getPositionDisplayName(positionKey)} - ${roleData.roleLabel}: total is ${total}, should be 100`);
+          }
+        }
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      const message = 'The following roles have invalid totals:\n\n' + validationErrors.join('\n') + '\n\nPlease fix these before saving.';
+      alert(message);
+      return;
+    }
+
+    const response = await sendMessageToBackground({
+      action: 'saveRoleRatings',
+      ratings: state.roleRatings.data
+    });
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to save role ratings');
+    }
+
+    state.roleRatings.hasChanges = false;
+
+    setStatusMessage(
+      `Role ratings saved successfully. Recalculated ${response.recalculated} of ${response.totalRecruits} recruits.`,
+      'success'
+    );
+
+    // Close modal
+    closeRoleRatingsModal();
+
+    // Refresh recruits list if we're on that tab
+    if (document.querySelector('.tab-btn.active')?.id === 'tab-recruits') {
+      await updateRecruitsList();
+    }
+
+  } catch (error) {
+    console.error('Error saving role ratings:', error);
+    setStatusMessage('Error saving role ratings: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Handle reset role ratings to defaults
+ */
+async function handleResetRoleRatings() {
+  if (!confirm('Are you sure you want to reset ALL role ratings to default values? This will remove all your customizations and recalculate all recruit ratings.')) {
+    return;
+  }
+
+  try {
+    setStatusMessage('Resetting role ratings to defaults...');
+
+    const response = await sendMessageToBackground({ 
+      action: 'resetRoleRatings' 
+    });
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to reset role ratings');
+    }
+
+    setStatusMessage(
+      `Role ratings reset to defaults. Recalculated ${response.recalculated} of ${response.totalRecruits} recruits.`,
+      'success'
+    );
+
+    // Refresh recruits list if we're on that tab
+    if (document.querySelector('.tab-btn.active')?.id === 'tab-recruits') {
+      await updateRecruitsList();
+    }
+
+  } catch (error) {
+    console.error('Error resetting role ratings:', error);
+    setStatusMessage('Error resetting role ratings: ' + error.message, 'error');
+  }
 }
 
 // Bold attributes configuration handlers

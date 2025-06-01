@@ -2,7 +2,13 @@
 // This script handles data processing and communication between content scripts and popup
 
 import { recruitStorage } from './lib/storage.js';
-import { calculator } from './lib/calculator.js';
+import { 
+  calculateRoleRating, 
+  recalculateRoleRatings, 
+  saveRoleRatings, 
+  getCurrentRoleRatings, 
+  resetRoleRatingsToDefaults 
+} from './lib/calculator.js';
 
 // Add this code near the top of your background file, where other initialization happens
 
@@ -73,9 +79,13 @@ chrome.action.onClicked.addListener((tab) => {
 // Listen for messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Background received message:', message);
-
   // Handle different types of messages
   switch (message.action) {
+    case 'ping':
+      // Simple ping response for testing
+      sendResponse({ success: true, message: 'Extension is active' });
+      return false;
+
     case 'saveRecruits':
       console.log('Saving recruits to storage');
       // Save scraped recruits to database
@@ -402,7 +412,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.error('Error getting stats:', error);
         sendResponse({ error: error.message });
       });
-      return true; // Indicate asynchronous response    case 'clearAllData':
+      return true; // Indicate asynchronous response
+    case 'clearAllData':
       // Clear all extension data
       console.log('Handling clearAllData request');
       clearAllData()
@@ -439,9 +450,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.error('Error saving config:', error);
           sendResponse({ success: false, error: error.message });
         });
-      return true; // Indicate asynchronous response
-
-    
+      return true; // Indicate asynchronous response    
     case 'getConfig':
       // Get configuration setting
       console.log(`Getting config: ${message.key}`);
@@ -453,7 +462,92 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.error('Error getting config:', error);
           sendResponse({ success: false, error: error.message });
         });
-      return true; // Indicate asynchronous response
+      return true; // Indicate asynchronous response    
+    case 'getRoleRatings':
+      // Get current role ratings for editing
+      console.log('Getting current role ratings');
+      getCurrentRoleRatings()
+        .then(ratings => {
+          sendResponse({ success: true, data: ratings });
+        })
+        .catch(error => {
+          console.error('Error getting role ratings:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
+
+    case 'calculateRoleRating':
+      // Calculate role ratings for a specific recruit
+      console.log('Calculating role rating for recruit:', message.recruit);
+      calculateRoleRating(message.recruit)
+        .then(ratings => {
+          sendResponse({ success: true, data: ratings });
+        })
+        .catch(error => {
+          console.error('Error calculating role rating:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
+
+    case 'saveRoleRatings':
+      // Save custom role ratings and recalculate
+      console.log('Saving custom role ratings');
+      saveRoleRatings(message.ratings)
+        .then(async () => {
+          // Determine which positions were changed
+          const changedPositions = message.changedPositions || null;
+          
+          // Recalculate role ratings for affected recruits
+          const recalcResult = await recalculateRoleRatings(changedPositions);
+          
+          sendResponse({ 
+            success: true, 
+            recalculated: recalcResult.updatedCount,
+            totalRecruits: recalcResult.totalRecruits 
+          });
+        })
+        .catch(error => {
+          console.error('Error saving role ratings:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
+
+    case 'resetRoleRatings':
+      // Reset role ratings to defaults
+      console.log('Resetting role ratings to defaults');
+      resetRoleRatingsToDefaults()
+        .then(async () => {
+          // Recalculate all role ratings
+          const recalcResult = await recalculateRoleRatings();
+          
+          sendResponse({ 
+            success: true, 
+            recalculated: recalcResult.updatedCount,
+            totalRecruits: recalcResult.totalRecruits 
+          });
+        })
+        .catch(error => {
+          console.error('Error resetting role ratings:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
+
+    case 'recalculateRoleRatings':
+      // Manually trigger recalculation
+      console.log('Manually recalculating role ratings');
+      recalculateRoleRatings(message.positions)
+        .then(result => {
+          sendResponse({ 
+            success: true, 
+            recalculated: result.updatedCount,
+            totalRecruits: result.totalRecruits 
+          });
+        })
+        .catch(error => {
+          console.error('Error recalculating role ratings:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
   }
 });
 
@@ -513,11 +607,15 @@ async function saveRecruits(recruits) {
     // Log some sample recruits for debugging
     if (i < 3 || i === recruits.length - 1) {
       console.log(`Recruit ${i}:`, JSON.stringify(recruit));
-    }
-
-    try {
+    }    try {
+      // Calculate role ratings for the recruit
+      const roleRatings = await calculateRoleRating(recruit);
+      
+      // Add role ratings to recruit
+      Object.assign(recruit, roleRatings);
+      
       await recruitStorage.saveRecruit(recruit);
-      console.log(`Successfully saved recruit ${recruit.id}`);
+      console.log(`Successfully saved recruit ${recruit.id} with role ratings`);
       results.success++;
     } catch (error) {
       console.error(`Error saving recruit ${recruit.id}:`, error);

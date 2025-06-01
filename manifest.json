@@ -51,6 +51,7 @@
       "content/advanced-scraper.js", 
       "data/gdr.csv", 
       "data/bold_attributes_defaults.json",
+      "data/role_ratings_defaults.json",
       "modules/bold-attributes-config.js"
     ],
     "matches": ["https://*.whatifsports.com/*"]

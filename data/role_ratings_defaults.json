@@ -1,0 +1,656 @@
+{
+  "metadata": {
+    "description": "Default role ratings for football positions",
+    "version": "1.0.0",
+    "lastUpdated": "2025-06-01",
+    "totalAttributes": 13
+  },
+  "attributeDefinitions": {
+    "ath": "Athletics",
+    "spd": "Speed", 
+    "dur": "Durability",
+    "we": "Work Ethic",
+    "sta": "Stamina",
+    "str": "Strength",
+    "blk": "Blocking",
+    "tkl": "Tackling",
+    "han": "Hands",
+    "gi": "Game Intelligence",
+    "elu": "Elusiveness",
+    "tec": "Technique",
+    "total": "Total Points"
+  },
+  "positionCategories": {
+    "offense": ["QB", "RB", "WR", "TE", "OL"],
+    "defense": ["DL", "LB", "DB"],
+    "specialTeams": ["K", "P"]
+  },
+  "roleRatings": {
+    "quarterback": {
+      "qbr1": {
+        "role": "qbr1",
+        "roleLabel": "QB",
+        "isActive": true,
+        "attributes": {
+          "ath": 10, "spd": 4, "dur": 0, "we": 0, "sta": 0,
+          "str": 26, "blk": 0, "tkl": 0, "han": 0, "gi": 24,
+          "elu": 8, "tec": 28, "total": 100
+        }
+      },
+      "qbr2": {
+        "role": "qbr2",
+        "roleLabel": "QBRun",
+        "isActive": true,
+        "attributes": {
+          "ath": 8, "spd": 18, "dur": 2, "we": 1, "sta": 3,
+          "str": 24, "blk": 0, "tkl": 0, "han": 0, "gi": 16,
+          "elu": 20, "tec": 8, "total": 100
+        }
+      },
+      "qbr3": {
+        "role": "qbr3",
+        "roleLabel": "QBU1",
+        "isActive": true,
+        "attributes": {
+          "ath": 8, "spd": 4, "dur": 1, "we": 1, "sta": 2,
+          "str": 26, "blk": 0, "tkl": 0, "han": 0, "gi": 26,
+          "elu": 8, "tec": 24, "total": 100
+        }
+      },
+      "qbr4": {
+        "role": "qbr4",
+        "roleLabel": "QBU2",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      },
+      "qbr5": {
+        "role": "qbr5",
+        "roleLabel": "QBU3",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      },
+      "qbr6": {
+        "role": "qbr6",
+        "roleLabel": "QBU4",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      }
+    },
+    "runningBack": {
+      "rbr1": {
+        "role": "rbr1",
+        "roleLabel": "RB",
+        "isActive": true,
+        "attributes": {
+          "ath": 8, "spd": 22, "dur": 1, "we": 1, "sta": 3,
+          "str": 21, "blk": 0, "tkl": 0, "han": 3, "gi": 11,
+          "elu": 22, "tec": 8, "total": 100
+        }
+      },
+      "rbr2": {
+        "role": "rbr2",
+        "roleLabel": "FB",
+        "isActive": true,
+        "attributes": {
+          "ath": 8, "spd": 0, "dur": 1, "we": 1, "sta": 3,
+          "str": 36, "blk": 30, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 13, "tec": 8, "total": 100
+        }
+      },
+      "rbr3": {
+        "role": "rbr3",
+        "roleLabel": "RBSpeed",
+        "isActive": true,
+        "attributes": {
+          "ath": 8, "spd": 24, "dur": 1, "we": 1, "sta": 3,
+          "str": 20, "blk": 0, "tkl": 0, "han": 0, "gi": 10,
+          "elu": 25, "tec": 8, "total": 100
+        }
+      },
+      "rbr4": {
+        "role": "rbr4",
+        "roleLabel": "RBPow",
+        "isActive": true,
+        "attributes": {
+          "ath": 8, "spd": 20, "dur": 1, "we": 1, "sta": 3,
+          "str": 25, "blk": 0, "tkl": 0, "han": 0, "gi": 10,
+          "elu": 24, "tec": 8, "total": 100
+        }
+      },
+      "rbr5": {
+        "role": "rbr5",
+        "roleLabel": "RBPoss",
+        "isActive": true,
+        "attributes": {
+          "ath": 8, "spd": 22, "dur": 1, "we": 1, "sta": 3,
+          "str": 21, "blk": 0, "tkl": 0, "han": 3, "gi": 11,
+          "elu": 22, "tec": 8, "total": 100
+        }
+      },
+      "rbr6": {
+        "role": "rbr6",
+        "roleLabel": "RBU1",
+        "isActive": true,
+        "attributes": {
+          "ath": 8, "spd": 22, "dur": 1, "we": 1, "sta": 3,
+          "str": 21, "blk": 0, "tkl": 0, "han": 3, "gi": 11,
+          "elu": 22, "tec": 8, "total": 100
+        }
+      }
+    },
+    "wideReceiver": {
+      "wrr1": {
+        "role": "wrr1",
+        "roleLabel": "WR",
+        "isActive": true,
+        "attributes": {
+          "ath": 15, "spd": 18, "dur": 1, "we": 1, "sta": 3,
+          "str": 0, "blk": 0, "tkl": 0, "han": 18, "gi": 20,
+          "elu": 16, "tec": 8, "total": 100
+        }
+      },
+      "wrr2": {
+        "role": "wrr2",
+        "roleLabel": "WRPoss",
+        "isActive": true,
+        "attributes": {
+          "ath": 16, "spd": 12, "dur": 1, "we": 1, "sta": 3,
+          "str": 0, "blk": 0, "tkl": 0, "han": 24, "gi": 24,
+          "elu": 11, "tec": 8, "total": 100
+        }
+      },
+      "wrr3": {
+        "role": "wrr3",
+        "roleLabel": "WRDeep",
+        "isActive": true,
+        "attributes": {
+          "ath": 12, "spd": 23, "dur": 1, "we": 1, "sta": 3,
+          "str": 0, "blk": 0, "tkl": 0, "han": 11, "gi": 18,
+          "elu": 23, "tec": 8, "total": 100
+        }
+      },
+      "wrr4": {
+        "role": "wrr4",
+        "roleLabel": "WRU1",
+        "isActive": true,
+        "attributes": {
+          "ath": 15, "spd": 18, "dur": 1, "we": 1, "sta": 3,
+          "str": 0, "blk": 0, "tkl": 0, "han": 18, "gi": 20,
+          "elu": 16, "tec": 8, "total": 100
+        }
+      },
+      "wrr5": {
+        "role": "wrr5",
+        "roleLabel": "WRU2",
+        "isActive": true,
+        "attributes": {
+          "ath": 15, "spd": 18, "dur": 1, "we": 1, "sta": 3,
+          "str": 0, "blk": 0, "tkl": 0, "han": 18, "gi": 20,
+          "elu": 16, "tec": 8, "total": 100
+        }
+      },
+      "wrr6": {
+        "role": "wrr6",
+        "roleLabel": "WRU3",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      }
+    },
+    "tightEnd": {
+      "ter1": {
+        "role": "ter1",
+        "roleLabel": "TE",
+        "isActive": true,
+        "attributes": {
+          "ath": 14, "spd": 6, "dur": 1, "we": 1, "sta": 2,
+          "str": 18, "blk": 13, "tkl": 0, "han": 13, "gi": 18,
+          "elu": 6, "tec": 8, "total": 100
+        }
+      },
+      "ter2": {
+        "role": "ter2",
+        "roleLabel": "TEBlock",
+        "isActive": true,
+        "attributes": {
+          "ath": 11, "spd": 0, "dur": 1, "we": 1, "sta": 2,
+          "str": 36, "blk": 26, "tkl": 0, "han": 0, "gi": 15,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "ter3": {
+        "role": "ter3",
+        "roleLabel": "TEPoss",
+        "isActive": true,
+        "attributes": {
+          "ath": 16, "spd": 12, "dur": 1, "we": 1, "sta": 2,
+          "str": 0, "blk": 0, "tkl": 0, "han": 24, "gi": 24,
+          "elu": 12, "tec": 8, "total": 100
+        }
+      },
+      "ter4": {
+        "role": "ter4",
+        "roleLabel": "TEU1",
+        "isActive": true,
+        "attributes": {
+          "ath": 14, "spd": 6, "dur": 1, "we": 1, "sta": 2,
+          "str": 18, "blk": 13, "tkl": 0, "han": 13, "gi": 18,
+          "elu": 6, "tec": 8, "total": 100
+        }
+      },
+      "ter5": {
+        "role": "ter5",
+        "roleLabel": "TEU2",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      },
+      "ter6": {
+        "role": "ter6",
+        "roleLabel": "TEU3",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      }
+    },
+    "offensiveLine": {
+      "olr1": {
+        "role": "olr1",
+        "roleLabel": "OL",
+        "isActive": true,
+        "attributes": {
+          "ath": 12, "spd": 0, "dur": 1, "we": 1, "sta": 2,
+          "str": 32, "blk": 32, "tkl": 0, "han": 0, "gi": 12,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "olr2": {
+        "role": "olr2",
+        "roleLabel": "Tackle",
+        "isActive": true,
+        "attributes": {
+          "ath": 12, "spd": 0, "dur": 1, "we": 1, "sta": 2,
+          "str": 23, "blk": 41, "tkl": 0, "han": 0, "gi": 12,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "olr3": {
+        "role": "olr3",
+        "roleLabel": "Grd-Cntr",
+        "isActive": true,
+        "attributes": {
+          "ath": 12, "spd": 0, "dur": 1, "we": 1, "sta": 2,
+          "str": 41, "blk": 23, "tkl": 0, "han": 0, "gi": 12,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "olr4": {
+        "role": "olr4",
+        "roleLabel": "OLU1",
+        "isActive": true,
+        "attributes": {
+          "ath": 12, "spd": 0, "dur": 1, "we": 1, "sta": 2,
+          "str": 32, "blk": 32, "tkl": 0, "han": 0, "gi": 12,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "olr5": {
+        "role": "olr5",
+        "roleLabel": "OLU2",
+        "isActive": true,
+        "attributes": {
+          "ath": 12, "spd": 0, "dur": 1, "we": 1, "sta": 2,
+          "str": 32, "blk": 32, "tkl": 0, "han": 0, "gi": 12,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "olr6": {
+        "role": "olr6",
+        "roleLabel": "OLU3",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      }
+    },
+    "defensiveLine": {
+      "dlr1": {
+        "role": "dlr1",
+        "roleLabel": "DL",
+        "isActive": true,
+        "attributes": {
+          "ath": 13, "spd": 8, "dur": 1, "we": 1, "sta": 2,
+          "str": 32, "blk": 0, "tkl": 20, "han": 0, "gi": 15,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "dlr2": {
+        "role": "dlr2",
+        "roleLabel": "DT",
+        "isActive": true,
+        "attributes": {
+          "ath": 12, "spd": 6, "dur": 1, "we": 1, "sta": 2,
+          "str": 38, "blk": 0, "tkl": 17, "han": 0, "gi": 15,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "dlr3": {
+        "role": "dlr3",
+        "roleLabel": "DE",
+        "isActive": true,
+        "attributes": {
+          "ath": 12, "spd": 15, "dur": 1, "we": 1, "sta": 2,
+          "str": 22, "blk": 0, "tkl": 24, "han": 0, "gi": 15,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "dlr4": {
+        "role": "dlr4",
+        "roleLabel": "DLU1",
+        "isActive": true,
+        "attributes": {
+          "ath": 13, "spd": 8, "dur": 1, "we": 1, "sta": 2,
+          "str": 32, "blk": 0, "tkl": 20, "han": 0, "gi": 15,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "dlr5": {
+        "role": "dlr5",
+        "roleLabel": "DLU2",
+        "isActive": true,
+        "attributes": {
+          "ath": 13, "spd": 8, "dur": 1, "we": 1, "sta": 2,
+          "str": 32, "blk": 0, "tkl": 20, "han": 0, "gi": 15,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "dlr6": {
+        "role": "dlr6",
+        "roleLabel": "DLU3",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      }
+    },
+    "linebacker": {
+      "lbr1": {
+        "role": "lbr1",
+        "roleLabel": "LB",
+        "isActive": true,
+        "attributes": {
+          "ath": 15, "spd": 8, "dur": 1, "we": 1, "sta": 2,
+          "str": 30, "blk": 0, "tkl": 20, "han": 0, "gi": 15,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "lbr2": {
+        "role": "lbr2",
+        "roleLabel": "ILB",
+        "isActive": true,
+        "attributes": {
+          "ath": 12, "spd": 4, "dur": 1, "we": 1, "sta": 2,
+          "str": 38, "blk": 0, "tkl": 22, "han": 0, "gi": 12,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "lbr3": {
+        "role": "lbr3",
+        "roleLabel": "OLB",
+        "isActive": true,
+        "attributes": {
+          "ath": 13, "spd": 12, "dur": 1, "we": 1, "sta": 2,
+          "str": 21, "blk": 0, "tkl": 21, "han": 0, "gi": 21,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "lbr4": {
+        "role": "lbr4",
+        "roleLabel": "LBU1",
+        "isActive": true,
+        "attributes": {
+          "ath": 13, "spd": 19, "dur": 1, "we": 1, "sta": 2,
+          "str": 15, "blk": 0, "tkl": 20, "han": 0, "gi": 21,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "lbr5": {
+        "role": "lbr5",
+        "roleLabel": "LBU2",
+        "isActive": true,
+        "attributes": {
+          "ath": 15, "spd": 8, "dur": 1, "we": 1, "sta": 2,
+          "str": 30, "blk": 0, "tkl": 20, "han": 0, "gi": 15,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "lbr6": {
+        "role": "lbr6",
+        "roleLabel": "LBU3",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      }
+    },
+    "defensiveBack": {
+      "dbr1": {
+        "role": "dbr1",
+        "roleLabel": "DB",
+        "isActive": true,
+        "attributes": {
+          "ath": 16, "spd": 20, "dur": 1, "we": 1, "sta": 4,
+          "str": 10, "blk": 0, "tkl": 10, "han": 10, "gi": 20,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "dbr2": {
+        "role": "dbr2",
+        "roleLabel": "Safety",
+        "isActive": true,
+        "attributes": {
+          "ath": 18, "spd": 17, "dur": 1, "we": 1, "sta": 4,
+          "str": 12, "blk": 0, "tkl": 12, "han": 10, "gi": 17,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "dbr3": {
+        "role": "dbr3",
+        "roleLabel": "CB",
+        "isActive": true,
+        "attributes": {
+          "ath": 21, "spd": 21, "dur": 1, "we": 1, "sta": 4,
+          "str": 7, "blk": 0, "tkl": 7, "han": 12, "gi": 18,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "dbr4": {
+        "role": "dbr4",
+        "roleLabel": "DBU1",
+        "isActive": true,
+        "attributes": {
+          "ath": 15, "spd": 20, "dur": 1, "we": 1, "sta": 4,
+          "str": 11, "blk": 0, "tkl": 20, "han": 8, "gi": 12,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "dbr5": {
+        "role": "dbr5",
+        "roleLabel": "DBU2",
+        "isActive": true,
+        "attributes": {
+          "ath": 15, "spd": 20, "dur": 1, "we": 1, "sta": 4,
+          "str": 11, "blk": 0, "tkl": 20, "han": 8, "gi": 12,
+          "elu": 0, "tec": 8, "total": 100
+        }
+      },
+      "dbr6": {
+        "role": "dbr6",
+        "roleLabel": "DBU3",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      }
+    },
+    "kicker": {
+      "kr1": {
+        "role": "kr1",
+        "roleLabel": "K",
+        "isActive": true,
+        "attributes": {
+          "ath": 8, "spd": 4, "dur": 1, "we": 1, "sta": 0,
+          "str": 36, "blk": 0, "tkl": 0, "han": 0, "gi": 14,
+          "elu": 0, "tec": 36, "total": 100
+        }
+      },
+      "kr2": {
+        "role": "kr2",
+        "roleLabel": "KU1",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      },
+      "kr3": {
+        "role": "kr3",
+        "roleLabel": "KU2",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      },
+      "kr4": {
+        "role": "kr4",
+        "roleLabel": "KU3",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      },
+      "kr5": {
+        "role": "kr5",
+        "roleLabel": "KU4",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      },
+      "kr6": {
+        "role": "kr6",
+        "roleLabel": "KU5",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      }
+    },
+    "punter": {
+      "pr1": {
+        "role": "pr1",
+        "roleLabel": "P",
+        "isActive": true,
+        "attributes": {
+          "ath": 8, "spd": 4, "dur": 1, "we": 1, "sta": 0,
+          "str": 36, "blk": 0, "tkl": 0, "han": 0, "gi": 14,
+          "elu": 0, "tec": 36, "total": 100
+        }
+      },
+      "pr2": {
+        "role": "pr2",
+        "roleLabel": "PU1",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      },
+      "pr3": {
+        "role": "pr3",
+        "roleLabel": "PU2",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      },
+      "pr4": {
+        "role": "pr4",
+        "roleLabel": "PU3",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      },
+      "pr5": {
+        "role": "pr5",
+        "roleLabel": "PU4",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      },
+      "pr6": {
+        "role": "pr6",
+        "roleLabel": "PU5",
+        "isActive": false,
+        "attributes": {
+          "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+          "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+          "elu": 0, "tec": 0, "total": 0
+        }
+      }
+    }
+  },
+  "utilities": {
+    "getRoleByKey": "function to retrieve role data by role key",
+    "getActiveRoles": "function to filter only active roles",
+    "validateAttributeTotal": "function to ensure attribute totals equal 100",
+    "getPositionRoles": "function to get all roles for a position category"
+  }
+}

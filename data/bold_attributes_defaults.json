@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "description": "Default bold attributes configuration for player positions",
+    "version": "1.0.0",
+    "lastUpdated": "2025-06-01"
+  },
+  "attributes": [
+    "ath", "spd", "dur", "we", "sta", "str", "blk", "tkl", "han", "gi", "elu", "tec"
+  ],
+  "positions": {
+    "qb": {
+      "name": "Quarterback",
+      "boldAttributes": {
+        "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+        "str": 1, "blk": 0, "tkl": 0, "han": 0, "gi": 1,
+        "elu": 0, "tec": 1
+      }
+    },
+    "rb": {
+      "name": "Running Back",
+      "boldAttributes": {
+        "ath": 0, "spd": 1, "dur": 0, "we": 0, "sta": 0,
+        "str": 1, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+        "elu": 1, "tec": 0
+      }
+    },
+    "wr": {
+      "name": "Wide Receiver",
+      "boldAttributes": {
+        "ath": 0, "spd": 1, "dur": 0, "we": 0, "sta": 0,
+        "str": 0, "blk": 0, "tkl": 0, "han": 1, "gi": 0,
+        "elu": 0, "tec": 1
+      }
+    },
+    "te": {
+      "name": "Tight End",
+      "boldAttributes": {
+        "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+        "str": 1, "blk": 1, "tkl": 0, "han": 1, "gi": 0,
+        "elu": 0, "tec": 0
+      }
+    },
+    "ol": {
+      "name": "Offensive Line",
+      "boldAttributes": {
+        "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+        "str": 1, "blk": 1, "tkl": 0, "han": 0, "gi": 0,
+        "elu": 0, "tec": 1
+      }
+    },
+    "dl": {
+      "name": "Defensive Line",
+      "boldAttributes": {
+        "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+        "str": 1, "blk": 0, "tkl": 1, "han": 0, "gi": 1,
+        "elu": 0, "tec": 0
+      }
+    },
+    "lb": {
+      "name": "Linebacker",
+      "boldAttributes": {
+        "ath": 1, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+        "str": 0, "blk": 0, "tkl": 1, "han": 0, "gi": 1,
+        "elu": 0, "tec": 0
+      }
+    },
+    "db": {
+      "name": "Defensive Back",
+      "boldAttributes": {
+        "ath": 0, "spd": 1, "dur": 0, "we": 0, "sta": 0,
+        "str": 0, "blk": 0, "tkl": 1, "han": 0, "gi": 1,
+        "elu": 0, "tec": 0
+      }
+    },
+    "k": {
+      "name": "Kicker",
+      "boldAttributes": {
+        "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+        "str": 1, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+        "elu": 0, "tec": 1
+      }
+    },
+    "p": {
+      "name": "Punter",
+      "boldAttributes": {
+        "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
+        "str": 1, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
+        "elu": 0, "tec": 1
+      }
+    }
+  }
+}

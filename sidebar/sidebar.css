@@ -212,6 +212,11 @@ main {
   box-shadow: none;
 }
 
+.action-btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .action-btn:disabled:hover {
   background-color: #a0a0a0;
 }
@@ -1229,6 +1234,27 @@ tbody tr:hover {
   border-radius: 8px;
   margin-bottom: 20px;
   border: 1px solid #e1e8f0;
+  transition: all 0.2s ease;
+}
+
+.role-info.valid {
+  background: linear-gradient(135deg, #f0fff4 0%, #e6ffea 100%);
+  border-color: #68d391;
+}
+
+.role-info.invalid {
+  background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+  border-color: #fc8181;
+}
+
+.role-info.valid .role-total {
+  color: #2f855a;
+  font-weight: bold;
+}
+
+.role-info.invalid .role-total {
+  color: #c53030;
+  font-weight: bold;
 }
 
 .role-label {

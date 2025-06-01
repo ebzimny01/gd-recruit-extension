@@ -1846,6 +1846,7 @@ function updateRoleInfoDisplay() {
 
 /**
  * Update role total display and validation
+ * Provides visual feedback if the total equals 100 and controls save button state
  */
 function updateRoleTotal() {
   if (!elements.currentRoleTotal || !state.roleRatings.currentRoleData) return;
@@ -1856,13 +1857,25 @@ function updateRoleTotal() {
     return sum + (isNaN(numVal) ? 0 : numVal);
   }, 0);
 
-  elements.currentRoleTotal.textContent = total.toString();
-
+  // Display the total with proper formatting
+  elements.currentRoleTotal.textContent = total.toFixed(1);
+  
+  // Check if the total is valid (must equal exactly 100)
+  const isValid = Math.abs(total - 100) < 0.1; // Allow for small floating point precision issues
+  
   // Update styling based on validity
   const roleInfo = elements.currentRoleTotal.closest('.role-info');
   if (roleInfo) {
     roleInfo.classList.remove('valid', 'invalid');
-    roleInfo.classList.add(Math.abs(total - 100) < 0.1 ? 'valid' : 'invalid');
+    roleInfo.classList.add(isValid ? 'valid' : 'invalid');
+  }
+  
+  // Enable/disable save button based on validity
+  if (elements.roleRatingsSave) {
+    elements.roleRatingsSave.disabled = !isValid;
+    
+    // Add visual indication on the button itself
+    elements.roleRatingsSave.classList.toggle('disabled', !isValid);
   }
 }
 
@@ -1928,13 +1941,14 @@ function createAttributeSliders() {
         state.roleRatings.hasChanges = true;
         updateRoleTotal();
       }
-    });
-
-    sliderRow.appendChild(label);
+    });    sliderRow.appendChild(label);
     sliderRow.appendChild(slider);
     sliderRow.appendChild(valueDisplay);
     elements.attributesSliders.appendChild(sliderRow);
   });
+  
+  // Initialize the validation state when sliders are first created
+  updateRoleTotal();
 }
 
 /**
@@ -2030,10 +2044,13 @@ async function handleSaveRoleRatings() {
   }
 
   try {
-    setStatusMessage('Saving role ratings...');
+    setStatusMessage('Validating role ratings...');
 
     // Validate all active roles have totals of 100
     const validationErrors = [];
+    let isCurrentRoleValid = true;
+    
+    // Check all roles, including the currently edited one
     for (const [positionKey, positionData] of Object.entries(state.roleRatings.data)) {
       for (const [roleKey, roleData] of Object.entries(positionData)) {
         if (roleData.isActive && roleData.attributes) {
@@ -2041,18 +2058,34 @@ async function handleSaveRoleRatings() {
             return sum + (Number(val) || 0);
           }, 0);
           
+          // Check if total is exactly 100 (with small margin for floating point precision)
           if (Math.abs(total - 100) > 0.1) {
-            validationErrors.push(`${getPositionDisplayName(positionKey)} - ${roleData.roleLabel}: total is ${total}, should be 100`);
+            validationErrors.push(`${getPositionDisplayName(positionKey)} - ${roleData.roleLabel}: total is ${total.toFixed(1)}, should be 100`);
+            
+            // Check if this is the currently edited role
+            const currentRoleId = `${positionKey}.${roleKey}`;
+            if (currentRoleId === state.roleRatings.currentRole) {
+              isCurrentRoleValid = false;
+            }
           }
         }
       }
     }
 
+    // If current role is invalid, focus back on the modal
+    if (!isCurrentRoleValid) {
+      setStatusMessage('Current role attributes must total exactly 100', 'error');
+      return;
+    }
+    
+    // If any validation errors exist, show them
     if (validationErrors.length > 0) {
       const message = 'The following roles have invalid totals:\n\n' + validationErrors.join('\n') + '\n\nPlease fix these before saving.';
       alert(message);
       return;
     }
+    
+    setStatusMessage('Saving role ratings...');
 
     const response = await sendMessageToBackground({
       action: 'saveRoleRatings',

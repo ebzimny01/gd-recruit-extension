@@ -1651,9 +1651,8 @@ async function handleEditBoldAttributes() {
     console.error('Error with bold attributes configuration:', error);
     if (error.message !== 'Configuration cancelled') {
       setStatusMessage('Error with configuration: ' + error.message, 'error');
-    } else {
-      setStatusMessage('Configuration cancelled');
     }
+    // Don't show any message for cancellation - it's normal user behavior
   }
 }
 
@@ -1837,13 +1836,12 @@ function showBoldAttributesModal() {
     } catch (error) {
       reject(error);
       return;
-    }
-
-    // Event handlers
-    const cleanup = () => {
-      modal.classList.add('hidden');
-      // Remove event listeners to prevent memory leaks
-      window.removeEventListener('click', handleOutsideClick);
+    }    // Event handlers
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        cleanup();
+        reject(new Error('Configuration cancelled'));
+      }
     };
 
     const handleOutsideClick = (event) => {
@@ -1851,6 +1849,25 @@ function showBoldAttributesModal() {
         cleanup();
         reject(new Error('Configuration cancelled'));
       }
+    };
+
+    const cleanup = () => {
+      modal.classList.add('hidden');
+      
+      // Reset save button state
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Changes';
+      
+      // Remove event listeners to prevent memory leaks
+      window.removeEventListener('click', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+      
+      // Clear any existing onclick handlers to prevent memory leaks
+      closeBtn.onclick = null;
+      cancelBtn.onclick = null;
+      saveBtn.onclick = null;
+      resetPositionBtn.onclick = null;
+      positionSelect.onchange = null;
     };
 
     closeBtn.onclick = () => {
@@ -1861,14 +1878,17 @@ function showBoldAttributesModal() {
     cancelBtn.onclick = () => {
       cleanup();
       reject(new Error('Configuration cancelled'));
-    };
-
-    resetPositionBtn.onclick = () => {
+    };    resetPositionBtn.onclick = () => {
       if (confirm(`Reset ${selected_position.toUpperCase()} to default configuration?`)) {
         // Remove changes for this position
         delete current_changes[selected_position];
         updateAttributesGrid();
       }
+    };
+
+    positionSelect.onchange = () => {
+      selected_position = positionSelect.value;
+      updateAttributesGrid();
     };
 
     saveBtn.onclick = async () => {
@@ -1899,22 +1919,14 @@ function showBoldAttributesModal() {
         console.error('Error saving bold attributes configuration:', error);
         alert('Error saving configuration: ' + error.message);
         
-        // Reset button state
-        saveBtn.disabled = false;
+        // Reset button state        saveBtn.disabled = false;
         saveBtn.textContent = 'Save Changes';
       }
     };
 
-    // Handle click outside modal and escape key
+    // Add event listeners
     window.addEventListener('click', handleOutsideClick);
-    
-    document.addEventListener('keydown', function handleEscape(e) {
-      if (e.key === 'Escape') {
-        cleanup();
-        document.removeEventListener('keydown', handleEscape);
-        reject(new Error('Configuration cancelled'));
-      }
-    });
+    document.addEventListener('keydown', handleEscape);
   });
 }
 

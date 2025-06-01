@@ -1645,14 +1645,17 @@ function formatDateForFile(date) {
 async function handleEditBoldAttributes() {
   try {
     setStatusMessage('Opening attribute styling configuration...');
-    await showBoldAttributesModal();
+    const result = await showBoldAttributesModal();
+    
+    if (result === 'cancelled') {
+      // User cancelled - no message needed
+      return;
+    }
+    
     setStatusMessage('Attribute styling configuration updated successfully', 'success');
   } catch (error) {
     console.error('Error with bold attributes configuration:', error);
-    if (error.message !== 'Configuration cancelled') {
-      setStatusMessage('Error with configuration: ' + error.message, 'error');
-    }
-    // Don't show any message for cancellation - it's normal user behavior
+    setStatusMessage('Error with configuration: ' + error.message, 'error');
   }
 }
 
@@ -1840,14 +1843,14 @@ function showBoldAttributesModal() {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
         cleanup();
-        reject(new Error('Configuration cancelled'));
+        resolve('cancelled');
       }
     };
 
     const handleOutsideClick = (event) => {
       if (event.target === modal) {
         cleanup();
-        reject(new Error('Configuration cancelled'));
+        resolve('cancelled');
       }
     };
 
@@ -1872,13 +1875,13 @@ function showBoldAttributesModal() {
 
     closeBtn.onclick = () => {
       cleanup();
-      reject(new Error('Configuration cancelled'));
+      resolve('cancelled');
     };
 
     cancelBtn.onclick = () => {
       cleanup();
-      reject(new Error('Configuration cancelled'));
-    };    resetPositionBtn.onclick = () => {
+      resolve('cancelled');
+    };resetPositionBtn.onclick = () => {
       if (confirm(`Reset ${selected_position.toUpperCase()} to default configuration?`)) {
         // Remove changes for this position
         delete current_changes[selected_position];

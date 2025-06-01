@@ -1748,9 +1748,15 @@ function showBoldAttributesModal() {
         checkbox.type = 'checkbox';
         checkbox.id = `attr-${attr}`;
         checkbox.value = attr;
+          // Check if attribute should be bold for this position
+        // First check if there are pending changes, then fall back to saved config
+        let should_be_bold = false;
+        if (current_changes[selected_position] && current_changes[selected_position].hasOwnProperty(attr)) {
+          should_be_bold = current_changes[selected_position][attr] === 1;
+        } else if (positionConfig) {
+          should_be_bold = positionConfig.boldAttributes[attr] === 1;
+        }
         
-        // Check if attribute should be bold for this position
-        const should_be_bold = positionConfig ? positionConfig.boldAttributes[attr] === 1 : false;
         checkbox.checked = should_be_bold;
         
         if (should_be_bold) {
@@ -1881,11 +1887,19 @@ function showBoldAttributesModal() {
     cancelBtn.onclick = () => {
       cleanup();
       resolve('cancelled');
-    };resetPositionBtn.onclick = () => {
+    };    resetPositionBtn.onclick = () => {
       if (confirm(`Reset ${selected_position.toUpperCase()} to default configuration?`)) {
-        // Remove changes for this position
+        // Reset position to default in the configuration
+        boldAttributesConfig.resetPositionToDefault(selected_position);
+        
+        // Remove any pending changes for this position
         delete current_changes[selected_position];
+        
+        // Update the grid to show the default values
         updateAttributesGrid();
+        
+        // Update the preview to show the reset state
+        updatePreview();
       }
     };
 

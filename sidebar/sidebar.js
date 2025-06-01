@@ -242,11 +242,10 @@ async function loadData() {
   } catch (error) {
     console.error('Error loading data:', error);
     setStatusMessage(`Error loading data: ${error.message}`, 'error');
-    
-    // Reset to safe defaults
+      // Reset to safe defaults
     state.recruits = [];
     state.filteredRecruits = [];
-    updateRecruitsList();
+    updateRecruitsList().catch(err => console.error('Error updating recruits list:', err));
   }
 }
 
@@ -388,18 +387,17 @@ function applyFilters() {
   if (state.sorting.column) {
     applySorting();
   }
-
   // Reset to first page when filters change
   state.currentPage = 1;
 
   // Update the list
-  updateRecruitsList();
+  updateRecruitsList().catch(err => console.error('Error updating recruits list:', err));
 
   console.log(`Applied filters: ${state.filteredRecruits.length} recruits match criteria`);
 }
 
 // Update recruits list in the UI
-function updateRecruitsList() {
+async function updateRecruitsList() {
   if (!elements.recruitsList) return;
 
   // Update itemsPerPage if showing all results and filtered recruits changed
@@ -421,6 +419,15 @@ function updateRecruitsList() {
   const startIndex = state.showAllResults ? 0 : (state.currentPage - 1) * state.itemsPerPage;
   const endIndex = state.showAllResults ? totalItems : startIndex + state.itemsPerPage;
   const pageRecruits = state.filteredRecruits.slice(startIndex, endIndex);
+
+  // Get team info for hometown links
+  let teamInfo = null;
+  try {
+    const stats = await sendMessageToBackground({ action: 'getStats' });
+    teamInfo = stats.teamInfo;
+  } catch (error) {
+    console.error('Error getting team info for hometown links:', error);
+  }
 
   // Clear current list
   elements.recruitsList.innerHTML = '';
@@ -449,9 +456,7 @@ function updateRecruitsList() {
           cell.textContent = text.toString();
         }
         return cell;
-      };
-
-      // Helper function to format priority value
+      };      // Helper function to format priority value
       const formatPriority = (priority) => {
         if (priority === null || priority === undefined) return 'N/A';
         switch (parseInt(priority)) {
@@ -463,7 +468,47 @@ function updateRecruitsList() {
           case 5: return '5th';
           default: return 'Unprioritized';
         }
-      };      // Create cells for all recruit data (removed Actions cell)
+      };
+
+      // Helper function to format hometown for URL (remove space before state abbreviation)
+      const formatHometownForUrl = (hometown) => {
+        if (!hometown) return '';
+        // Remove space before state abbreviation (e.g., "City, ST" -> "City,ST")
+        return hometown.replace(/,\s+([A-Z]{2})$/, ',$1');
+      };
+
+      // Helper function to create hometown cell with hyperlink
+      const createHometownCell = (recruit, teamInfo) => {
+        const cell = document.createElement('td');
+        
+        if (!recruit.hometown || recruit.hometown === 'N/A') {
+          cell.textContent = 'N/A';
+          return cell;
+        }
+
+        // If we have team info, create a hyperlink
+        if (teamInfo && teamInfo.world && teamInfo.division) {
+          const link = document.createElement('a');
+          const formattedHometown = formatHometownForUrl(recruit.hometown);
+          link.href = `https://www.thenextguess.com/gdanalyst/${teamInfo.world}/${teamInfo.division}/mapLocation?town=${encodeURIComponent(formattedHometown)}`;
+          link.target = '_blank';
+          link.textContent = recruit.hometown;
+          link.style.color = '#007bff';
+          link.style.textDecoration = 'none';
+          link.addEventListener('mouseover', () => {
+            link.style.textDecoration = 'underline';
+          });
+          link.addEventListener('mouseout', () => {
+            link.style.textDecoration = 'none';
+          });
+          cell.appendChild(link);
+        } else {
+          // Fallback to plain text if no team info
+          cell.textContent = recruit.hometown;
+        }
+        
+        return cell;
+      };// Create cells for all recruit data (removed Actions cell)
       // Create name cell with hyperlink to recruit profile
       const nameCell = document.createElement('td');
       const nameLink = document.createElement('a');
@@ -480,7 +525,6 @@ function updateRecruitsList() {
       });
       nameCell.appendChild(nameLink);
       row.appendChild(nameCell);
-      
       row.appendChild(createCell(recruit.pos));
       row.appendChild(createCell(recruit.watched === 1 ? 'Yes' : 'No'));
       row.appendChild(createCell(recruit.potential));
@@ -489,7 +533,7 @@ function updateRecruitsList() {
       row.appendChild(createCell(recruit.weight, true));
       row.appendChild(createCell(recruit.rating, true));
       row.appendChild(createCell(recruit.rank === 999 ? 'NR' : recruit.rank, true));
-      row.appendChild(createCell(recruit.hometown));
+      row.appendChild(createHometownCell(recruit, teamInfo));
       row.appendChild(createCell(recruit.division));
       row.appendChild(createCell(recruit.miles, true));
       row.appendChild(createCell(recruit.signed === 1 ? 'Yes' : 'No'));
@@ -541,11 +585,10 @@ function changePage(direction) {
   
   const totalPages = Math.ceil(state.filteredRecruits.length / state.itemsPerPage);
   const newPage = state.currentPage + direction;
-  
-  // Validate new page number
+    // Validate new page number
   if (newPage >= 1 && newPage <= totalPages) {
     state.currentPage = newPage;
-    updateRecruitsList();
+    updateRecruitsList().catch(err => console.error('Error updating recruits list:', err));
   }
 }
 
@@ -570,24 +613,22 @@ async function handlePageSizeChange() {
     
     // Save user preference
     await savePageSizePreference(selectedValue);
-    
-    // Reset to first page when changing page size
+      // Reset to first page when changing page size
     state.currentPage = 1;
     
     // Update the display
-    updateRecruitsList();
+    updateRecruitsList().catch(err => console.error('Error updating recruits list:', err));
     
     console.log(`Page size changed to: ${selectedValue} (${state.itemsPerPage} items)`);
     
   } catch (error) {
     console.error('Error handling page size change:', error);
     setStatusMessage(`Error changing page size: ${error.message}`, 'error');
-    
-    // Reset to default on error
+      // Reset to default on error
     state.itemsPerPage = DEFAULT_PAGE_SIZE;
     state.showAllResults = false;
     elements.pageSizeSelect.value = DEFAULT_PAGE_SIZE.toString();
-    updateRecruitsList();
+    updateRecruitsList().catch(err => console.error('Error updating recruits list:', err));
   }
 }
 
@@ -875,12 +916,11 @@ function sortRecruits(column) {
 
   // Apply the sorting
   applySorting();
-
   // Reset to first page after sorting
   state.currentPage = 1;
 
   // Update the display
-  updateRecruitsList();
+  updateRecruitsList().catch(err => console.error('Error updating recruits list:', err));
   updateTableHeaders();
 }
 

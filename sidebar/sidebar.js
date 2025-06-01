@@ -157,13 +157,12 @@ function setupEventListeners() {
   if (elements.pageSizeSelect) {
     elements.pageSizeSelect.addEventListener('change', handlePageSizeChange);
   }
-
   // Settings actions
   if (elements.btnExportData) {
     elements.btnExportData.addEventListener('click', handleExportData);
   }
 
-  if (elements.btnImportData) {
+  if (elements.btnImportData && !elements.btnImportData.disabled) {
     elements.btnImportData.addEventListener('click', handleImportData);
   }
 
@@ -1133,6 +1132,13 @@ async function handleExportData() {
 
 // Handle import data action
 function handleImportData() {
+  // Check if import functionality is disabled
+  const importBtn = document.getElementById('btn-import-data');
+  if (importBtn && importBtn.disabled) {
+    setStatusMessage('Import functionality is not yet implemented', 'warning');
+    return;
+  }
+
   setStatusMessage('Select a JSON file to import...');
 
   // Create file input

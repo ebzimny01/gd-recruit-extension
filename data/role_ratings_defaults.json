@@ -34,7 +34,7 @@
         "attributes": {
           "ath": 10, "spd": 4, "dur": 0, "we": 0, "sta": 0,
           "str": 26, "blk": 0, "tkl": 0, "han": 0, "gi": 24,
-          "elu": 8, "tec": 28, "total": 100
+          "elu": 8, "tec": 28
         }
       },
       "qbr2": {
@@ -44,7 +44,7 @@
         "attributes": {
           "ath": 8, "spd": 18, "dur": 2, "we": 1, "sta": 3,
           "str": 24, "blk": 0, "tkl": 0, "han": 0, "gi": 16,
-          "elu": 20, "tec": 8, "total": 100
+          "elu": 20, "tec": 8
         }
       },
       "qbr3": {
@@ -54,7 +54,7 @@
         "attributes": {
           "ath": 8, "spd": 4, "dur": 1, "we": 1, "sta": 2,
           "str": 26, "blk": 0, "tkl": 0, "han": 0, "gi": 26,
-          "elu": 8, "tec": 24, "total": 100
+          "elu": 8, "tec": 24
         }
       },
       "qbr4": {
@@ -64,7 +64,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       },
       "qbr5": {
@@ -74,7 +74,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       },
       "qbr6": {
@@ -84,7 +84,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       }
     },
@@ -96,7 +96,7 @@
         "attributes": {
           "ath": 8, "spd": 22, "dur": 1, "we": 1, "sta": 3,
           "str": 21, "blk": 0, "tkl": 0, "han": 3, "gi": 11,
-          "elu": 22, "tec": 8, "total": 100
+          "elu": 22, "tec": 8
         }
       },
       "rbr2": {
@@ -106,7 +106,7 @@
         "attributes": {
           "ath": 8, "spd": 0, "dur": 1, "we": 1, "sta": 3,
           "str": 36, "blk": 30, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 13, "tec": 8, "total": 100
+          "elu": 13, "tec": 8
         }
       },
       "rbr3": {
@@ -116,7 +116,7 @@
         "attributes": {
           "ath": 8, "spd": 24, "dur": 1, "we": 1, "sta": 3,
           "str": 20, "blk": 0, "tkl": 0, "han": 0, "gi": 10,
-          "elu": 25, "tec": 8, "total": 100
+          "elu": 25, "tec": 8
         }
       },
       "rbr4": {
@@ -126,7 +126,7 @@
         "attributes": {
           "ath": 8, "spd": 20, "dur": 1, "we": 1, "sta": 3,
           "str": 25, "blk": 0, "tkl": 0, "han": 0, "gi": 10,
-          "elu": 24, "tec": 8, "total": 100
+          "elu": 24, "tec": 8
         }
       },
       "rbr5": {
@@ -136,7 +136,7 @@
         "attributes": {
           "ath": 8, "spd": 22, "dur": 1, "we": 1, "sta": 3,
           "str": 21, "blk": 0, "tkl": 0, "han": 3, "gi": 11,
-          "elu": 22, "tec": 8, "total": 100
+          "elu": 22, "tec": 8
         }
       },
       "rbr6": {
@@ -146,7 +146,7 @@
         "attributes": {
           "ath": 8, "spd": 22, "dur": 1, "we": 1, "sta": 3,
           "str": 21, "blk": 0, "tkl": 0, "han": 3, "gi": 11,
-          "elu": 22, "tec": 8, "total": 100
+          "elu": 22, "tec": 8
         }
       }
     },
@@ -158,7 +158,7 @@
         "attributes": {
           "ath": 15, "spd": 18, "dur": 1, "we": 1, "sta": 3,
           "str": 0, "blk": 0, "tkl": 0, "han": 18, "gi": 20,
-          "elu": 16, "tec": 8, "total": 100
+          "elu": 16, "tec": 8
         }
       },
       "wrr2": {
@@ -168,7 +168,7 @@
         "attributes": {
           "ath": 16, "spd": 12, "dur": 1, "we": 1, "sta": 3,
           "str": 0, "blk": 0, "tkl": 0, "han": 24, "gi": 24,
-          "elu": 11, "tec": 8, "total": 100
+          "elu": 11, "tec": 8
         }
       },
       "wrr3": {
@@ -178,7 +178,7 @@
         "attributes": {
           "ath": 12, "spd": 23, "dur": 1, "we": 1, "sta": 3,
           "str": 0, "blk": 0, "tkl": 0, "han": 11, "gi": 18,
-          "elu": 23, "tec": 8, "total": 100
+          "elu": 23, "tec": 8
         }
       },
       "wrr4": {
@@ -188,7 +188,7 @@
         "attributes": {
           "ath": 15, "spd": 18, "dur": 1, "we": 1, "sta": 3,
           "str": 0, "blk": 0, "tkl": 0, "han": 18, "gi": 20,
-          "elu": 16, "tec": 8, "total": 100
+          "elu": 16, "tec": 8
         }
       },
       "wrr5": {
@@ -198,7 +198,7 @@
         "attributes": {
           "ath": 15, "spd": 18, "dur": 1, "we": 1, "sta": 3,
           "str": 0, "blk": 0, "tkl": 0, "han": 18, "gi": 20,
-          "elu": 16, "tec": 8, "total": 100
+          "elu": 16, "tec": 8
         }
       },
       "wrr6": {
@@ -208,7 +208,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       }
     },
@@ -220,7 +220,7 @@
         "attributes": {
           "ath": 14, "spd": 6, "dur": 1, "we": 1, "sta": 2,
           "str": 18, "blk": 13, "tkl": 0, "han": 13, "gi": 18,
-          "elu": 6, "tec": 8, "total": 100
+          "elu": 6, "tec": 8
         }
       },
       "ter2": {
@@ -230,7 +230,7 @@
         "attributes": {
           "ath": 11, "spd": 0, "dur": 1, "we": 1, "sta": 2,
           "str": 36, "blk": 26, "tkl": 0, "han": 0, "gi": 15,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "ter3": {
@@ -240,7 +240,7 @@
         "attributes": {
           "ath": 16, "spd": 12, "dur": 1, "we": 1, "sta": 2,
           "str": 0, "blk": 0, "tkl": 0, "han": 24, "gi": 24,
-          "elu": 12, "tec": 8, "total": 100
+          "elu": 12, "tec": 8
         }
       },
       "ter4": {
@@ -250,7 +250,7 @@
         "attributes": {
           "ath": 14, "spd": 6, "dur": 1, "we": 1, "sta": 2,
           "str": 18, "blk": 13, "tkl": 0, "han": 13, "gi": 18,
-          "elu": 6, "tec": 8, "total": 100
+          "elu": 6, "tec": 8
         }
       },
       "ter5": {
@@ -260,7 +260,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       },
       "ter6": {
@@ -270,7 +270,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       }
     },
@@ -282,7 +282,7 @@
         "attributes": {
           "ath": 12, "spd": 0, "dur": 1, "we": 1, "sta": 2,
           "str": 32, "blk": 32, "tkl": 0, "han": 0, "gi": 12,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "olr2": {
@@ -292,7 +292,7 @@
         "attributes": {
           "ath": 12, "spd": 0, "dur": 1, "we": 1, "sta": 2,
           "str": 23, "blk": 41, "tkl": 0, "han": 0, "gi": 12,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "olr3": {
@@ -302,7 +302,7 @@
         "attributes": {
           "ath": 12, "spd": 0, "dur": 1, "we": 1, "sta": 2,
           "str": 41, "blk": 23, "tkl": 0, "han": 0, "gi": 12,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "olr4": {
@@ -312,7 +312,7 @@
         "attributes": {
           "ath": 12, "spd": 0, "dur": 1, "we": 1, "sta": 2,
           "str": 32, "blk": 32, "tkl": 0, "han": 0, "gi": 12,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "olr5": {
@@ -322,7 +322,7 @@
         "attributes": {
           "ath": 12, "spd": 0, "dur": 1, "we": 1, "sta": 2,
           "str": 32, "blk": 32, "tkl": 0, "han": 0, "gi": 12,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "olr6": {
@@ -332,7 +332,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       }
     },
@@ -344,7 +344,7 @@
         "attributes": {
           "ath": 13, "spd": 8, "dur": 1, "we": 1, "sta": 2,
           "str": 32, "blk": 0, "tkl": 20, "han": 0, "gi": 15,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "dlr2": {
@@ -354,7 +354,7 @@
         "attributes": {
           "ath": 12, "spd": 6, "dur": 1, "we": 1, "sta": 2,
           "str": 38, "blk": 0, "tkl": 17, "han": 0, "gi": 15,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "dlr3": {
@@ -364,7 +364,7 @@
         "attributes": {
           "ath": 12, "spd": 15, "dur": 1, "we": 1, "sta": 2,
           "str": 22, "blk": 0, "tkl": 24, "han": 0, "gi": 15,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "dlr4": {
@@ -374,7 +374,7 @@
         "attributes": {
           "ath": 13, "spd": 8, "dur": 1, "we": 1, "sta": 2,
           "str": 32, "blk": 0, "tkl": 20, "han": 0, "gi": 15,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "dlr5": {
@@ -384,7 +384,7 @@
         "attributes": {
           "ath": 13, "spd": 8, "dur": 1, "we": 1, "sta": 2,
           "str": 32, "blk": 0, "tkl": 20, "han": 0, "gi": 15,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "dlr6": {
@@ -394,7 +394,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       }
     },
@@ -406,7 +406,7 @@
         "attributes": {
           "ath": 15, "spd": 8, "dur": 1, "we": 1, "sta": 2,
           "str": 30, "blk": 0, "tkl": 20, "han": 0, "gi": 15,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "lbr2": {
@@ -416,7 +416,7 @@
         "attributes": {
           "ath": 12, "spd": 4, "dur": 1, "we": 1, "sta": 2,
           "str": 38, "blk": 0, "tkl": 22, "han": 0, "gi": 12,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "lbr3": {
@@ -426,7 +426,7 @@
         "attributes": {
           "ath": 13, "spd": 12, "dur": 1, "we": 1, "sta": 2,
           "str": 21, "blk": 0, "tkl": 21, "han": 0, "gi": 21,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "lbr4": {
@@ -436,7 +436,7 @@
         "attributes": {
           "ath": 13, "spd": 19, "dur": 1, "we": 1, "sta": 2,
           "str": 15, "blk": 0, "tkl": 20, "han": 0, "gi": 21,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "lbr5": {
@@ -446,7 +446,7 @@
         "attributes": {
           "ath": 15, "spd": 8, "dur": 1, "we": 1, "sta": 2,
           "str": 30, "blk": 0, "tkl": 20, "han": 0, "gi": 15,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "lbr6": {
@@ -456,7 +456,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       }
     },
@@ -468,7 +468,7 @@
         "attributes": {
           "ath": 16, "spd": 20, "dur": 1, "we": 1, "sta": 4,
           "str": 10, "blk": 0, "tkl": 10, "han": 10, "gi": 20,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "dbr2": {
@@ -478,7 +478,7 @@
         "attributes": {
           "ath": 18, "spd": 17, "dur": 1, "we": 1, "sta": 4,
           "str": 12, "blk": 0, "tkl": 12, "han": 10, "gi": 17,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "dbr3": {
@@ -488,7 +488,7 @@
         "attributes": {
           "ath": 21, "spd": 21, "dur": 1, "we": 1, "sta": 4,
           "str": 7, "blk": 0, "tkl": 7, "han": 12, "gi": 18,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "dbr4": {
@@ -498,7 +498,7 @@
         "attributes": {
           "ath": 15, "spd": 20, "dur": 1, "we": 1, "sta": 4,
           "str": 11, "blk": 0, "tkl": 20, "han": 8, "gi": 12,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "dbr5": {
@@ -508,7 +508,7 @@
         "attributes": {
           "ath": 15, "spd": 20, "dur": 1, "we": 1, "sta": 4,
           "str": 11, "blk": 0, "tkl": 20, "han": 8, "gi": 12,
-          "elu": 0, "tec": 8, "total": 100
+          "elu": 0, "tec": 8
         }
       },
       "dbr6": {
@@ -518,7 +518,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       }
     },
@@ -530,7 +530,7 @@
         "attributes": {
           "ath": 8, "spd": 4, "dur": 1, "we": 1, "sta": 0,
           "str": 36, "blk": 0, "tkl": 0, "han": 0, "gi": 14,
-          "elu": 0, "tec": 36, "total": 100
+          "elu": 0, "tec": 36
         }
       },
       "kr2": {
@@ -540,7 +540,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       },
       "kr3": {
@@ -550,7 +550,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       },
       "kr4": {
@@ -560,7 +560,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       },
       "kr5": {
@@ -570,7 +570,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       },
       "kr6": {
@@ -580,7 +580,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       }
     },
@@ -592,7 +592,7 @@
         "attributes": {
           "ath": 8, "spd": 4, "dur": 1, "we": 1, "sta": 0,
           "str": 36, "blk": 0, "tkl": 0, "han": 0, "gi": 14,
-          "elu": 0, "tec": 36, "total": 100
+          "elu": 0, "tec": 36
         }
       },
       "pr2": {
@@ -602,7 +602,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       },
       "pr3": {
@@ -612,7 +612,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       },
       "pr4": {
@@ -622,7 +622,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       },
       "pr5": {
@@ -632,7 +632,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       },
       "pr6": {
@@ -642,7 +642,7 @@
         "attributes": {
           "ath": 0, "spd": 0, "dur": 0, "we": 0, "sta": 0,
           "str": 0, "blk": 0, "tkl": 0, "han": 0, "gi": 0,
-          "elu": 0, "tec": 0, "total": 0
+          "elu": 0, "tec": 0
         }
       }
     }

@@ -8,10 +8,11 @@ import { sidebarComms } from './communications.js';
 const elements = {
   // Tab navigation
   tabButtons: document.querySelectorAll('.tab-btn'),
-  tabSections: document.querySelectorAll('.tab-content'),
-  // Dashboard elements
+  tabSections: document.querySelectorAll('.tab-content'),  // Dashboard elements
   schoolName: document.getElementById('schoolName'),
   dashboardSchoolName: document.getElementById('dashboardSchoolName'),
+  teamDivision: document.getElementById('team-division'),
+  teamWorld: document.getElementById('team-world'),
   recruitCount: document.getElementById('recruit-count'),
   watchlistCount: document.getElementById('watchlist-count'),
   lastUpdated: document.getElementById('last-updated'),
@@ -75,12 +76,15 @@ const PAGE_SIZE_STORAGE_KEY = 'preferredPageSize';
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
-  
-  // Set initial loading state for school name
+    // Set initial loading state for school name
   const schoolNameElements = [elements.schoolName, elements.dashboardSchoolName];
   schoolNameElements.forEach(element => {
     if (element) element.textContent = 'Loading...';
   });
+  
+  // Set initial loading state for team info
+  if (elements.teamDivision) elements.teamDivision.textContent = 'Loading...';
+  if (elements.teamWorld) elements.teamWorld.textContent = 'Loading...';
   
   await loadData();
   updateDashboardStats();
@@ -253,6 +257,14 @@ function updateDashboardStats() {
       // Update school name displays
       updateSchoolNameDisplay(stats.schoolName, stats.teamInfo);
 
+      // Update team information displays
+      if (elements.teamDivision) {
+        elements.teamDivision.textContent = stats.teamInfo?.division || 'Unknown';
+      }
+      if (elements.teamWorld) {
+        elements.teamWorld.textContent = stats.teamInfo?.world || 'Unknown';
+      }
+
       // Update other stats
       elements.recruitCount.textContent = state.recruits.length;
       elements.watchlistCount.textContent = stats.watchlistCount || 0;
@@ -267,8 +279,7 @@ function updateDashboardStats() {
         console.log('No current season available, displaying N/A');
         elements.currentSeason.textContent = 'N/A';
       }
-    })
-    .catch(error => {
+    })    .catch(error => {
       console.error('Error getting stats:', error);
       
       // Set fallback values for school name elements
@@ -276,6 +287,10 @@ function updateDashboardStats() {
       schoolNameElements.forEach(element => {
         if (element) element.textContent = 'Error loading school';
       });
+      
+      // Set fallback values for team info elements
+      if (elements.teamDivision) elements.teamDivision.textContent = 'Error';
+      if (elements.teamWorld) elements.teamWorld.textContent = 'Error';
     });
 }
 
@@ -283,9 +298,21 @@ function updateDashboardStats() {
 function updateSchoolNameDisplay(schoolName, teamInfo) {
   const schoolNameElements = [elements.schoolName, elements.dashboardSchoolName];
   const displayName = schoolName || 'Unknown School';
-  const tooltip = teamInfo?.division ? 
-    `Division: ${teamInfo.division}` : 
-    'Division information not available';
+  
+  // Build tooltip with available team information
+  let tooltip = '';
+  if (teamInfo?.division) {
+    tooltip += `Division: ${teamInfo.division}`;
+  }
+  if (teamInfo?.world) {
+    tooltip += (tooltip ? ', ' : '') + `World: ${teamInfo.world}`;
+  }
+  if (teamInfo?.conference) {
+    tooltip += (tooltip ? ', ' : '') + `Conference: ${teamInfo.conference}`;
+  }
+  if (!tooltip) {
+    tooltip = 'Team information not available';
+  }
     
   schoolNameElements.forEach(element => {
     if (element) {

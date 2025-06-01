@@ -153,6 +153,34 @@ main {
   color: white;
 }
 
+/* Special styling for division stat card (second card) */
+.stat-card:nth-child(2) {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+}
+
+.stat-card:nth-child(2) h3 {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-card:nth-child(2) .stat-value {
+  color: white;
+}
+
+/* Special styling for world stat card (third card) */
+.stat-card:nth-child(3) {
+  background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+  color: white;
+}
+
+.stat-card:nth-child(3) h3 {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-card:nth-child(3) .stat-value {
+  color: white;
+}
+
 .action-buttons {
   display: flex;
   flex-wrap: wrap;

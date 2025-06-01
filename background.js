@@ -441,6 +441,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       return true; // Indicate asynchronous response
 
+    
     case 'getConfig':
       // Get configuration setting
       console.log(`Getting config: ${message.key}`);
@@ -592,23 +593,35 @@ async function getStats() {
   // Get current season, making sure to handle both null and undefined
   let currentSeason = await recruitStorage.getConfig('currentSeason');
   console.log('Retrieved current season from storage:', currentSeason);
-
   // Get team information including school name
   let teamInfo = null;
   let schoolName = 'Unknown School';
   
   try {
     teamInfo = await getTeamInfoFromCookies();
+    
+    // If no team info from cookies, try to get from storage
+    if (!teamInfo) {
+      console.log('No team info from cookies, trying stored data');
+      teamInfo = await getStoredTeamInfo();
+    }
+    
     if (teamInfo?.teamId) {
-      // Get school name from GDR data
-      const gdrData = await loadGdrData();
-      const schoolData = gdrData.find(team => team.wis_id === teamInfo.teamId);
-      
-      if (schoolData) {
-        schoolName = schoolData.school_long || schoolData.school_short || 'Unknown School';
-        console.log(`Found school name: ${schoolName}`);
+      // Use schoolLong from team info if available, otherwise look up in GDR data
+      if (teamInfo.schoolLong) {
+        schoolName = teamInfo.schoolLong;
+        console.log(`Using stored school name: ${schoolName}`);
       } else {
-        console.log('School not found in GDR data for team ID:', teamInfo.teamId);
+        // Fallback to GDR lookup
+        const gdrData = await loadGdrData();
+        const schoolData = gdrData.find(team => team.wis_id === teamInfo.teamId);
+        
+        if (schoolData) {
+          schoolName = schoolData.school_long || schoolData.school_short || 'Unknown School';
+          console.log(`Found school name from GDR lookup: ${schoolName}`);
+        } else {
+          console.log('School not found in GDR data for team ID:', teamInfo.teamId);
+        }
       }
     } else {
       console.log('No team ID available for school lookup');
@@ -904,20 +917,32 @@ async function getTeamInfoFromCookies() {
     
     if (storedCookieValue) {
       console.log('Using stored wispersisted cookie value');
-      const teamId = extractTeamIdFromCookie(storedCookieValue);
-      
-      if (teamId) {
+      const teamId = extractTeamIdFromCookie(storedCookieValue);      if (teamId) {
         // Get team info from GDR data
         const gdrData = await loadGdrData();
         const teamInfo = gdrData.find(team => team.wis_id === teamId);
     
         if (!teamInfo) {
           console.log('Team not found in GDR data');
-          return { teamId, division: null };
+          return { teamId, division: null, world: null };
         }
     
-        console.log(`Found team in GDR data: ${teamInfo.school_long}, Division: ${teamInfo.division}`);
-        return { teamId, division: teamInfo.division };
+        console.log(`Found team in GDR data: ${teamInfo.school_long}, Division: ${teamInfo.division}, World: ${teamInfo.world}`);
+        
+        // Store team information for future use
+        const teamData = { 
+          teamId, 
+          division: teamInfo.division, 
+          world: teamInfo.world,
+          schoolLong: teamInfo.school_long,
+          schoolShort: teamInfo.school_short,
+          conference: teamInfo.conference
+        };
+        
+        // Save team info to storage
+        await recruitStorage.saveConfig('teamInfo', JSON.stringify(teamData));
+        
+        return teamData;
       }
     }
     
@@ -932,18 +957,29 @@ async function getTeamInfoFromCookies() {
     
     const teamId = extractTeamIdFromCookie(cookie.value);
     if (!teamId) return null;
-    
-    // Get team info from GDR data
+      // Get team info from GDR data
     const gdrData = await loadGdrData();
-    const teamInfo = gdrData.find(team => team.wis_id === teamId);
-
-    if (!teamInfo) {
+    const teamInfo = gdrData.find(team => team.wis_id === teamId);    if (!teamInfo) {
       console.log('Team not found in GDR data');
-      return { teamId, division: null };
+      return { teamId, division: null, world: null };
     }
 
-    console.log(`Found team in GDR data: ${teamInfo.school_long}, Division: ${teamInfo.division}`);
-    return { teamId, division: teamInfo.division };
+    console.log(`Found team in GDR data: ${teamInfo.school_long}, Division: ${teamInfo.division}, World: ${teamInfo.world}`);
+    
+    // Store team information for future use
+    const teamData = { 
+      teamId, 
+      division: teamInfo.division, 
+      world: teamInfo.world,
+      schoolLong: teamInfo.school_long,
+      schoolShort: teamInfo.school_short,
+      conference: teamInfo.conference
+    };
+    
+    // Save team info to storage
+    await recruitStorage.saveConfig('teamInfo', JSON.stringify(teamData));
+    
+    return teamData;
   } catch (error) {
     console.error('Error getting team info from cookies:', error);
     return null;
@@ -1382,6 +1418,20 @@ async function checkForWispersistedCookie() {
     }
   } catch (error) {
     console.error('Error checking for wispersisted cookie:', error);
+    return null;
+  }
+}
+
+// Get stored team information from storage
+async function getStoredTeamInfo() {
+  try {
+    const storedTeamInfo = await recruitStorage.getConfig('teamInfo');
+    if (storedTeamInfo) {
+      return JSON.parse(storedTeamInfo);
+    }
+    return null;
+  } catch (error) {
+    console.error('Error retrieving stored team info:', error);
     return null;
   }
 }

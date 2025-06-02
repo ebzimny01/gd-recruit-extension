@@ -176,14 +176,20 @@
             <button id="btn-edit-role-ratings" class="setting-btn">Edit Role Ratings</button>
             <button id="btn-reset-role-ratings" class="setting-btn">Reset to Defaults</button>
           </div>
-        </div>
-
-        <div class="settings-group">
+        </div>        <div class="settings-group">
           <h3>Attribute Styling Configuration</h3>
           <p>Configure which attributes should be highlighted for each position:</p>
           <div class="setting-row">
             <button id="btn-edit-bold-attributes" class="setting-btn">Edit Attribute Styling</button>
             <button id="btn-reset-bold-attributes" class="setting-btn">Reset to Defaults</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>Table Column Visibility</h3>
+          <p>Customize which columns are visible in the recruits table:</p>
+          <div class="setting-row">
+            <button id="btn-column-visibility" class="setting-btn">Manage Column Visibility</button>
           </div>
         </div>
 
@@ -291,6 +297,23 @@
             <button id="bold-attributes-save" class="action-btn">Save Changes</button>
             <button id="bold-attributes-reset-position" class="action-btn secondary">Reset Position</button>
             <button id="bold-attributes-cancel" class="action-btn secondary">Cancel</button>
+          </div>        </div>
+      </div>      <!-- Column Visibility Modal -->
+      <div id="column-visibility-modal" class="modal hidden">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Show/Hide Columns</h3>
+            <span class="close">&times;</span>
+          </div>
+          <div class="modal-body">
+            <div class="column-visibility-grid" id="column-visibility-grid">
+              <!-- Column checkboxes will be populated dynamically -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="column-visibility-save" class="action-btn">Apply</button>
+            <button id="column-visibility-reset" class="action-btn secondary">Reset to Default</button>
+            <button id="column-visibility-cancel" class="action-btn secondary">Cancel</button>
           </div>
         </div>
       </div>

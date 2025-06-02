@@ -37,16 +37,24 @@ const elements = {
   // Recruits tab elements
   filterName: document.getElementById('filter-name'),
   filterPosition: document.getElementById('filter-position'),
-  filterWatched: document.getElementById('filter-watched'),
-  filterPotential: document.getElementById('filter-potential'),
+  filterWatched: document.getElementById('filter-watched'),  filterPotential: document.getElementById('filter-potential'),
   filterPriority: document.getElementById('filter-priority'),
   filterDistance: document.getElementById('filter-distance'),
   filterHideSigned: document.getElementById('filter-hide-signed'),
   recruitsList: document.getElementById('recruits-list'),
   prevPageBtn: document.getElementById('prev-page'),
   nextPageBtn: document.getElementById('next-page'),
-  pageInfo: document.getElementById('page-info'),
-  pageSizeSelect: document.getElementById('page-size-select'),  // Settings tab elements  btnExportData: document.getElementById('btn-export-data'),
+  pageInfo: document.getElementById('page-info'),  pageSizeSelect: document.getElementById('page-size-select'),
+  
+  // Column visibility elements
+  btnColumnVisibility: document.getElementById('btn-column-visibility'),
+  columnVisibilityModal: document.getElementById('column-visibility-modal'),
+  columnVisibilityGrid: document.getElementById('column-visibility-grid'),
+  columnVisibilitySave: document.getElementById('column-visibility-save'),
+  columnVisibilityReset: document.getElementById('column-visibility-reset'),
+  columnVisibilityCancel: document.getElementById('column-visibility-cancel'),
+
+  // Settings tab elementsbtnExportData: document.getElementById('btn-export-data'),
   btnImportData: document.getElementById('btn-import-data'),
   btnClearData: document.getElementById('btn-clear-data'),
   btnRefreshData: document.getElementById('btn-refresh-data'),
@@ -85,13 +93,48 @@ let state = {  recruits: [],
     priority: '',
     distance: '',
     hideSigned: false
-  },
-  // Role ratings modal state
+  },  // Role ratings modal state
   roleRatings: {
     data: null,
     currentRole: null,
     hasChanges: false,
     currentRoleData: null
+  },
+  // Column visibility state
+  columnVisibility: {
+    name: true,
+    pos: true,
+    watched: true,
+    potential: true,
+    priority: true,
+    height: true,
+    weight: true,
+    rating: true,
+    rank: true,
+    hometown: true,
+    division: true,
+    miles: true,
+    signed: true,
+    gpa: true,
+    ath: true,
+    spd: true,
+    dur: true,
+    we: true,
+    sta: true,
+    str: true,
+    blk: true,
+    tkl: true,
+    han: true,
+    gi: true,
+    elu: true,
+    tec: true,
+    r1: true,
+    r2: true,
+    r3: true,
+    r4: true,
+    r5: true,
+    r6: true,
+    considering: true
   }
 };
 
@@ -105,6 +148,44 @@ const PAGE_SIZE_OPTIONS = {
 
 const DEFAULT_PAGE_SIZE = PAGE_SIZE_OPTIONS.SMALL;
 const PAGE_SIZE_STORAGE_KEY = 'preferredPageSize';
+const COLUMN_VISIBILITY_STORAGE_KEY = 'columnVisibility';
+
+// Column configuration
+const COLUMNS = [
+  { key: 'name', label: 'Name', sortable: true },
+  { key: 'pos', label: 'Pos', sortable: true },
+  { key: 'watched', label: 'Watched', sortable: true },
+  { key: 'potential', label: 'Pot', sortable: true },
+  { key: 'priority', label: 'Priority', sortable: true },
+  { key: 'height', label: 'Height', sortable: true },
+  { key: 'weight', label: 'Weight', sortable: true },
+  { key: 'rating', label: 'Rating', sortable: true },
+  { key: 'rank', label: 'Rank', sortable: true },
+  { key: 'hometown', label: 'Hometown', sortable: true },
+  { key: 'division', label: 'Division', sortable: true },
+  { key: 'miles', label: 'Miles', sortable: true },
+  { key: 'signed', label: 'Signed', sortable: true },
+  { key: 'gpa', label: 'GPA', sortable: true },
+  { key: 'ath', label: 'Ath', sortable: true },
+  { key: 'spd', label: 'Spd', sortable: true },
+  { key: 'dur', label: 'Dur', sortable: true },
+  { key: 'we', label: 'WE', sortable: true },
+  { key: 'sta', label: 'Sta', sortable: true },
+  { key: 'str', label: 'Str', sortable: true },
+  { key: 'blk', label: 'Blk', sortable: true },
+  { key: 'tkl', label: 'Tkl', sortable: true },
+  { key: 'han', label: 'Han', sortable: true },
+  { key: 'gi', label: 'GI', sortable: true },
+  { key: 'elu', label: 'Elu', sortable: true },
+  { key: 'tec', label: 'Tec', sortable: true },
+  { key: 'r1', label: 'R1', sortable: true },
+  { key: 'r2', label: 'R2', sortable: true },
+  { key: 'r3', label: 'R3', sortable: true },
+  { key: 'r4', label: 'R4', sortable: true },
+  { key: 'r5', label: 'R5', sortable: true },
+  { key: 'r6', label: 'R6', sortable: true },
+  { key: 'considering', label: 'Considering Schools', sortable: true }
+];
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
@@ -128,25 +209,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Set initial loading state for team info
   if (elements.teamDivision) elements.teamDivision.textContent = 'Loading...';
   if (elements.teamWorld) elements.teamWorld.textContent = 'Loading...';
-  
-  await loadData();
+    await loadData();
   updateDashboardStats();
   await updateButtonState();
+  // Load column visibility preferences
+  await loadColumnVisibility();
 
   // Set up table sorting after data
   setupTableSorting();
 
+  // Apply column visibility after everything is set up
+  applyColumnVisibility();
+
   // Set up sidebar visibility listener
   sidebarComms.setupSidebarListeners();
-
   // Listen for sidebar visibility events
   document.addEventListener('sidebar-visible', async () => {
     console.log('Sidebar became visible, refreshing data');
     await loadData();
     updateDashboardStats();
     await updateButtonState();
+    
+    // Reload column visibility preferences
+    await loadColumnVisibility();
+    
     // Re-setup sorting after data refresh
     setupTableSorting();
+    
+    // Apply column visibility after everything is refreshed
+    applyColumnVisibility();
   });
   
   // Enhanced UI Refresh Mechanism - Setup data update listeners
@@ -273,11 +364,40 @@ function setupEventListeners() {
   if (elements.btnResetBoldAttributes) {
     elements.btnResetBoldAttributes.addEventListener('click', handleResetBoldAttributes);
   }
-
   // Add event listener for database check button
   const btnCheckDb = document.getElementById('btn-check-db');
   if (btnCheckDb) {
     btnCheckDb.addEventListener('click', handleCheckDatabase);
+  }
+  // Column visibility event listeners
+  if (elements.btnColumnVisibility) {
+    elements.btnColumnVisibility.addEventListener('click', openColumnVisibilityModal);
+  }
+
+  if (elements.columnVisibilityCancel) {
+    elements.columnVisibilityCancel.addEventListener('click', closeColumnVisibilityModal);
+  }
+
+  if (elements.columnVisibilitySave) {
+    elements.columnVisibilitySave.addEventListener('click', saveColumnVisibility);
+  }
+
+  if (elements.columnVisibilityReset) {
+    elements.columnVisibilityReset.addEventListener('click', resetColumnVisibility);
+  }
+  // Close modal when clicking outside
+  if (elements.columnVisibilityModal) {
+    elements.columnVisibilityModal.addEventListener('click', (e) => {
+      if (e.target === elements.columnVisibilityModal) {
+        closeColumnVisibilityModal();
+      }
+    });
+
+    // Also handle the close button in modal header
+    const closeBtn = elements.columnVisibilityModal.querySelector('.close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeColumnVisibilityModal);
+    }
   }
 }
 
@@ -488,8 +608,136 @@ function applyFilters() {
 
   // Update the list
   updateRecruitsList().catch(err => console.error('Error updating recruits list:', err));
-
   console.log(`Applied filters: ${state.filteredRecruits.length} recruits match criteria`);
+}
+
+// Column visibility functions
+async function loadColumnVisibility() {
+  try {
+    const response = await sendMessageToBackground({ action: 'getConfig', key: COLUMN_VISIBILITY_STORAGE_KEY });
+    if (response && response.success && response.value) {
+      console.log('Loading column visibility preferences:', response.value);
+      state.columnVisibility = { ...state.columnVisibility, ...response.value };
+    } else {
+      console.log('No saved column visibility preferences found, using defaults');
+    }
+  } catch (error) {
+    console.error('Error loading column visibility preferences:', error);
+  }
+}
+
+async function saveColumnVisibilityToStorage() {
+  try {
+    console.log('Saving column visibility preferences:', state.columnVisibility);
+    await sendMessageToBackground({ 
+      action: 'saveConfig', 
+      key: COLUMN_VISIBILITY_STORAGE_KEY, 
+      value: state.columnVisibility 
+    });
+    console.log('Column visibility preferences saved successfully');
+  } catch (error) {
+    console.error('Error saving column visibility preferences:', error);
+  }
+}
+
+function openColumnVisibilityModal() {
+  // Ensure we have the latest column visibility state before populating the modal
+  console.log('Opening column visibility modal');
+  populateColumnVisibilityModal();
+  elements.columnVisibilityModal.style.display = 'flex';
+}
+
+function closeColumnVisibilityModal() {
+  elements.columnVisibilityModal.style.display = 'none';
+}
+
+function populateColumnVisibilityModal() {
+  const grid = elements.columnVisibilityGrid;
+  grid.innerHTML = '';
+
+  console.log('Populating column visibility modal with state:', state.columnVisibility);
+
+  COLUMNS.forEach(column => {
+    const label = document.createElement('label');
+    label.className = 'column-checkbox-label';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = state.columnVisibility[column.key];
+    checkbox.dataset.column = column.key;
+
+    const span = document.createElement('span');
+    span.textContent = column.label;
+
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    grid.appendChild(label);
+  });
+}
+
+async function saveColumnVisibility() {
+  const checkboxes = elements.columnVisibilityGrid.querySelectorAll('input[type="checkbox"]');
+  
+  console.log('Saving column visibility from modal...');
+  
+  checkboxes.forEach(checkbox => {
+    const columnKey = checkbox.dataset.column;
+    const oldValue = state.columnVisibility[columnKey];
+    state.columnVisibility[columnKey] = checkbox.checked;
+    
+    if (oldValue !== checkbox.checked) {
+      console.log(`Column '${columnKey}' visibility changed from ${oldValue} to ${checkbox.checked}`);
+    }
+  });
+
+  await saveColumnVisibilityToStorage();
+  applyColumnVisibility();
+  closeColumnVisibilityModal();
+}
+
+async function resetColumnVisibility() {
+  // Reset all columns to visible
+  COLUMNS.forEach(column => {
+    state.columnVisibility[column.key] = true;
+  });
+
+  await saveColumnVisibilityToStorage();
+  populateColumnVisibilityModal();
+  applyColumnVisibility();
+}
+
+function applyColumnVisibility() {
+  console.log('Applying column visibility with state:', state.columnVisibility);
+  
+  // Remove any existing column hiding styles
+  const existingStyle = document.getElementById('column-visibility-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+
+  // Create new style element with nth-child selectors
+  const styleElement = document.createElement('style');
+  styleElement.id = 'column-visibility-styles';
+  
+  let css = '';
+  let hiddenColumns = [];
+  
+  COLUMNS.forEach((column, index) => {
+    if (!state.columnVisibility[column.key]) {
+      const nthChild = index + 1; // nth-child is 1-based
+      css += `#recruits-table th:nth-child(${nthChild}), #recruits-table td:nth-child(${nthChild}) { display: none !important; }\n`;
+      hiddenColumns.push(column.label);
+    }
+  });
+  
+  if (hiddenColumns.length > 0) {
+    console.log('Hiding columns:', hiddenColumns);
+  } else {
+    console.log('All columns are visible');
+  }
+  
+  styleElement.textContent = css;
+  document.head.appendChild(styleElement);
 }
 
 // Update recruits list in the UI
@@ -527,12 +775,12 @@ async function updateRecruitsList() {
 
   // Clear current list
   elements.recruitsList.innerHTML = '';
-  
   // Add recruits to list
   if (pageRecruits.length === 0) {
     const emptyRow = document.createElement('tr');
     const emptyCell = document.createElement('td');
-    emptyCell.colSpan = 33; // Updated from 34 to 33 (removed Actions column)
+    // Use total columns count since CSS will handle hiding
+    emptyCell.colSpan = COLUMNS.length;
     emptyCell.textContent = 'No recruits found matching your filters';
     emptyCell.style.textAlign = 'center';
     emptyRow.appendChild(emptyCell);
@@ -612,8 +860,12 @@ async function updateRecruitsList() {
           cell.textContent = recruit.hometown;
         }
         
-        return cell;
-      };// Create cells for all recruit data (removed Actions cell)
+        return cell;      };// Create cells for all recruit data (removed Actions cell)
+      // Helper function to add cell (simplified - no visibility logic needed)
+      const addCell = (cellElement) => {
+        row.appendChild(cellElement);
+      };
+
       // Create name cell with hyperlink to recruit profile
       const nameCell = document.createElement('td');
       const nameLink = document.createElement('a');
@@ -629,47 +881,49 @@ async function updateRecruitsList() {
         nameLink.style.textDecoration = 'none';
       });
       nameCell.appendChild(nameLink);
-      row.appendChild(nameCell);
-      row.appendChild(createCell(recruit.pos));
-      row.appendChild(createCell(recruit.watched === 1 ? 'Yes' : 'No'));
-      row.appendChild(createCell(recruit.potential));
-      row.appendChild(createCell(formatPriority(recruit.priority)));
-      row.appendChild(createCell(recruit.height));
-      row.appendChild(createCell(recruit.weight, true));
-      row.appendChild(createCell(recruit.rating, true));
-      row.appendChild(createCell(recruit.rank === 999 ? 'NR' : recruit.rank, true));
-      row.appendChild(createHometownCell(recruit, teamInfo));
-      row.appendChild(createCell(recruit.division));
-      row.appendChild(createCell(recruit.miles, true));
-      row.appendChild(createCell(recruit.signed === 1 ? 'Yes' : 'No'));      
-      row.appendChild(createCell(recruit.gpa ? recruit.gpa.toFixed(1) : 'N/A'));
+
+      // Add all cells (CSS will handle visibility)
+      addCell(nameCell);
+      addCell(createCell(recruit.pos));
+      addCell(createCell(recruit.watched === 1 ? 'Yes' : 'No'));
+      addCell(createCell(recruit.potential));
+      addCell(createCell(formatPriority(recruit.priority)));
+      addCell(createCell(recruit.height));
+      addCell(createCell(recruit.weight, true));
+      addCell(createCell(recruit.rating, true));
+      addCell(createCell(recruit.rank === 999 ? 'NR' : recruit.rank, true));
+      addCell(createHometownCell(recruit, teamInfo));
+      addCell(createCell(recruit.division));
+      addCell(createCell(recruit.miles, true));
+      addCell(createCell(recruit.signed === 1 ? 'Yes' : 'No'));
+      addCell(createCell(recruit.gpa ? recruit.gpa.toFixed(1) : 'N/A'));
       
       // Update attribute cells with bold styling
-      row.appendChild(createCell(recruit.ath, true, 'ath', recruit.pos));
-      row.appendChild(createCell(recruit.spd, true, 'spd', recruit.pos));
-      row.appendChild(createCell(recruit.dur, true, 'dur', recruit.pos));
-      row.appendChild(createCell(recruit.we, true, 'we', recruit.pos));
-      row.appendChild(createCell(recruit.sta, true, 'sta', recruit.pos));
-      row.appendChild(createCell(recruit.str, true, 'str', recruit.pos));
-      row.appendChild(createCell(recruit.blk, true, 'blk', recruit.pos));
-      row.appendChild(createCell(recruit.tkl, true, 'tkl', recruit.pos));
-      row.appendChild(createCell(recruit.han, true, 'han', recruit.pos));
-      row.appendChild(createCell(recruit.gi, true, 'gi', recruit.pos));
-      row.appendChild(createCell(recruit.elu, true, 'elu', recruit.pos));
-      row.appendChild(createCell(recruit.tec, true, 'tec', recruit.pos));
-      row.appendChild(createCell(recruit.r1, true));
-      row.appendChild(createCell(recruit.r2, true));
-      row.appendChild(createCell(recruit.r3, true));
-      row.appendChild(createCell(recruit.r4, true));
-      row.appendChild(createCell(recruit.r5, true));
-      row.appendChild(createCell(recruit.r6, true));
+      addCell(createCell(recruit.ath, true, 'ath', recruit.pos));
+      addCell(createCell(recruit.spd, true, 'spd', recruit.pos));
+      addCell(createCell(recruit.dur, true, 'dur', recruit.pos));
+      addCell(createCell(recruit.we, true, 'we', recruit.pos));
+      addCell(createCell(recruit.sta, true, 'sta', recruit.pos));
+      addCell(createCell(recruit.str, true, 'str', recruit.pos));
+      addCell(createCell(recruit.blk, true, 'blk', recruit.pos));
+      addCell(createCell(recruit.tkl, true, 'tkl', recruit.pos));
+      addCell(createCell(recruit.han, true, 'han', recruit.pos));
+      addCell(createCell(recruit.gi, true, 'gi', recruit.pos));
+      addCell(createCell(recruit.elu, true, 'elu', recruit.pos));
+      addCell(createCell(recruit.tec, true, 'tec', recruit.pos));
+      addCell(createCell(recruit.r1, true));
+      addCell(createCell(recruit.r2, true));
+      addCell(createCell(recruit.r3, true));
+      addCell(createCell(recruit.r4, true));
+      addCell(createCell(recruit.r5, true));
+      addCell(createCell(recruit.r6, true));
       
       // Considering schools cell - truncate if too long
       const consideringCell = document.createElement('td');
       const considering = recruit.considering || 'undecided';
       consideringCell.textContent = considering.length > 50 ? considering.substring(0, 47) + '...' : considering;
       consideringCell.title = considering; // Show full text on hover
-      row.appendChild(consideringCell);
+      addCell(consideringCell);
 
       // Add row to table
       elements.recruitsList.appendChild(row);
@@ -1034,24 +1288,16 @@ function sortRecruits(column) {
 // Update table headers to show sort indicators
 function updateTableHeaders() {
   const headers = document.querySelectorAll('#recruits-table thead th');
-  const columnMapping = [
-    'name', 'pos', 'watched', 'potential', 'priority', 'height', 'weight', 'rating', 'rank',
-    'hometown', 'division', 'miles', 'signed', 'gpa', 'ath', 'spd', 'dur',
-    'we', 'sta', 'str', 'blk', 'tkl', 'han', 'gi', 'elu', 'tec', 'r1', 'r2',
-    'r3', 'r4', 'r5', 'r6', 'considering'
-    // Removed 'actions' from mapping
-  ];
 
   headers.forEach((header, index) => {
     // Remove existing sort classes
     header.classList.remove('sort-asc', 'sort-desc');
 
-    const columnName = columnMapping[index];
-    
-    // Remove actions column check since it no longer exists
+    const column = COLUMNS[index];
+    if (!column) return;
 
     // Add sort class if this is the active sort column
-    if (state.sorting.column === columnName) {
+    if (state.sorting.column === column.key) {
       header.classList.add(`sort-${state.sorting.direction}`);
     }
   });
@@ -1060,26 +1306,20 @@ function updateTableHeaders() {
 // Make headers clickable for sorting
 function setupTableSorting() {
   const headers = document.querySelectorAll('#recruits-table thead th');
-  const columnMapping = [
-    'name', 'pos', 'watched', 'potential', 'priority', 'height', 'weight', 'rating', 'rank',
-    'hometown', 'division', 'miles', 'signed', 'gpa', 'ath', 'spd', 'dur',
-    'we', 'sta', 'str', 'blk', 'tkl', 'han', 'gi', 'elu', 'tec', 'r1', 'r2',
-    'r3', 'r4', 'r5', 'r6', 'considering'
-    // Removed 'actions' from mapping
-  ];
 
   headers.forEach((header, index) => {
-    const columnName = columnMapping[index];
-    
-    // Remove actions column check since it no longer exists
+    const column = COLUMNS[index];
+    if (!column) return;
     
     // Skip if already set up (prevent duplicate event listeners)
     if (header.dataset.sortingSetup === 'true') return;
 
-    // Make header clickable for all columns
-    header.style.cursor = 'pointer';
-    header.style.userSelect = 'none';
-    header.addEventListener('click', () => sortRecruits(columnName));
+    // Make header clickable for all sortable columns
+    if (column.sortable) {
+      header.style.cursor = 'pointer';
+      header.style.userSelect = 'none';
+      header.addEventListener('click', () => sortRecruits(column.key));
+    }
     
     // Mark as set up
     header.dataset.sortingSetup = 'true';

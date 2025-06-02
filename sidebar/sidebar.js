@@ -61,14 +61,12 @@ const elements = {
   btnEditRoleRatings: document.getElementById('btn-edit-role-ratings'),
   btnResetRoleRatings: document.getElementById('btn-reset-role-ratings'),
   btnEditBoldAttributes: document.getElementById('btn-edit-bold-attributes'),
-  btnResetBoldAttributes: document.getElementById('btn-reset-bold-attributes'),
-  // Role ratings modal elements
+  btnResetBoldAttributes: document.getElementById('btn-reset-bold-attributes'),  // Role ratings modal elements
   roleRatingsModal: document.getElementById('role-ratings-modal'),
   roleRatingsModalClose: document.getElementById('role-ratings-modal-close'),
-  roleSelect: document.getElementById('role-select'),
-  currentRoleLabel: document.getElementById('current-role-label'),
-  currentRoleTotal: document.getElementById('current-role-total'),
-  attributesSliders: document.getElementById('attributes-sliders'),  roleResetCurrent: document.getElementById('role-reset-current'),
+  positionTabs: document.getElementById('position-tabs'),
+  positionContent: document.getElementById('position-content'),
+  roleResetPosition: document.getElementById('role-reset-position'),
   roleRecalculate: document.getElementById('role-recalculate'),
   roleDebug: document.getElementById('role-debug'),
   roleRatingsSave: document.getElementById('role-ratings-save'),
@@ -96,9 +94,9 @@ let state = {  recruits: [],
   },  // Role ratings modal state
   roleRatings: {
     data: null,
-    currentRole: null,
-    hasChanges: false,
-    currentRoleData: null
+    currentPosition: null,
+    activeRoles: {},
+    hasChanges: false
   },
   // Column visibility state
   columnVisibility: {
@@ -327,19 +325,15 @@ function setupEventListeners() {
   if (elements.btnResetRoleRatings) {
     elements.btnResetRoleRatings.addEventListener('click', handleResetRoleRatings);
   }
-
   // Role ratings modal event listeners
   if (elements.roleRatingsModalClose) {
     elements.roleRatingsModalClose.addEventListener('click', closeRoleRatingsModal);
   }
 
-  if (elements.roleSelect) {
-    elements.roleSelect.addEventListener('change', handleRoleSelectionChange);
+  if (elements.roleResetPosition) {
+    elements.roleResetPosition.addEventListener('click', handleResetCurrentPosition);
   }
-
-  if (elements.roleResetCurrent) {
-    elements.roleResetCurrent.addEventListener('click', handleResetCurrentRole);
-  }
+  
   if (elements.roleRecalculate) {
     elements.roleRecalculate.addEventListener('click', handleRecalculateAllRatings);
   }
@@ -2057,19 +2051,20 @@ async function showRoleRatingsModal() {
 
     state.roleRatings.data = response.ratings;
     state.roleRatings.hasChanges = false;
+    state.roleRatings.activeRoles = {};
 
-    // Populate role selector
-    populateRoleSelector();
-
+    // Setup position tabs and content
+    setupPositionTabs();
+    
     // Show modal
     if (elements.roleRatingsModal) {
       elements.roleRatingsModal.classList.remove('hidden');
     }
 
-    // Select first available role
-    if (elements.roleSelect && elements.roleSelect.options.length > 0) {
-      elements.roleSelect.selectedIndex = 0;
-      handleRoleSelectionChange();
+    // Select first position by default
+    const firstTab = elements.positionTabs?.querySelector('.position-tab');
+    if (firstTab) {
+      firstTab.click();
     }
 
     setStatusMessage('Role ratings configuration loaded', 'success');
@@ -2096,46 +2091,273 @@ function closeRoleRatingsModal() {
 
   // Reset state
   state.roleRatings.data = null;
-  state.roleRatings.currentRole = null;
+  state.roleRatings.currentPosition = null;
+  state.roleRatings.activeRoles = {};
   state.roleRatings.hasChanges = false;
-  state.roleRatings.currentRoleData = null;
 }
 
 /**
- * Populate the role selector dropdown with available roles
+ * Setup position tabs for the role ratings modal
  */
-function populateRoleSelector() {
-  if (!elements.roleSelect || !state.roleRatings.data) return;
+function setupPositionTabs() {
+  if (!elements.positionTabs || !state.roleRatings.data) return;
 
-  // Clear existing options
-  elements.roleSelect.innerHTML = '';
+  // Clear existing tabs
+  elements.positionTabs.innerHTML = '';
 
-  // Get all available roles grouped by position
-  const roleOptions = [];
+  // Create tabs for each position
+  for (const [positionKey, positionData] of Object.entries(state.roleRatings.data)) {
+    // Skip positions with no active roles
+    const hasActiveRoles = Object.values(positionData).some(role => role.isActive);
+    if (!hasActiveRoles) continue;
 
+    const tab = document.createElement('div');
+    tab.className = 'position-tab';
+    tab.textContent = getPositionDisplayName(positionKey);
+    tab.dataset.position = positionKey;
+    
+    tab.addEventListener('click', () => {
+      selectPosition(positionKey);
+    });
+
+    elements.positionTabs.appendChild(tab);
+  }
+}
+
+/**
+ * Select a position and update the content area
+ */
+function selectPosition(positionKey) {
+  if (!state.roleRatings.data || !state.roleRatings.data[positionKey]) return;
+
+  // Update active tab
+  const tabs = elements.positionTabs?.querySelectorAll('.position-tab');
+  tabs?.forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.position === positionKey);
+  });
+
+  // Update current position
+  state.roleRatings.currentPosition = positionKey;
+
+  // Generate content for this position
+  generatePositionContent(positionKey);
+}
+
+/**
+ * Generate content for a specific position
+ */
+function generatePositionContent(positionKey) {
+  if (!elements.positionContent || !state.roleRatings.data[positionKey]) return;
+
+  const positionData = state.roleRatings.data[positionKey];
+  const activeRoles = Object.entries(positionData).filter(([, roleData]) => roleData.isActive);
+
+  let html = `
+    <div class="position-header">
+      <h3>${getPositionDisplayName(positionKey)} Roles</h3>
+      <p>Configure attribute weights for each role. Values must total 100 for each role.</p>
+    </div>
+    <div class="roles-grid">
+  `;
+
+  // Create role cards
+  activeRoles.forEach(([roleKey, roleData]) => {
+    const roleId = `${positionKey}.${roleKey}`;
+    const total = calculateRoleTotal(roleData.attributes);
+    const isValid = Math.abs(total - 100) < 0.1;
+
+    html += `
+      <div class="role-card ${isValid ? 'valid' : 'invalid'}" data-role="${roleId}">
+        <div class="role-header">
+          <h4>${roleData.roleLabel}</h4>
+          <div class="role-total ${isValid ? 'valid' : 'invalid'}">
+            Total: <span class="total-value">${total.toFixed(1)}</span>
+          </div>
+        </div>
+        <div class="attribute-inputs">
+          ${generateAttributeInputs(roleId, roleData.attributes)}
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  elements.positionContent.innerHTML = html;
+
+  // Add event listeners to the inputs
+  addAttributeInputListeners();
+}
+
+/**
+ * Generate HTML for attribute inputs
+ */
+function generateAttributeInputs(roleId, attributes) {
+  const attributeLabels = {
+    'ath': 'Ath',
+    'spd': 'Spd',
+    'dur': 'Dur',
+    'we': 'WE',
+    'sta': 'Sta',
+    'str': 'Str',
+    'blk': 'Blk',
+    'tkl': 'Tkl',
+    'han': 'Han',
+    'gi': 'GI',
+    'elu': 'Elu',
+    'tec': 'Tec'
+  };
+
+  let html = '';
+  
+  Object.entries(attributes).forEach(([attr, value]) => {
+    if (attr === 'total') return; // Skip total if present
+
+    const numValue = Number(value) || 0;
+    const validationClass = numValue > 80 ? 'high' : numValue > 40 ? 'medium' : 'low';
+    
+    html += `
+      <div class="attribute-input-group">
+        <label for="${roleId}-${attr}">${attributeLabels[attr] || attr.toUpperCase()}</label>        <input 
+          type="number" 
+          id="${roleId}-${attr}" 
+          class="attribute-input ${validationClass}" 
+          min="0" 
+          max="100" 
+          step="1" 
+          value="${numValue}"
+          data-role="${roleId}"
+          data-attribute="${attr}"
+        />
+      </div>
+    `;
+  });
+
+  return html;
+}
+
+/**
+ * Add event listeners to attribute inputs
+ */
+function addAttributeInputListeners() {
+  const inputs = elements.positionContent?.querySelectorAll('.attribute-input');
+  
+  inputs?.forEach(input => {
+    input.addEventListener('input', handleAttributeChange);
+    input.addEventListener('blur', validateAttributeInput);
+  });
+}
+
+/**
+ * Handle attribute value changes
+ */
+function handleAttributeChange(event) {
+  const input = event.target;
+  const roleId = input.dataset.role;
+  const attribute = input.dataset.attribute;
+  const newValue = Number(input.value) || 0;
+
+  // Update the data
+  const [positionKey, roleKey] = roleId.split('.');
+  if (state.roleRatings.data[positionKey] && state.roleRatings.data[positionKey][roleKey]) {
+    state.roleRatings.data[positionKey][roleKey].attributes[attribute] = newValue;
+    state.roleRatings.hasChanges = true;
+
+    // Update visual styling based on value
+    input.className = input.className.replace(/\b(high|medium|low)\b/, '');
+    const validationClass = newValue > 80 ? 'high' : newValue > 40 ? 'medium' : 'low';
+    input.classList.add(validationClass);
+
+    // Update role total and validation
+    updateRoleCardValidation(roleId);
+  }
+}
+
+/**
+ * Validate attribute input values
+ */
+function validateAttributeInput(event) {
+  const input = event.target;
+  let value = Number(input.value);
+  
+  // Clamp value between 0 and 100
+  if (value < 0) value = 0;
+  if (value > 100) value = 100;
+  
+  // Ensure whole numbers only
+  value = Math.round(value);
+  input.value = value;
+  
+  // Trigger change event to update data
+  input.dispatchEvent(new Event('input'));
+}
+
+/**
+ * Update role card validation styling and total
+ */
+function updateRoleCardValidation(roleId) {
+  const [positionKey, roleKey] = roleId.split('.');
+  const roleData = state.roleRatings.data[positionKey]?.[roleKey];
+  
+  if (!roleData) return;
+
+  const card = elements.positionContent?.querySelector(`[data-role="${roleId}"]`);
+  const totalElement = card?.querySelector('.total-value');
+  
+  if (!card || !totalElement) return;
+
+  const total = calculateRoleTotal(roleData.attributes);
+  const isValid = Math.abs(total - 100) < 0.1;
+
+  // Update total display
+  totalElement.textContent = total.toFixed(1);
+
+  // Update validation classes
+  card.classList.toggle('valid', isValid);
+  card.classList.toggle('invalid', !isValid);
+  
+  const totalContainer = card.querySelector('.role-total');
+  totalContainer?.classList.toggle('valid', isValid);
+  totalContainer?.classList.toggle('invalid', !isValid);
+
+  // Update save button state
+  updateSaveButtonState();
+}
+
+/**
+ * Calculate total for role attributes
+ */
+function calculateRoleTotal(attributes) {
+  return Object.entries(attributes).reduce((sum, [attr, value]) => {
+    if (attr === 'total') return sum; // Skip total if present
+    const numVal = Number(value);
+    return sum + (isNaN(numVal) ? 0 : numVal);
+  }, 0);
+}
+
+/**
+ * Update save button state based on all role validations
+ */
+function updateSaveButtonState() {
+  if (!elements.roleRatingsSave || !state.roleRatings.data) return;
+
+  let allValid = true;
+  
+  // Check all active roles
   for (const [positionKey, positionData] of Object.entries(state.roleRatings.data)) {
     for (const [roleKey, roleData] of Object.entries(positionData)) {
-      if (roleData.isActive && roleData.roleLabel) {
-        roleOptions.push({
-          value: `${positionKey}.${roleKey}`,
-          label: `${getPositionDisplayName(positionKey)} - ${roleData.roleLabel}`,
-          positionKey,
-          roleKey
-        });
+      if (roleData.isActive) {
+        const total = calculateRoleTotal(roleData.attributes);
+        if (Math.abs(total - 100) > 0.1) {
+          allValid = false;
+          break;
+        }
       }
     }
+    if (!allValid) break;
   }
 
-  // Sort by position then by role
-  roleOptions.sort((a, b) => a.label.localeCompare(b.label));
-
-  // Add options to select
-  roleOptions.forEach(option => {
-    const optionElement = document.createElement('option');
-    optionElement.value = option.value;
-    optionElement.textContent = option.label;
-    elements.roleSelect.appendChild(optionElement);
-  });
+  elements.roleRatingsSave.disabled = !allValid;
+  elements.roleRatingsSave.classList.toggle('disabled', !allValid);
 }
 
 /**
@@ -2143,197 +2365,36 @@ function populateRoleSelector() {
  */
 function getPositionDisplayName(positionKey) {
   const displayNames = {
-    'quarterback': 'Quarterback',
-    'runningBack': 'Running Back',
-    'wideReceiver': 'Wide Receiver',
-    'tightEnd': 'Tight End',
-    'offensiveLine': 'Offensive Line',
-    'defensiveLine': 'Defensive Line',
-    'linebacker': 'Linebacker',
-    'defensiveBack': 'Defensive Back',
-    'kicker': 'Kicker',
-    'punter': 'Punter'
+    'quarterback': 'QB',
+    'runningBack': 'RB',
+    'wideReceiver': 'WR',
+    'tightEnd': 'TE',
+    'offensiveLine': 'OL',
+    'defensiveLine': 'DL',
+    'linebacker': 'LB',
+    'defensiveBack': 'DB',
+    'kicker': 'K',
+    'punter': 'P'
   };
   return displayNames[positionKey] || positionKey;
 }
 
 /**
- * Handle role selection change
+ * Handle reset current position to defaults
  */
-function handleRoleSelectionChange() {
-  if (!elements.roleSelect || !state.roleRatings.data) return;
-
-  const selectedValue = elements.roleSelect.value;
-  if (!selectedValue) return;
-
-  const [positionKey, roleKey] = selectedValue.split('.');
-  const roleData = state.roleRatings.data[positionKey]?.[roleKey];
-
-  if (!roleData) {
-    console.error('Role data not found:', selectedValue);
+async function handleResetCurrentPosition() {
+  if (!state.roleRatings.currentPosition) {
+    setStatusMessage('No position selected', 'error');
     return;
   }
 
-  state.roleRatings.currentRole = selectedValue;
-  state.roleRatings.currentRoleData = JSON.parse(JSON.stringify(roleData)); // Deep copy
-
-  // Update role info display
-  updateRoleInfoDisplay();
-
-  // Create attribute sliders
-  createAttributeSliders();
-}
-
-/**
- * Update role info display
- */
-function updateRoleInfoDisplay() {
-  if (elements.currentRoleLabel && state.roleRatings.currentRoleData) {
-    elements.currentRoleLabel.textContent = state.roleRatings.currentRoleData.roleLabel || '-';
-  }
-
-  updateRoleTotal();
-}
-
-/**
- * Update role total display and validation
- * Provides visual feedback if the total equals 100 and controls save button state
- */
-function updateRoleTotal() {
-  if (!elements.currentRoleTotal || !state.roleRatings.currentRoleData) return;
-
-  const attributes = state.roleRatings.currentRoleData.attributes || {};
-  const total = Object.values(attributes).reduce((sum, val) => {
-    const numVal = Number(val);
-    return sum + (isNaN(numVal) ? 0 : numVal);
-  }, 0);
-
-  // Display the total with proper formatting
-  elements.currentRoleTotal.textContent = total.toFixed(1);
-  
-  // Check if the total is valid (must equal exactly 100)
-  const isValid = Math.abs(total - 100) < 0.1; // Allow for small floating point precision issues
-  
-  // Update styling based on validity
-  const roleInfo = elements.currentRoleTotal.closest('.role-info');
-  if (roleInfo) {
-    roleInfo.classList.remove('valid', 'invalid');
-    roleInfo.classList.add(isValid ? 'valid' : 'invalid');
-  }
-  
-  // Enable/disable save button based on validity
-  if (elements.roleRatingsSave) {
-    elements.roleRatingsSave.disabled = !isValid;
-    
-    // Add visual indication on the button itself
-    elements.roleRatingsSave.classList.toggle('disabled', !isValid);
-  }
-  
-  // Update the currentRoleData in main state to ensure changes are reflected
-  if (state.roleRatings.currentRole) {
-    const [positionKey, roleKey] = state.roleRatings.currentRole.split('.');
-    if (state.roleRatings.data && state.roleRatings.data[positionKey]) {
-      // Ensure we're updating the main data object with our current edits
-      state.roleRatings.data[positionKey][roleKey] = JSON.parse(JSON.stringify(state.roleRatings.currentRoleData));
-      state.roleRatings.hasChanges = true;
-    }
-  }
-}
-
-/**
- * Create attribute sliders for the current role
- */
-function createAttributeSliders() {
-  if (!elements.attributesSliders || !state.roleRatings.currentRoleData) return;
-
-  // Clear existing sliders
-  elements.attributesSliders.innerHTML = '';
-
-  const attributes = state.roleRatings.currentRoleData.attributes || {};
-
-  // Attribute definitions for labels
-  const attributeLabels = {
-    'ath': 'Athletics',
-    'spd': 'Speed',
-    'dur': 'Durability',
-    'we': 'Work Ethic',
-    'sta': 'Stamina',
-    'str': 'Strength',
-    'blk': 'Blocking',
-    'tkl': 'Tackling',
-    'han': 'Hands',
-    'gi': 'Game Intelligence',
-    'elu': 'Elusiveness',
-    'tec': 'Technique'
-  };
-
-  // Create slider for each attribute (except total)
-  Object.entries(attributes).forEach(([attr, value]) => {
-    if (attr === 'total') return; // Skip total attribute
-
-    const sliderRow = document.createElement('div');
-    sliderRow.className = 'attribute-slider-row';
-
-    const label = document.createElement('label');
-    label.className = 'attribute-label';
-    label.textContent = attributeLabels[attr] || attr.toUpperCase();
-
-    const slider = document.createElement('input');
-    slider.type = 'range';
-    slider.className = 'attribute-slider';
-    slider.min = '0';
-    slider.max = '100';
-    slider.step = '1';
-    slider.value = Number(value) || 0;
-    slider.dataset.attribute = attr;
-
-    const valueDisplay = document.createElement('span');
-    valueDisplay.className = 'attribute-value';
-    valueDisplay.textContent = Number(value) || 0;    // Add event listener for slider changes
-    slider.addEventListener('input', (e) => {
-      const newValue = Number(e.target.value);
-      valueDisplay.textContent = newValue;
-      
-      // Update the role data
-      if (state.roleRatings.currentRoleData && state.roleRatings.currentRoleData.attributes) {
-        state.roleRatings.currentRoleData.attributes[attr] = newValue;
-        state.roleRatings.hasChanges = true;
-        
-        // Update the main state data immediately
-        if (state.roleRatings.currentRole) {
-          const [positionKey, roleKey] = state.roleRatings.currentRole.split('.');
-          if (state.roleRatings.data && state.roleRatings.data[positionKey]) {
-            state.roleRatings.data[positionKey][roleKey].attributes[attr] = newValue;
-          }
-        }
-        
-        // Validate and update UI
-        updateRoleTotal();
-      }
-    });sliderRow.appendChild(label);
-    sliderRow.appendChild(slider);
-    sliderRow.appendChild(valueDisplay);
-    elements.attributesSliders.appendChild(sliderRow);
-  });
-  
-  // Initialize the validation state when sliders are first created
-  updateRoleTotal();
-}
-
-/**
- * Handle reset current role to defaults
- */
-async function handleResetCurrentRole() {
-  if (!state.roleRatings.currentRole) {
-    setStatusMessage('No role selected', 'error');
-    return;
-  }
-
-  if (!confirm('Are you sure you want to reset this role to default values?')) {
+  if (!confirm('Are you sure you want to reset all roles in this position to default values?')) {
     return;
   }
 
   try {
+    setStatusMessage('Resetting position to defaults...');
+
     // Get the original default data
     const response = await fetch(chrome.runtime.getURL('data/role_ratings_defaults.json'));
     if (!response.ok) {
@@ -2341,32 +2402,33 @@ async function handleResetCurrentRole() {
     }
 
     const defaultData = await response.json();
-    const [positionKey, roleKey] = state.roleRatings.currentRole.split('.');
-    const defaultRoleData = defaultData.roleRatings[positionKey]?.[roleKey];
+    const defaultPositionData = defaultData.roleRatings[state.roleRatings.currentPosition];
 
-    if (!defaultRoleData) {
-      throw new Error('Default role data not found');
+    if (!defaultPositionData) {
+      throw new Error('Default position data not found');
     }
 
-    // Update current role data
-    state.roleRatings.currentRoleData = JSON.parse(JSON.stringify(defaultRoleData));
+    // Update the position data with defaults
+    state.roleRatings.data[state.roleRatings.currentPosition] = JSON.parse(JSON.stringify(defaultPositionData));
     state.roleRatings.hasChanges = true;
 
-    // Update data in main state
-    const [pos, role] = state.roleRatings.currentRole.split('.');
-    state.roleRatings.data[pos][role] = JSON.parse(JSON.stringify(defaultRoleData));
+    // Regenerate the position content
+    generatePositionContent(state.roleRatings.currentPosition);
+    addAttributeInputListeners();
 
-    // Refresh UI
-    updateRoleInfoDisplay();
-    createAttributeSliders();
-
-    setStatusMessage('Role reset to default values', 'success');
+    setStatusMessage('Position reset to default values', 'success');
 
   } catch (error) {
-    console.error('Error resetting role:', error);
-    setStatusMessage('Error resetting role: ' + error.message, 'error');
+    console.error('Error resetting position:', error);
+    setStatusMessage('Error resetting position: ' + error.message, 'error');
   }
 }
+
+// Function removed - replaced by position-based validation system
+
+// Function removed - replaced by generateAttributeInputs() in position-based design
+
+// Function removed - replaced by handleResetCurrentPosition() for position-based design
 
 /**
  * Handle recalculate all ratings
@@ -2430,16 +2492,9 @@ async function handleSaveRoleRatings() {
           const total = Object.values(roleData.attributes).reduce((sum, val) => {
             return sum + (Number(val) || 0);
           }, 0);
-          
-          // Check if total is exactly 100 (with small margin for floating point precision)
+            // Check if total is exactly 100 (with small margin for floating point precision)
           if (Math.abs(total - 100) > 0.1) {
             validationErrors.push(`${getPositionDisplayName(positionKey)} - ${roleData.roleLabel}: total is ${total.toFixed(1)}, should be 100`);
-            
-            // Check if this is the currently edited role
-            const currentRoleId = `${positionKey}.${roleKey}`;
-            if (currentRoleId === state.roleRatings.currentRole) {
-              isCurrentRoleValid = false;
-            }
           }
           
           // Track position changes for targeted recalculation
@@ -2903,11 +2958,10 @@ async function runRoleRatingsDiagnostics(outputElement) {
           <p><strong>Size:</strong> ${(defaultRatings.size / 1024).toFixed(2)} KB</p>
         ` : ''}
       </div>
-      
-      <div class="debug-section">
+        <div class="debug-section">
         <h3>Current Cache Status</h3>
         <p><strong>State has changes:</strong> ${state.roleRatings.hasChanges ? 'Yes' : 'No'}</p>
-        <p><strong>Currently editing:</strong> ${state.roleRatings.currentRole || 'None'}</p>
+        <p><strong>Current position:</strong> ${state.roleRatings.currentPosition || 'None'}</p>
       </div>
     `;
     

@@ -222,9 +222,7 @@
             <button id="season-cancel" class="action-btn secondary">Cancel</button>
           </div>
         </div>
-      </div>
-
-      <!-- Role Ratings Configuration Modal -->
+      </div>      <!-- Role Ratings Configuration Modal -->
       <div id="role-ratings-modal" class="modal hidden">
         <div class="modal-content role-ratings-modal-content">
           <div class="modal-header">
@@ -234,26 +232,18 @@
           <div class="modal-body">
             <p>Customize the weight values for each attribute in role calculations. Each role's total should equal 100.</p>
             
-            <div class="role-selector">
-              <label for="role-select">Role:</label>
-              <select id="role-select">
-                <!-- Options will be populated dynamically -->
-              </select>
+            <!-- Position Tabs -->
+            <div class="position-tabs" id="position-tabs">
+              <!-- Position tabs will be populated dynamically -->
             </div>
 
-            <div class="role-info" id="role-info">
-              <div class="role-label">
-                <strong>Role:</strong> <span id="current-role-label">-</span>
-              </div>
-              <div class="role-total">
-                <strong>Total:</strong> <span id="current-role-total">0</span> / 100
-              </div>
+            <!-- Position Content -->
+            <div class="position-content" id="position-content">
+              <!-- Dynamic content for each position -->
             </div>
-
-            <div class="attributes-sliders" id="attributes-sliders">
-              <!-- Attribute sliders will be populated dynamically -->
-            </div>            <div class="role-actions">
-              <button id="role-reset-current" class="action-btn secondary">Reset Current Role</button>
+            
+            <div class="role-actions">
+              <button id="role-reset-position" class="action-btn secondary">Reset Position</button>
               <button id="role-recalculate" class="action-btn secondary">Recalculate All Ratings</button>
               <button id="role-debug" class="action-btn debug">Debug Ratings</button>
             </div>

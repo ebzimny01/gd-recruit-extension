@@ -897,8 +897,8 @@ tbody tr:hover {
 /* Bold attributes styling */
 .recruit-attribute-bold {
   font-weight: bold !important;
-  background-color: #fff3cd !important;
-  color: #856404 !important;
+  background-color:rgb(199, 235, 214) !important;
+  color:rgb(4, 17, 133) !important;
   border: 1px solid #ffeaa7 !important;
   box-shadow: inset 0 1px 3px rgba(133, 100, 4, 0.1) !important;
 }

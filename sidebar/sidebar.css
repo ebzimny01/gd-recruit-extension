@@ -41,15 +41,113 @@ header h1 {
   font-weight: 600;
 }
 
+/* Responsive school info styling */
 .school-info {
-  font-size: 12px;
+  /* Base font size using clamp() for fluid scaling */
+  font-size: clamp(0.75rem, 2.5vw, 1.5rem);
   opacity: 0.9;
-  font-weight: 500;
-  margin-bottom: 10px;
-  padding: 4px 8px;
+  font-weight: 600;
+  margin-bottom: 0.625rem; /* 10px converted to rem */
+  padding: 0.25rem 0.5rem; /* 4px 8px converted to rem */
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  border-radius: 0.25rem; /* 4px converted to rem */
   display: inline-block;
+  
+  /* Responsive behavior */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-all;
+  
+  /* Smooth transitions */
+  transition: font-size 0.2s ease, padding 0.2s ease;
+}
+
+/* Dashboard school name responsive styling */
+.stat-card:first-child .stat-value {
+  font-size: clamp(0.875rem, 3vw, 1.125rem); /* 14px to 18px fluid scaling */
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  line-height: 1.2;
+  
+  /* Responsive text handling */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  
+  /* Smooth transitions */
+  transition: font-size 0.2s ease;
+}
+
+/* Media queries for specific breakpoints */
+/* Small screens (mobile-like sidebar width) */
+@media (max-width: 320px) {
+  .school-info {
+    font-size: 0.875rem;
+    padding: 0.125rem 0.25rem; /* 2px 4px */
+    margin-bottom: 0.5rem; /* 8px */
+  }
+  
+  .stat-card:first-child .stat-value {
+    font-size: 0.875rem; /* 14px */
+  }
+}
+
+/* Medium screens (tablet-like sidebar width) */
+@media (min-width: 321px) and (max-width: 768px) {
+  .school-info {
+    font-size: 1rem; 
+    padding: 0.1875rem 0.375rem; /* 3px 6px */
+  }
+  
+  .stat-card:first-child .stat-value {
+    font-size: 1rem; /* 16px */
+  }
+}
+
+/* Large screens (desktop sidebar width) */
+@media (min-width: 769px) {
+  .school-info {
+    font-size: 1.5rem; 
+    padding: 0.25rem 0.5rem; /* 4px 8px */
+  }
+  
+  .stat-card:first-child .stat-value {
+    font-size: 1.125rem; /* 18px */
+  }
+}
+
+/* Container query support for modern browsers */
+@container (max-width: 300px) {
+  .school-info {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.25rem;
+  }
+}
+
+@container (min-width: 400px) {
+  .school-info {
+    font-size: 1rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Accessibility and performance optimizations */
+@media (prefers-reduced-motion: reduce) {
+  .school-info,
+  .stat-card:first-child .stat-value {
+    transition: none;
+  }
+}
+
+/* High DPI display adjustments */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .school-info {
+    font-weight: 500; /* Slightly lighter on high DPI to prevent over-boldness */
+  }
 }
 
 .tabs {
@@ -150,7 +248,20 @@ main {
 }
 
 .stat-card:first-child .stat-value {
+  font-size: clamp(0.875rem, 3vw, 1.125rem); /* 14px to 18px fluid scaling */
+  font-weight: 700;
   color: white;
+  margin: 0;
+  line-height: 1.2;
+  
+  /* Responsive text handling */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  
+  /* Smooth transitions */
+  transition: font-size 0.2s ease;
 }
 
 /* Special styling for division stat card (second card) */

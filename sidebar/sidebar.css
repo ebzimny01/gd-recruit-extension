@@ -210,11 +210,34 @@ main {
   cursor: not-allowed;
   opacity: 0.7;
   box-shadow: none;
+  position: relative;
 }
 
 .action-btn.disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  position: relative;
+}
+
+.action-btn.disabled::after {
+  content: "Total must equal 100";
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #e53e3e;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.action-btn.disabled:hover::after {
+  opacity: 1;
 }
 
 .action-btn:disabled:hover {
@@ -1234,17 +1257,19 @@ tbody tr:hover {
   border-radius: 8px;
   margin-bottom: 20px;
   border: 1px solid #e1e8f0;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .role-info.valid {
   background: linear-gradient(135deg, #f0fff4 0%, #e6ffea 100%);
   border-color: #68d391;
+  box-shadow: 0 0 8px rgba(104, 211, 145, 0.3);
 }
 
 .role-info.invalid {
   background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
   border-color: #fc8181;
+  box-shadow: 0 0 8px rgba(252, 129, 129, 0.3);
 }
 
 .role-info.valid .role-total {
@@ -1483,4 +1508,51 @@ tbody tr:hover {
   border-top: 3px solid #667eea;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+/* Debug button styling */
+.action-btn.debug {
+  background-color: #6c757d;
+  color: white;
+  font-size: 12px;
+}
+
+.action-btn.debug:hover {
+  background-color: #5a6268;
+}
+
+/* Debug modal styles */
+.debug-info {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  margin: 10px 0;
+  font-family: monospace;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.debug-section {
+  margin-bottom: 15px;
+}
+
+.debug-section h3 {
+  font-size: 14px;
+  margin-bottom: 5px;
+  color: #0056b3;
+}
+
+.debug-section .status-ok {
+  color: #28a745;
+}
+
+.debug-section .status-warning {
+  color: #ffc107;
+}
+
+.debug-section .status-error {
+  color: #dc3545;
 }

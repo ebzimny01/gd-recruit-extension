@@ -521,6 +521,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Recalculate role ratings for affected recruits
           const recalcResult = await recalculateRoleRatings(changedPositions);
           
+          // Broadcast the update
+          broadcastDataUpdate('roleRatingsSaved', {
+            recalculated: recalcResult.updatedCount,
+            totalRecruits: recalcResult.totalRecruits,
+            changedPositions: changedPositions
+          });
+          
           sendResponse({ 
             success: true, 
             recalculated: recalcResult.updatedCount,
@@ -541,6 +548,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Recalculate all role ratings
           const recalcResult = await recalculateRoleRatings();
           
+          // Broadcast the update
+          broadcastDataUpdate('roleRatingsReset', {
+            recalculated: recalcResult.updatedCount,
+            totalRecruits: recalcResult.totalRecruits
+          });
+          
           sendResponse({ 
             success: true, 
             recalculated: recalcResult.updatedCount,
@@ -558,6 +571,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log('Manually recalculating role ratings');
       recalculateRoleRatings(message.positions)
         .then(result => {
+          // Broadcast the update
+          broadcastDataUpdate('roleRatingsRecalculated', {
+            recalculated: result.updatedCount,
+            totalRecruits: result.totalRecruits,
+            positions: message.positions
+          });
+          
           sendResponse({ 
             success: true, 
             recalculated: result.updatedCount,
@@ -568,6 +588,155 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.error('Error recalculating role ratings:', error);
           sendResponse({ success: false, error: error.message });
         });
+      return true;
+    case 'checkRoleRatingsStatus':
+      // Check role ratings status for diagnostics
+      console.log('Checking role ratings status');
+      (async () => {
+        try {
+          // Load settings from storage to check status
+          const customRatings = await recruitStorage.getConfig('customRoleRatings');
+          const defaultRatings = await recruitStorage.getConfig('defaultRoleRatings');
+          const currentSeason = await recruitStorage.getConfig('currentSeason');
+          
+          // Parse data for validation if available
+          let customRatingsValid = false;
+          let customRatingsPositions = [];
+          let defaultRatingsValid = false;
+          
+          if (customRatings) {
+            try {
+              const parsed = JSON.parse(customRatings);
+              customRatingsValid = typeof parsed === 'object' && parsed !== null;
+              customRatingsPositions = Object.keys(parsed || {});
+            } catch (e) {
+              console.error('Error parsing custom role ratings:', e);
+            }
+          }
+          
+          if (defaultRatings) {
+            try {
+              const parsed = JSON.parse(defaultRatings);
+              defaultRatingsValid = typeof parsed === 'object' && parsed !== null;
+            } catch (e) {
+              console.error('Error parsing default role ratings:', e);
+            }
+          }
+          
+          sendResponse({
+            success: true,
+            customRatings: {
+              exists: !!customRatings,
+              valid: customRatingsValid,
+              size: customRatings ? customRatings.length : 0,
+              positions: customRatingsPositions
+            },
+            defaultRatings: {
+              exists: !!defaultRatings,
+              valid: defaultRatingsValid,
+              size: defaultRatings ? defaultRatings.length : 0
+            },
+            currentSeason
+          });
+        } catch (error) {
+          console.error('Error checking role ratings status:', error);
+          sendResponse({ success: false, error: error.message });
+        }
+      })();
+      return true;
+    
+    case 'compareRoleRatings':
+      // Compare custom and default role ratings
+      console.log('Comparing role ratings');
+      (async () => {
+        try {
+          // Get custom and default ratings
+          const customRatings = await recruitStorage.getConfig('customRoleRatings');
+          const defaultRatings = await recruitStorage.getConfig('defaultRoleRatings');
+          
+          if (!customRatings) {
+            sendResponse({ success: false, error: 'Custom ratings not found' });
+            return;
+          }
+          
+          if (!defaultRatings) {
+            sendResponse({ success: false, error: 'Default ratings not found' });
+            return;
+          }
+          
+          // Parse both rating sets
+          const customParsed = JSON.parse(customRatings);
+          const defaultParsed = JSON.parse(defaultRatings);
+          
+          // Compare positions
+          const customPositions = Object.keys(customParsed || {});
+          const defaultPositions = Object.keys(defaultParsed || {});
+          
+          // Find differences in positions
+          const differences = {};
+          
+          // Check each position in custom ratings
+          for (const position of customPositions) {
+            // Position exists in both - check role differences
+            if (defaultParsed[position]) {
+              differences[position] = {};
+              
+              const customRoles = Object.keys(customParsed[position]);
+              
+              for (const role of customRoles) {
+                if (defaultParsed[position][role]) {
+                  // Compare attribute values
+                  const customAttrs = customParsed[position][role].attributes || {};
+                  const defaultAttrs = defaultParsed[position][role].attributes || {};
+                  
+                  // Calculate differences in attribute values
+                  const attrDiffs = {};
+                  let hasDifference = false;
+                  
+                  for (const attr in customAttrs) {
+                    if (customAttrs[attr] !== defaultAttrs[attr]) {
+                      attrDiffs[attr] = {
+                        custom: customAttrs[attr],
+                        default: defaultAttrs[attr]
+                      };
+                      hasDifference = true;
+                    }
+                  }
+                  
+                  if (hasDifference) {
+                    differences[position][role] = attrDiffs;
+                  }
+                } else {
+                  differences[position][role] = 'Role exists in custom but not in default';
+                }
+              }
+              
+              // If no differences found for this position, remove empty entry
+              if (Object.keys(differences[position]).length === 0) {
+                delete differences[position];
+              }
+            } else {
+              differences[position] = 'Position exists in custom but not in default';
+            }
+          }
+          
+          // Check for positions in default but not in custom
+          for (const position of defaultPositions) {
+            if (!customParsed[position]) {
+              differences[position] = 'Position exists in default but not in custom';
+            }
+          }
+          
+          sendResponse({
+            success: true,
+            hasDifferences: Object.keys(differences).length > 0,
+            differences
+          });
+        } catch (error) {
+          console.error('Error comparing role ratings:', error);
+          sendResponse({ success: false, error: error.message });
+        }
+      })();
       return true;
   }
 });
@@ -1377,6 +1546,22 @@ function withErrorHandling(handler) {
       return true; // Indicate we handled the response
     }
   };
+}
+
+// Enhanced UI Refresh Mechanism - Background Message Broadcasting
+// Function to broadcast data update to all extension contexts
+function broadcastDataUpdate(updateType, data = {}) {
+  const message = {
+    type: 'dataUpdated',
+    updateType: updateType,
+    timestamp: Date.now(),
+    data: data
+  };
+  
+  // Send to all extension contexts
+  chrome.runtime.sendMessage(message).catch(() => {
+    // Silently handle cases where no listeners are active
+  });
 }
 
 // Add these lines after your existing imports at the top

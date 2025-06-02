@@ -4,6 +4,20 @@
 import { sidebarComms } from './communications.js';
 import boldAttributesConfig from '../modules/bold-attributes-config.js';
 
+// Position mapping for converting position codes to full names
+const POSITION_MAP = {
+  'QB': 'quarterback',
+  'RB': 'runningBack',
+  'WR': 'wideReceiver',
+  'TE': 'tightEnd',
+  'OL': 'offensiveLine',
+  'DL': 'defensiveLine',
+  'LB': 'linebacker',
+  'DB': 'defensiveBack',
+  'K': 'kicker',
+  'P': 'punter'
+};
+
 // DOM elements
 const elements = {
   // Tab navigation
@@ -35,6 +49,7 @@ const elements = {
   pageSizeSelect: document.getElementById('page-size-select'),  // Settings tab elements  btnExportData: document.getElementById('btn-export-data'),
   btnImportData: document.getElementById('btn-import-data'),
   btnClearData: document.getElementById('btn-clear-data'),
+  btnRefreshData: document.getElementById('btn-refresh-data'),
   btnEditRoleRatings: document.getElementById('btn-edit-role-ratings'),
   btnResetRoleRatings: document.getElementById('btn-reset-role-ratings'),
   btnEditBoldAttributes: document.getElementById('btn-edit-bold-attributes'),
@@ -45,9 +60,9 @@ const elements = {
   roleSelect: document.getElementById('role-select'),
   currentRoleLabel: document.getElementById('current-role-label'),
   currentRoleTotal: document.getElementById('current-role-total'),
-  attributesSliders: document.getElementById('attributes-sliders'),
-  roleResetCurrent: document.getElementById('role-reset-current'),
+  attributesSliders: document.getElementById('attributes-sliders'),  roleResetCurrent: document.getElementById('role-reset-current'),
   roleRecalculate: document.getElementById('role-recalculate'),
+  roleDebug: document.getElementById('role-debug'),
   roleRatingsSave: document.getElementById('role-ratings-save'),
   roleRatingsCancel: document.getElementById('role-ratings-cancel')
 };
@@ -118,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateDashboardStats();
   await updateButtonState();
 
-  // Set up table sorting after data is loaded
+  // Set up table sorting after data
   setupTableSorting();
 
   // Set up sidebar visibility listener
@@ -132,6 +147,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     await updateButtonState();
     // Re-setup sorting after data refresh
     setupTableSorting();
+  });
+  
+  // Enhanced UI Refresh Mechanism - Setup data update listeners
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'dataUpdated') {
+      handleDataUpdate(message);
+    }
+    return false; // Don't keep the message channel open
   });
 });
 
@@ -197,10 +220,16 @@ function setupEventListeners() {
   if (elements.btnImportData && !elements.btnImportData.disabled) {
     elements.btnImportData.addEventListener('click', handleImportData);
   }
-
   if (elements.btnClearData) {
     elements.btnClearData.addEventListener('click', handleClearData);
-  }  if (elements.btnEditRoleRatings) {
+  }
+
+  // Enhanced Manual Refresh Function
+  if (elements.btnRefreshData) {
+    elements.btnRefreshData.addEventListener('click', refreshAllData);
+  }
+
+  if (elements.btnEditRoleRatings) {
     elements.btnEditRoleRatings.addEventListener('click', handleEditRoleRatings);
   }
 
@@ -220,9 +249,12 @@ function setupEventListeners() {
   if (elements.roleResetCurrent) {
     elements.roleResetCurrent.addEventListener('click', handleResetCurrentRole);
   }
-
   if (elements.roleRecalculate) {
     elements.roleRecalculate.addEventListener('click', handleRecalculateAllRatings);
+  }
+  
+  if (elements.roleDebug) {
+    elements.roleDebug.addEventListener('click', handleDebugRoleRatings);
   }
 
   if (elements.roleRatingsSave) {
@@ -1546,6 +1578,85 @@ async function updateButtonState() {
   }
 }
 
+// Enhanced UI Data Refresh System
+let isRefreshing = false;
+let lastDataUpdateTimestamp = 0;
+
+// Function to handle automatic UI refresh when data is updated
+async function handleDataUpdate(updateInfo) {
+  try {
+    // Prevent overlapping refreshes
+    if (isRefreshing) {
+      console.log('Refresh already in progress, skipping');
+      return;
+    }
+    
+    // Avoid duplicate refreshes for the same update
+    if (updateInfo.timestamp && updateInfo.timestamp <= lastDataUpdateTimestamp) {
+      console.log('Update already processed, skipping');
+      return;
+    }
+    
+    console.log('Handling data update:', updateInfo.updateType);
+    isRefreshing = true;
+    lastDataUpdateTimestamp = updateInfo.timestamp || Date.now();
+    
+    // Show brief status message
+    setStatusMessage(`Data updated: ${updateInfo.updateType}`, 'success');
+    
+    // Refresh the UI data
+    await loadData();
+    updateDashboardStats();
+    
+    // Update recruits list if on recruits tab
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab && activeTab.dataset.tab === 'recruits') {
+      updateRecruitsList();
+    }
+    
+    console.log('UI refresh completed for:', updateInfo.updateType);
+    
+  } catch (error) {
+    console.error('Error during UI refresh:', error);
+    setStatusMessage('Error refreshing UI data', 'error');
+  } finally {
+    isRefreshing = false;
+  }
+}
+
+// Function to manually refresh all data with user feedback
+async function refreshAllData() {
+  try {
+    if (isRefreshing) {
+      setStatusMessage('Refresh already in progress...', 'warning');
+      return;
+    }
+    
+    isRefreshing = true;
+    setStatusMessage('Refreshing data...', 'info');
+    
+    // Refresh all data
+    await loadData();
+    updateDashboardStats();
+    await updateButtonState();
+    
+    // Update current tab display
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab && activeTab.dataset.tab === 'recruits') {
+      updateRecruitsList();
+      setupTableSorting();
+    }
+    
+    setStatusMessage('Data refreshed successfully', 'success');
+    
+  } catch (error) {
+    console.error('Error during manual refresh:', error);
+    setStatusMessage('Error refreshing data', 'error');
+  } finally {
+    isRefreshing = false;
+  }
+}
+
 // Helper function to show a diagnostic modal
 function showDiagnosticModal(title, message) {
   // Create modal elements
@@ -1877,6 +1988,16 @@ function updateRoleTotal() {
     // Add visual indication on the button itself
     elements.roleRatingsSave.classList.toggle('disabled', !isValid);
   }
+  
+  // Update the currentRoleData in main state to ensure changes are reflected
+  if (state.roleRatings.currentRole) {
+    const [positionKey, roleKey] = state.roleRatings.currentRole.split('.');
+    if (state.roleRatings.data && state.roleRatings.data[positionKey]) {
+      // Ensure we're updating the main data object with our current edits
+      state.roleRatings.data[positionKey][roleKey] = JSON.parse(JSON.stringify(state.roleRatings.currentRoleData));
+      state.roleRatings.hasChanges = true;
+    }
+  }
 }
 
 /**
@@ -1928,9 +2049,7 @@ function createAttributeSliders() {
 
     const valueDisplay = document.createElement('span');
     valueDisplay.className = 'attribute-value';
-    valueDisplay.textContent = Number(value) || 0;
-
-    // Add event listener for slider changes
+    valueDisplay.textContent = Number(value) || 0;    // Add event listener for slider changes
     slider.addEventListener('input', (e) => {
       const newValue = Number(e.target.value);
       valueDisplay.textContent = newValue;
@@ -1939,9 +2058,19 @@ function createAttributeSliders() {
       if (state.roleRatings.currentRoleData && state.roleRatings.currentRoleData.attributes) {
         state.roleRatings.currentRoleData.attributes[attr] = newValue;
         state.roleRatings.hasChanges = true;
+        
+        // Update the main state data immediately
+        if (state.roleRatings.currentRole) {
+          const [positionKey, roleKey] = state.roleRatings.currentRole.split('.');
+          if (state.roleRatings.data && state.roleRatings.data[positionKey]) {
+            state.roleRatings.data[positionKey][roleKey].attributes[attr] = newValue;
+          }
+        }
+        
+        // Validate and update UI
         updateRoleTotal();
       }
-    });    sliderRow.appendChild(label);
+    });sliderRow.appendChild(label);
     sliderRow.appendChild(slider);
     sliderRow.appendChild(valueDisplay);
     elements.attributesSliders.appendChild(sliderRow);
@@ -2023,6 +2152,7 @@ async function handleRecalculateAllRatings() {
       'success'
     );
 
+   
     // Refresh recruits list if we're on that tab
     if (document.querySelector('.tab-btn.active')?.id === 'tab-recruits') {
       await updateRecruitsList();
@@ -2050,6 +2180,9 @@ async function handleSaveRoleRatings() {
     const validationErrors = [];
     let isCurrentRoleValid = true;
     
+    // Track which positions have been modified for targeted recalculation
+    const changedPositions = new Set();
+    
     // Check all roles, including the currently edited one
     for (const [positionKey, positionData] of Object.entries(state.roleRatings.data)) {
       for (const [roleKey, roleData] of Object.entries(positionData)) {
@@ -2068,6 +2201,16 @@ async function handleSaveRoleRatings() {
               isCurrentRoleValid = false;
             }
           }
+          
+          // Track position changes for targeted recalculation
+          // Find the short position code (e.g., QB, RB) for the position
+          const shortPos = Object.keys(POSITION_MAP || {}).find(key => 
+            POSITION_MAP[key] === positionKey
+          );
+          
+          if (shortPos) {
+            changedPositions.add(shortPos);
+          }
         }
       }
     }
@@ -2083,13 +2226,17 @@ async function handleSaveRoleRatings() {
       const message = 'The following roles have invalid totals:\n\n' + validationErrors.join('\n') + '\n\nPlease fix these before saving.';
       alert(message);
       return;
-    }
+               }
+    
+    // Deep clone the data to avoid reference issues
+    const ratingsToSave = JSON.parse(JSON.stringify(state.roleRatings.data));
     
     setStatusMessage('Saving role ratings...');
 
     const response = await sendMessageToBackground({
       action: 'saveRoleRatings',
-      ratings: state.roleRatings.data
+      ratings: ratingsToSave,
+      changedPositions: Array.from(changedPositions) // Convert Set to Array
     });
 
     if (!response.success) {
@@ -2460,3 +2607,183 @@ function showBoldAttributesModal() {
 
 // Export functions needed for error handler
 export { handleScrapeRecruits, setStatusMessage };
+
+/**
+ * Run diagnostics on role ratings
+ * @param {HTMLElement} outputElement Element to display results in
+ */
+async function runRoleRatingsDiagnostics(outputElement) {
+  if (!outputElement) return;
+  
+  outputElement.innerHTML = 'Running diagnostics...';
+  
+  try {
+    // Request diagnostic data from background script
+    const response = await sendMessageToBackground({
+      action: 'checkRoleRatingsStatus'
+    });
+    
+    if (!response.success) {
+      outputElement.innerHTML = `<div class="status-error">Error: ${response.error || 'Unknown error'}</div>`;
+      return;
+    }
+    
+    const { customRatings, defaultRatings, currentSeason } = response;
+    
+    // Format the diagnostic information
+    let html = `
+      <div class="debug-section">
+        <h3>Role Ratings Status</h3>
+        <p><strong>Current Season:</strong> ${currentSeason || 'Not set'}</p>
+      </div>
+      
+      <div class="debug-section">
+        <h3>Custom Role Ratings</h3>
+        <p class="${customRatings.exists ? 'status-ok' : 'status-warning'}">
+          <strong>Status:</strong> ${customRatings.exists ? 'Found' : 'Not Found'}
+        </p>
+        ${customRatings.exists ? `
+          <p class="${customRatings.valid ? 'status-ok' : 'status-error'}">
+            <strong>Format Valid:</strong> ${customRatings.valid ? 'Yes' : 'No'}
+          </p>
+          <p><strong>Size:</strong> ${(customRatings.size / 1024).toFixed(2)} KB</p>
+          <p><strong>Positions:</strong> ${customRatings.positions.join(', ') || 'None'}</p>
+        ` : ''}
+      </div>
+      
+      <div class="debug-section">
+        <h3>Default Role Ratings</h3>
+        <p class="${defaultRatings.exists ? 'status-ok' : 'status-error'}">
+          <strong>Status:</strong> ${defaultRatings.exists ? 'Found' : 'Not Found'}
+        </p>
+        ${defaultRatings.exists ? `
+          <p class="${defaultRatings.valid ? 'status-ok' : 'status-error'}">
+            <strong>Format Valid:</strong> ${defaultRatings.valid ? 'Yes' : 'No'}
+          </p>
+          <p><strong>Size:</strong> ${(defaultRatings.size / 1024).toFixed(2)} KB</p>
+        ` : ''}
+      </div>
+      
+      <div class="debug-section">
+        <h3>Current Cache Status</h3>
+        <p><strong>State has changes:</strong> ${state.roleRatings.hasChanges ? 'Yes' : 'No'}</p>
+        <p><strong>Currently editing:</strong> ${state.roleRatings.currentRole || 'None'}</p>
+      </div>
+    `;
+    
+    outputElement.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error running diagnostics:', error);
+    outputElement.innerHTML = `<div class="status-error">Error: ${error.message}</div>`;
+  }
+}
+
+/**
+ * Compare custom and default role ratings
+ * @param {HTMLElement} outputElement Element to display results in
+ */
+async function compareRoleRatingsDiagnostics(outputElement) {
+  if (!outputElement) return;
+  
+  outputElement.innerHTML = 'Comparing role ratings...';
+  
+  try {
+    // Request comparison data from background script
+    const response = await sendMessageToBackground({
+      action: 'compareRoleRatings'
+    });
+    
+    if (!response.success) {
+      outputElement.innerHTML = `<div class="status-error">Error: ${response.error || 'Unknown error'}</div>`;
+      return;
+    }
+    
+    const { hasDifferences, differences } = response;
+    
+    // Format the comparison information
+    let html = `
+      <div class="debug-section">
+        <h3>Role Ratings Comparison</h3>
+        <p class="${hasDifferences ? 'status-ok' : 'status-warning'}">
+          <strong>Differences Found:</strong> ${hasDifferences ? 'Yes' : 'No'}
+        </p>
+      </div>
+    `;
+    
+    if (hasDifferences) {
+      html += `<div class="debug-section"><h3>Differences</h3><pre>${JSON.stringify(differences, null, 2)}</pre></div>`;
+    }
+    
+    outputElement.innerHTML = html;
+    
+  } catch (error) {
+    console.error('Error comparing role ratings:', error);
+    outputElement.innerHTML = `<div class="status-error">Error: ${error.message}</div>`;
+  }
+}
+
+/**
+ * Handle debug button click in role ratings modal
+ * Creates a debug modal with diagnostic information
+ */
+async function handleDebugRoleRatings() {
+  console.log('Opening role ratings debug modal');
+  
+  // Create modal container
+  const modalContainer = document.createElement('div');
+  modalContainer.className = 'modal-container';
+  
+  // Create modal content
+  const modalContent = document.createElement('div');
+  modalContent.className = 'modal-content debug-info';
+  
+  // Create header with close button
+  const header = document.createElement('div');
+  header.className = 'modal-header';
+  header.innerHTML = `
+    <h2>Role Ratings Debug</h2>
+    <button class="close-btn">&times;</button>
+  `;
+  
+  // Create body content
+  const body = document.createElement('div');
+  body.className = 'modal-body';
+  body.innerHTML = '<p>Loading diagnostic information...</p>';
+  
+  // Create footer with action buttons
+  const footer = document.createElement('div');
+  footer.className = 'modal-footer';
+  footer.innerHTML = `
+    <button class="action-btn" id="debug-compare">Compare Custom vs Default</button>
+    <button class="action-btn close-modal">Close</button>
+  `;
+  
+  // Assemble modal
+  modalContent.appendChild(header);
+  modalContent.appendChild(body);
+  modalContent.appendChild(footer);
+  modalContainer.appendChild(modalContent);
+  
+  // Add to document
+  document.body.appendChild(modalContainer);
+  
+  // Add event listeners
+  const closeBtn = header.querySelector('.close-btn');
+  closeBtn.addEventListener('click', () => {
+    document.body.removeChild(modalContainer);
+  });
+  
+  const closeModalBtn = footer.querySelector('.close-modal');
+  closeModalBtn.addEventListener('click', () => {
+    document.body.removeChild(modalContainer);
+  });
+  
+  const compareBtn = footer.querySelector('#debug-compare');
+  compareBtn.addEventListener('click', () => {
+    compareRoleRatingsDiagnostics(body);
+  });
+  
+  // Run initial diagnostics
+  await runRoleRatingsDiagnostics(body);
+}

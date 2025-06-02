@@ -166,7 +166,10 @@
             <button id="btn-clear-data" class="setting-btn">Clear Data</button>
             <button id="btn-check-db" class="setting-btn">Check Database</button>
           </div>
-        </div>          <div class="settings-group">
+          <div class="setting-row">
+            <button id="btn-refresh-data" class="setting-btn">Manual Refresh</button>
+          </div>
+        </div><div class="settings-group">
           <h3>Role Ratings Configuration</h3>
           <p>Customize the weight values applied to recruit attributes for different position roles:</p>
           <div class="setting-row">
@@ -243,11 +246,10 @@
 
             <div class="attributes-sliders" id="attributes-sliders">
               <!-- Attribute sliders will be populated dynamically -->
-            </div>
-
-            <div class="role-actions">
+            </div>            <div class="role-actions">
               <button id="role-reset-current" class="action-btn secondary">Reset Current Role</button>
               <button id="role-recalculate" class="action-btn secondary">Recalculate All Ratings</button>
+              <button id="role-debug" class="action-btn debug">Debug Ratings</button>
             </div>
           </div>
           <div class="modal-footer">

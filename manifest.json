@@ -13,8 +13,8 @@
     "declarativeNetRequest",
     "declarativeNetRequestFeedback"
   ],
-  "declarative_net_request" : {
-    "rule_resources" : [
+  "declarative_net_request": {
+    "rule_resources": [
       {
         "id": "ruleset_1",
         "enabled": true,
@@ -22,12 +22,12 @@
       }
     ]
   },
-  "host_permissions": [
-    "https://*.whatifsports.com/*"
-  ],  "background": {
+  "host_permissions": ["https://*.whatifsports.com/*"],
+  "background": {
     "service_worker": "background.js",
     "type": "module"
-  },"action": {
+  },
+  "action": {
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -42,18 +42,23 @@
       "matches": ["https://*.whatifsports.com/gd/recruiting/*"],
       "js": ["content/page-detector.js"]
     }
-  ],  "icons": {
+  ],
+  "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  },  "web_accessible_resources": [{
-    "resources": [
-      "content/advanced-scraper.js", 
-      "data/gdr.csv", 
-      "data/bold_attributes_defaults.json",
-      "data/role_ratings_defaults.json",
-      "modules/bold-attributes-config.js"
-    ],
-    "matches": ["https://*.whatifsports.com/*"]
-  }]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content/advanced-scraper.js",
+        "data/gdr.csv",
+        "data/bold_attributes_defaults.json",
+        "data/role_ratings_defaults.json",
+        "modules/bold-attributes-config.js",
+        "modules/xlsx.full.min.js"
+      ],
+      "matches": ["https://*.whatifsports.com/*"]
+    }
+  ]
 }

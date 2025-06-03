@@ -854,8 +854,7 @@ async function updateRecruitsList() {
           cell.textContent = recruit.hometown;
         }
         
-        return cell;      };// Create cells for all recruit data (removed Actions cell)
-      // Helper function to add cell (simplified - no visibility logic needed)
+        return cell;      };// Helper function to add cell (simplified - no visibility logic needed)
       const addCell = (cellElement) => {
         row.appendChild(cellElement);
       };
@@ -1320,6 +1319,110 @@ function setupTableSorting() {
   });
 }
 
+// Enhanced status display with progress indicator for scraping operations
+function setScrapingStatus(message, showProgress = true) {
+  if (!elements.statusMessage) return;
+  
+  // Create or update progress overlay
+  let overlay = document.getElementById('scraping-overlay');
+  if (showProgress && !overlay) {
+    overlay = createScrapingOverlay();
+    document.body.appendChild(overlay);
+  }
+  
+  if (overlay) {
+    const messageEl = overlay.querySelector('.scraping-message');
+    if (messageEl) {
+      messageEl.textContent = message;
+    }
+  }
+  
+  // Also update the regular status message
+  setStatusMessage(message, 'info');
+}
+
+// Create scraping overlay with spinner and progress feedback
+function createScrapingOverlay() {
+  const overlay = document.createElement('div');
+  overlay.id = 'scraping-overlay';
+  overlay.innerHTML = `
+    <div class="scraping-content">
+      <div class="spinner"></div>
+      <div class="scraping-message">Initializing scraping process...</div>
+      <div class="scraping-details">
+        <small>A background tab is processing recruit data. This may take a moment.</small>
+      </div>
+    </div>
+  `;
+  
+  // Add styles if not already present
+  if (!document.getElementById('scraping-overlay-styles')) {
+    const style = document.createElement('style');
+    style.id = 'scraping-overlay-styles';
+    style.textContent = `
+      #scraping-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        color: white;
+      }
+
+      .scraping-content {
+        text-align: center;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .scraping-message {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+      }
+
+      .scraping-details {
+        opacity: 0.8;
+        font-size: 0.9rem;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  return overlay;
+}
+
+// Hide scraping overlay
+function hideScrapingOverlay() {
+  const overlay = document.getElementById('scraping-overlay');
+  if (overlay) {
+    overlay.remove();
+  }
+}
+
 // Handle scrape recruits action with support for refresh mode
 async function handleScrapeRecruits(options = {}) {
   const isRefreshOnly = options.isRefreshOnly || false;
@@ -1419,10 +1522,8 @@ async function handleScrapeRecruits(options = {}) {
         // User cancelled the season input
         setStatusMessage('Initialization cancelled');
         return;
-      }
-
-      // Send request to background script to fetch and scrape recruits
-      setStatusMessage('Opening recruit page and starting scrape...');
+      }      // Send request to background script to fetch and scrape recruits
+      setScrapingStatus('Opening recruit page in background...');
       console.log('Sending fetchAndScrapeRecruits with seasonNumber:', seasonNumber);
       const result = await sendMessageToBackground({
         action: 'fetchAndScrapeRecruits',
@@ -1433,10 +1534,9 @@ async function handleScrapeRecruits(options = {}) {
       if (!result.success) {
         console.error('Error in fetch and scrape process:', result.error);
         throw new Error(result.error || 'Unknown error occurred');
-      }
-    } else {
+      }    } else {
       // This is just a refresh of existing data
-      setStatusMessage('Refreshing recruit data for specific fields...');
+      setScrapingStatus('Refreshing recruit data for specific fields...');
       const result = await sendMessageToBackground({
         action: 'fetchAndScrapeRecruits',
         isRefreshOnly: true,
@@ -1447,15 +1547,16 @@ async function handleScrapeRecruits(options = {}) {
         console.error('Error in refresh process:', result.error);
         throw new Error(result.error || 'Unknown error occurred');
       }
-    }
+    }    setScrapingStatus(isRefreshOnly ? 
+      'Processing recruit data in background tab...' :
+      'Processing recruit data in background tab...');
 
-    setStatusMessage(isRefreshOnly ? 
-      'Refreshing recruit data in progress. A new tab will open briefly and close when done...' :
-      'Scraping in progress. A new tab will open briefly and close when done...');    // Set up a listener for the scraped data
+    // Set up a listener for the scraped data
     const handleScrapeComplete = (message) => {
       if (message.action === 'scrapeComplete') {
-        // Remove this listener
+        // Remove this listener and hide overlay
         chrome.runtime.onMessage.removeListener(handleScrapeComplete);
+        hideScrapingOverlay();
 
         // Reload data
         loadData().then(() => {
@@ -1477,14 +1578,14 @@ async function handleScrapeRecruits(options = {}) {
     };
 
     // Add the listener
-    chrome.runtime.onMessage.addListener(handleScrapeComplete);
-
-    // Set a timeout to remove the listener if no response within 2 minutes
+    chrome.runtime.onMessage.addListener(handleScrapeComplete);    // Set a timeout to remove the listener if no response within 2 minutes
     setTimeout(() => {
       chrome.runtime.onMessage.removeListener(handleScrapeComplete);
+      hideScrapingOverlay();
       setStatusMessage('Scraping timed out. Please try again.', 'warning');
     }, 120000); // 2 minutes
   } catch (error) {
+    hideScrapingOverlay();
     console.error('Error scraping recruits:', error);
 
     // Check for common error types and provide better messages

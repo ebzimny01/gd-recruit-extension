@@ -210,11 +210,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           recruitStorage.saveConfig('refreshFieldsToUpdate', JSON.stringify(fieldsToUpdate))
             .catch(error => console.error('Error storing fields to update:', error));
         }
-        
-        // Store the new tab ID when created for future reference
-        chrome.tabs.create({ url: urlWithParams }).then(tab => {
+          // Store the new tab ID when created for future reference
+        // Create tab in background (inactive) to make scraping less intrusive
+        chrome.tabs.create({ 
+          url: urlWithParams,
+          active: false  // This keeps the tab in background
+        }).then(tab => {
           currentScrapeTabId = tab.id;
-          console.log(`Created new tab with ID ${tab.id} for scraping`);
+          console.log(`Created background tab with ID ${tab.id} for scraping`);
 
           // Listen for tab to finish loading before injecting the scraper
           const tabListener = (tabId, changeInfo) => {

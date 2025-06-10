@@ -1964,9 +1964,98 @@ tbody tr:hover {
   .role-card {
     padding: 12px;
   }
-  
-  .position-tab {
+    .position-tab {
     padding: 8px 12px;
     font-size: 12px;
   }
+}
+
+/* Team Information Display Styles */
+.team-details {
+  padding: 12px;
+  margin-bottom: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+}
+
+.team-details.error {
+  background: #fff5f5;
+  border-left-color: #dc3545;
+}
+
+.school-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.team-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.team-meta span {
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.division {
+  background: #d4edda !important;
+  color: #155724 !important;
+}
+
+.conference {
+  background: #d1ecf1 !important;
+  color: #0c5460 !important;
+}
+
+.world {
+  background: #ffeaa7 !important;
+  color: #856404 !important;
+}
+
+.error-message {
+  font-size: 11px;
+  color: #dc3545;
+  margin-top: 4px;
+}
+
+/* Notification System Styles */
+.notification {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 500;
+  z-index: 1000;
+  display: none;
+  max-width: 300px;
+  word-wrap: break-word;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: opacity 0.3s ease-in-out;
+}
+
+.notification.info {
+  background: #007bff;
+}
+
+.notification.error {
+  background: #dc3545;
+}
+
+.notification.success {
+  background: #28a745;
+}
+
+.notification.warning {
+  background: #ffc107;
+  color: #212529;
 }

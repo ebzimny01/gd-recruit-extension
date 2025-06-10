@@ -736,10 +736,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             differences
           });
         } catch (error) {
-          console.error('Error comparing role ratings:', error);
-          sendResponse({ success: false, error: error.message });
+          console.error('Error comparing role ratings:', error);          sendResponse({ success: false, error: error.message });
         }
       })();
+      return true;
+
+    case 'getCurrentTeamInfo':
+      // Get current team information
+      console.log('Getting current team information');
+      getTeamInfoFromCookies()
+        .then(teamInfo => {
+          sendResponse({ success: true, teamInfo });
+        })
+        .catch(error => {
+          console.error('Error getting current team info:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true;
+
+    case 'refreshTeamInfo':
+      // Force refresh of team information
+      console.log('Force refreshing team information');
+      checkForWispersistedCookie()
+        .then(cookie => {
+          if (cookie) {
+            return getTeamInfoFromCookies();
+          } else {
+            throw new Error('No wispersisted cookie found');
+          }
+        })
+        .then(teamInfo => {
+          if (teamInfo) {
+            broadcastTeamChange(teamInfo);
+            sendResponse({ success: true, teamInfo });
+          } else {
+            sendResponse({ success: false, error: 'Could not retrieve team info' });
+          }
+        })
+        .catch(error => {
+          console.error('Error refreshing team info:', error);
+          sendResponse({ success: false, error: error.message });
+        });
       return true;
   }
 });
@@ -1616,6 +1653,139 @@ function broadcastDataUpdate(updateType, data = {}) {
 // Add these lines after your existing imports at the top
 console.log('GD Recruit Assistant extension loaded');
 
+// Cookie monitoring for wispersisted changes
+let lastKnownCookieValue = null;
+
+// Initialize last known cookie value on startup
+chrome.runtime.onStartup.addListener(async () => {
+  // Run existing tab checking
+  checkAllTabsForGDOffice();
+  
+  // Also ensure defaults are initialized on startup
+  try {
+    await initializeDefaultRatings();
+    console.log('Default role ratings verified on startup');
+  } catch (error) {
+    console.error('Error verifying default role ratings on startup:', error);
+  }
+  
+  // Initialize cookie monitoring
+  try {
+    const storedCookieValue = await recruitStorage.getConfig('wispersistedCookie');
+    lastKnownCookieValue = storedCookieValue;
+    console.log('Initialized cookie monitoring with stored value');
+  } catch (error) {
+    console.error('Error initializing cookie monitoring:', error);
+  }
+});
+
+// Listen for cookie changes
+chrome.cookies.onChanged.addListener(async (changeInfo) => {
+  // Only monitor wispersisted cookie changes on whatifsports.com
+  if (changeInfo.cookie.name === 'wispersisted' && 
+      changeInfo.cookie.domain.includes('whatifsports.com')) {
+    
+    console.log('wispersisted cookie changed:', changeInfo);
+    
+    const newCookieValue = changeInfo.removed ? null : changeInfo.cookie.value;
+    
+    // Check if this is actually a change from our last known value
+    if (newCookieValue !== lastKnownCookieValue) {
+      console.log('Cookie value changed from:', lastKnownCookieValue, 'to:', newCookieValue);
+      
+      // Update our tracking variable
+      lastKnownCookieValue = newCookieValue;
+      
+      // Handle the cookie change
+      await handleCookieChange(newCookieValue, changeInfo.removed);
+    }
+  }
+});
+
+// Handler for cookie changes
+async function handleCookieChange(newCookieValue, wasRemoved) {
+  console.log('Handling wispersisted cookie change');
+  
+  try {
+    if (wasRemoved || !newCookieValue) {
+      console.log('wispersisted cookie was removed or cleared');
+      
+      // Clear stored team information
+      await recruitStorage.saveConfig('wispersistedCookie', null);
+      await recruitStorage.saveConfig('teamInfo', null);
+      await recruitStorage.saveConfig('teamId', null);
+      
+      // Broadcast team change to update UI
+      broadcastTeamChange(null);
+      return;
+    }
+    
+    // Store the new cookie value
+    await recruitStorage.saveConfig('wispersistedCookie', newCookieValue);
+    console.log('Saved new cookie value to storage');
+    
+    // Extract team ID from the new cookie
+    const teamId = extractTeamIdFromCookie(newCookieValue);
+    
+    if (teamId) {
+      console.log(`Extracted new team ID: ${teamId}`);
+      
+      // Get updated team information
+      const teamInfo = await getTeamInfoFromCookies();
+      
+      if (teamInfo) {
+        console.log('Updated team information:', teamInfo);
+        
+        // Broadcast the team change to all extension contexts
+        broadcastTeamChange(teamInfo);
+      } else {
+        console.warn('Could not retrieve team information for new team ID');
+        broadcastTeamChange({ teamId, error: 'Team info not found' });
+      }
+    } else {
+      console.warn('Could not extract team ID from new cookie value');
+      broadcastTeamChange({ error: 'Invalid cookie format' });
+    }
+    
+  } catch (error) {
+    console.error('Error handling cookie change:', error);
+    broadcastTeamChange({ error: error.message });
+  }
+}
+
+// Broadcast team change to all extension contexts
+function broadcastTeamChange(teamInfo) {
+  const message = {
+    action: 'teamChanged',
+    teamInfo: teamInfo,
+    timestamp: Date.now()
+  };
+  
+  console.log('Broadcasting team change:', message);
+  
+  // Send to all extension contexts (sidebar, popup, etc.)
+  chrome.runtime.sendMessage(message).catch(() => {
+    // Silently handle cases where no listeners are active
+    console.log('No active listeners for team change broadcast');
+  });
+}
+
+// Periodic cookie check as backup (every 30 seconds)
+setInterval(async () => {
+  try {
+    const currentCookie = await getWispersistedCookie();
+    const currentValue = currentCookie ? currentCookie.value : null;
+    
+    // Check if the cookie value has changed since last check
+    if (currentValue !== lastKnownCookieValue) {
+      console.log('Periodic check detected cookie change');
+      lastKnownCookieValue = currentValue;
+      await handleCookieChange(currentValue, !currentCookie);
+    }
+  } catch (error) {
+    console.error('Error in periodic cookie check:', error);
+  }
+}, 30000); // Check every 30 seconds
 
 // Set up listener for GD Office page
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {

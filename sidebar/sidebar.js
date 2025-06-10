@@ -230,9 +230,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Apply column visibility after everything is set up
   applyColumnVisibility();
-
   // Set up sidebar visibility listener
   sidebarComms.setupSidebarListeners();
+  
+  // Request current team info on initialization
+  try {
+    const teamResponse = await sendMessageToBackground({ action: 'getCurrentTeamInfo' });
+    if (teamResponse.success && teamResponse.teamInfo) {
+      handleTeamChange(teamResponse.teamInfo);
+    }
+  } catch (error) {
+    console.error('Error getting initial team info:', error);
+  }
+  
   // Listen for sidebar visibility events
   document.addEventListener('sidebar-visible', async () => {
     console.log('Sidebar became visible, refreshing data');
@@ -249,11 +259,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Apply column visibility after everything is refreshed
     applyColumnVisibility();
   });
-  
-  // Enhanced UI Refresh Mechanism - Setup data update listeners
+    // Enhanced UI Refresh Mechanism - Setup data update listeners
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'dataUpdated') {
       handleDataUpdate(message);
+    }
+    if (message.action === 'teamChanged') {
+      console.log('Received team change notification:', message);
+      handleTeamChange(message.teamInfo);
     }
     return false; // Don't keep the message channel open
   });
@@ -403,8 +416,83 @@ function setupEventListeners() {
     const closeBtn = elements.columnVisibilityModal.querySelector('.close');
     if (closeBtn) {
       closeBtn.addEventListener('click', closeColumnVisibilityModal);
+    }  }
+}
+
+// Handle team change updates
+function handleTeamChange(teamInfo) {
+  console.log('Handling team change in sidebar:', teamInfo);
+  
+  // Update school name display
+  const schoolNameElement = document.getElementById('schoolName');
+  const dashboardSchoolNameElement = document.getElementById('dashboardSchoolName');
+  
+  if (teamInfo && !teamInfo.error) {
+    // Update school name elements
+    const schoolName = teamInfo.schoolLong || teamInfo.schoolShort || 'Unknown School';
+    
+    if (schoolNameElement) {
+      schoolNameElement.textContent = schoolName;
+    }
+    
+    if (dashboardSchoolNameElement) {
+      dashboardSchoolNameElement.textContent = schoolName;
+    }
+    
+    // Update team info elements
+    const teamDivisionElement = document.getElementById('team-division');
+    const teamWorldElement = document.getElementById('team-world');
+    
+    if (teamDivisionElement) {
+      teamDivisionElement.textContent = teamInfo.division || 'Unknown Division';
+    }
+    
+    if (teamWorldElement) {
+      teamWorldElement.textContent = `World ${teamInfo.world || '?'}`;    }
+    
+    // Update any other UI elements that depend on team info
+    updateDashboardStats();
+    
+    // Show a notification about the team change
+    showNotification(`Switched to ${schoolName}`, 'info');
+    
+  } else {
+    // Handle error or cleared team info
+    const errorText = teamInfo?.error ? 'Error Loading School' : 'No School Selected';
+    
+    if (schoolNameElement) {
+      schoolNameElement.textContent = errorText;
+    }
+    
+    if (dashboardSchoolNameElement) {
+      dashboardSchoolNameElement.textContent = errorText;
+    }
+    
+    if (teamInfo?.error) {
+      showNotification(`Error: ${teamInfo.error}`, 'error');
     }
   }
+}
+
+// Show notification to user
+function showNotification(message, type = 'info') {
+  // Create or update a notification element
+  let notification = document.getElementById('notification');
+  if (!notification) {
+    notification = document.createElement('div');
+    notification.id = 'notification';
+    notification.className = 'notification';
+    document.body.appendChild(notification);
+  }
+  
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+  notification.style.display = 'block';
+  
+  // Auto-hide after 3 seconds
+  setTimeout(() => {
+    notification.style.display = 'none';
+  }, 3000);
 }
 
 // Tab switching

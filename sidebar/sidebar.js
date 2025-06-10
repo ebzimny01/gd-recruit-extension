@@ -3,6 +3,7 @@
 // Import modules
 import { sidebarComms } from './communications.js';
 import boldAttributesConfig from '../modules/bold-attributes-config.js';
+import { getFullVersionString } from '../lib/version.js';
 
 // Position mapping for converting position codes to full names
 const POSITION_MAP = {
@@ -188,6 +189,17 @@ const COLUMNS = [
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
+  
+  // Load and display version
+  try {
+    const versionString = await getFullVersionString();
+    const versionElement = document.getElementById('version-display');
+    if (versionElement) {
+      versionElement.textContent = versionString;
+    }
+  } catch (error) {
+    console.error('Failed to load version:', error);
+  }
   
   // Initialize bold attributes configuration
   try {

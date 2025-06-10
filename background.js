@@ -875,69 +875,115 @@ async function updateConsideringStatus() {
   return { count: updatedCount };
 }
 
-// Update the getStats function to calculate watchlist count directly from recruit data
+// Update the getStats function with enhanced error handling and retry logic
 async function getStats() {
   console.log('Getting extension stats');
 
-  const lastUpdated = await recruitStorage.getConfig('lastUpdated');
-  
-  // Get current season, making sure to handle both null and undefined
-  let currentSeason = await recruitStorage.getConfig('currentSeason');
-  console.log('Retrieved current season from storage:', currentSeason);
-  // Get team information including school name
-  let teamInfo = null;
-  let schoolName = 'Unknown School';
-  
-  try {
-    teamInfo = await getTeamInfoFromCookies();
-    
-    // If no team info from cookies, try to get from storage
-    if (!teamInfo) {
-      console.log('No team info from cookies, trying stored data');
-      teamInfo = await getStoredTeamInfo();
-    }
-    
-    if (teamInfo?.teamId) {
-      // Use schoolLong from team info if available, otherwise look up in GDR data
-      if (teamInfo.schoolLong) {
-        schoolName = teamInfo.schoolLong;
-        console.log(`Using stored school name: ${schoolName}`);
-      } else {
-        // Fallback to GDR lookup
-        const gdrData = await loadGdrData();
-        const schoolData = gdrData.find(team => team.wis_id === teamInfo.teamId);
-        
-        if (schoolData) {
-          schoolName = schoolData.school_long || schoolData.school_short || 'Unknown School';
-          console.log(`Found school name from GDR lookup: ${schoolName}`);
-        } else {
-          console.log('School not found in GDR data for team ID:', teamInfo.teamId);
-        }
+  const maxRetries = 3;
+  let lastError;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      // Check database connection health before proceeding
+      const isHealthy = await recruitStorage.isConnectionHealthy();
+      if (!isHealthy && attempt === 0) {
+        console.warn('Database connection unhealthy, attempting to reconnect...');
+        // Connection will be re-established automatically by the storage layer
       }
-    } else {
-      console.log('No team ID available for school lookup');
+
+      const lastUpdated = await recruitStorage.getConfig('lastUpdated');
+      
+      // Get current season, making sure to handle both null and undefined
+      let currentSeason = await recruitStorage.getConfig('currentSeason');
+      console.log('Retrieved current season from storage:', currentSeason);
+      
+      // Get team information including school name
+      let teamInfo = null;
+      let schoolName = 'Unknown School';
+      
+      try {
+        teamInfo = await getTeamInfoFromCookies();
+        
+        // If no team info from cookies, try to get from storage
+        if (!teamInfo) {
+          console.log('No team info from cookies, trying stored data');
+          teamInfo = await getStoredTeamInfo();
+        }
+        
+        if (teamInfo?.teamId) {
+          // Use schoolLong from team info if available, otherwise look up in GDR data
+          if (teamInfo.schoolLong) {
+            schoolName = teamInfo.schoolLong;
+            console.log(`Using stored school name: ${schoolName}`);
+          } else {
+            // Fallback to GDR lookup
+            const gdrData = await loadGdrData();
+            const schoolData = gdrData.find(team => team.wis_id === teamInfo.teamId);
+            
+            if (schoolData) {
+              schoolName = schoolData.school_long || schoolData.school_short || 'Unknown School';
+              console.log(`Found school name from GDR lookup: ${schoolName}`);
+            } else {
+              console.log('School not found in GDR data for team ID:', teamInfo.teamId);
+            }
+          }
+        } else {
+          console.log('No team ID available for school lookup');
+        }
+      } catch (error) {
+        console.error('Error getting team/school information:', error);
+      }
+
+      // Get total recruit count and calculate watchlist count
+      const recruits = await recruitStorage.getAllRecruits();
+      const recruitCount = recruits.length;
+      
+      // Calculate watchlist count directly from recruits data
+      const watchlistCount = recruits.filter(recruit => recruit.watched === 1).length;
+      
+      // Update the stored watchlist count for consistency
+      await recruitStorage.saveConfig('watchlistCount', watchlistCount);
+
+      return {
+        lastUpdated,
+        watchlistCount,
+        recruitCount,
+        currentSeason: currentSeason || null,
+        schoolName,
+        teamInfo
+      };
+
+    } catch (error) {
+      lastError = error;
+      console.warn(`getStats attempt ${attempt + 1} failed:`, error.message);
+      
+      // If this is a database connection error, add delay before retry
+      if (error.message.includes('closing') || error.message.includes('closed') || 
+          error.message.includes('connection') || error.message.includes('transaction')) {
+        
+        if (attempt < maxRetries - 1) {
+          const delay = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s
+          console.log(`Retrying getStats in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      } else {
+        // For non-connection errors, don't retry
+        break;
+      }
     }
-  } catch (error) {
-    console.error('Error getting team/school information:', error);
   }
 
-  // Get total recruit count and calculate watchlist count
-  const recruits = await recruitStorage.getAllRecruits();
-  const recruitCount = recruits.length;
+  console.error(`getStats failed after ${maxRetries} attempts:`, lastError.message);
   
-  // Calculate watchlist count directly from recruits data
-  const watchlistCount = recruits.filter(recruit => recruit.watched === 1).length;
-  
-  // Update the stored watchlist count for consistency
-  await recruitStorage.saveConfig('watchlistCount', watchlistCount);
-
+  // Return minimal fallback data
   return {
-    lastUpdated,
-    watchlistCount,
-    recruitCount,
-    currentSeason: currentSeason || null,
-    schoolName,
-    teamInfo
+    lastUpdated: null,
+    watchlistCount: 0,
+    recruitCount: 0,
+    currentSeason: null,
+    schoolName: 'Unknown School',
+    teamInfo: null,
+    error: lastError.message
   };
 }
 

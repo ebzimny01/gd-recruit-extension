@@ -1,42 +1,98 @@
 // Communications handler for sidebar
 // This script facilitates communication between the sidebar and the main page/content scripts
 
-// Function to send a message to the background script
+// Function to send a message to the background script with enhanced retry logic
 function sendMessageToBackground(message) {
-  return new Promise((resolve, reject) => {
-    try {
-      // Set up a timeout to prevent hanging
-      const timeoutId = setTimeout(() => {
-        reject(new Error('Message timeout - no response received within 5 seconds'));
-      }, 5000);
+  return new Promise(async (resolve, reject) => {
+    const maxRetries = 3;
+    let lastError;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const response = await new Promise((innerResolve, innerReject) => {
+          // Set up a timeout to prevent hanging
+          const timeoutId = setTimeout(() => {
+            innerReject(new Error('Message timeout - no response received within 10 seconds'));
+          }, 10000);
 
-      chrome.runtime.sendMessage(message, response => {
-        clearTimeout(timeoutId);
-        
-        // Handle potential cases where runtime.lastError exists
-        if (chrome.runtime.lastError) {
-          const errorMessage = chrome.runtime.lastError.message || 'Unknown error';
-          console.error(`Error sending message to background: ${errorMessage}`, message);
-          reject(new Error(errorMessage));
-          return;
-        }
-        
-        // Check if response contains an error
+          chrome.runtime.sendMessage(message, response => {
+            clearTimeout(timeoutId);
+            
+            // Handle potential cases where runtime.lastError exists
+            if (chrome.runtime.lastError) {
+              const errorMessage = chrome.runtime.lastError.message || 'Unknown error';
+              console.error(`Error sending message to background (attempt ${attempt + 1}): ${errorMessage}`, message);
+              innerReject(new Error(errorMessage));
+              return;
+            }
+            
+            // Success case
+            innerResolve(response);
+          });
+        });
+
+        // Check if response contains a database-related error that should be retried
         if (response && response.error) {
-          console.error(`Background script returned error: ${response.error}`, message);
-          // Return the response anyway, but with the error included
-          resolve(response);
-          return;
+          const error = new Error(response.error);
+          
+          // Check if this is a database connection error that might benefit from retry
+          if (isDatabaseError(response.error) && attempt < maxRetries - 1) {
+            lastError = error;
+            console.warn(`Database error on attempt ${attempt + 1}, retrying...`, response.error);
+            
+            // Add exponential backoff delay
+            const delay = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          } else {
+            // Return the response with error for non-retryable errors or final attempt
+            console.error(`Background script returned error: ${response.error}`, message);
+            resolve(response);
+            return;
+          }
         }
         
         // Success case
         resolve(response);
-      });
-    } catch (error) {
-      console.error('Exception sending message to background:', error, message);
-      reject(error);
+        return;
+        
+      } catch (error) {
+        lastError = error;
+        console.error(`Exception sending message to background (attempt ${attempt + 1}):`, error, message);
+        
+        // Check if this is a retryable error
+        if (isDatabaseError(error.message) && attempt < maxRetries - 1) {
+          const delay = Math.pow(2, attempt) * 500;
+          console.log(`Retrying message in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          break;
+        }
+      }
     }
+    
+    // All attempts failed
+    reject(lastError || new Error(`Failed to send message after ${maxRetries} attempts`));
   });
+}
+
+// Helper function to identify database-related errors
+function isDatabaseError(errorMessage) {
+  if (!errorMessage || typeof errorMessage !== 'string') return false;
+  
+  const dbErrorPatterns = [
+    'database connection is closing',
+    'transaction',
+    'indexeddb',
+    'connection timeout',
+    'database error',
+    'storage error',
+    'connection closed'
+  ];
+  
+  return dbErrorPatterns.some(pattern => 
+    errorMessage.toLowerCase().includes(pattern)
+  );
 }
 
 // Function to send a message to a content script

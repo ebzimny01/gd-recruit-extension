@@ -1704,11 +1704,11 @@ tbody tr:hover {
 /* Column Visibility Modal */
 .column-visibility-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  max-height: 400px;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 6px;
+  max-height: 450px;
   overflow-y: auto;
-  padding: 8px;
+  padding: 4px;
 }
 
 .column-checkbox-label {

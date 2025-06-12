@@ -834,6 +834,51 @@ function applyColumnVisibility() {
   document.head.appendChild(styleElement);
 }
 
+/**
+ * Check if current school is in the considering schools list
+ * 
+ * This function analyzes the "Considering Schools" text to determine if the current
+ * school (based on team ID) is included in the recruit's consideration list.
+ * 
+ * Formatting Rules:
+ * - Green background: Current school is the ONLY school being considered
+ * - Yellow background: Current school is among multiple schools being considered
+ * - No highlighting: Current school is not being considered or status is "undecided"
+ * 
+ * @param {string} considering - The considering schools text (e.g., "54006 (Howard Payne University), 54448 (Greensboro College)")
+ * @param {string} currentTeamId - The current school's team ID (5-digit string)
+ * @returns {string} 'only' if current school is the only one, 'included' if current school is among others, 'not_included' if not present
+ */
+function checkCurrentSchoolInConsidering(considering, currentTeamId) {
+  if (!considering || considering === 'undecided' || !currentTeamId) {
+    return 'not_included';
+  }
+
+  // Extract all school IDs from the considering text
+  // Pattern: digits followed by space and parentheses with school name
+  const schoolIdMatches = considering.match(/\b\d{5}\b/g);
+  
+  if (!schoolIdMatches) {
+    return 'not_included';
+  }
+
+  const isCurrentSchoolIncluded = schoolIdMatches.includes(currentTeamId);
+  
+  if (!isCurrentSchoolIncluded) {
+    return 'not_included';
+  }
+  
+  // Debug logging for development
+  console.log(`School ${currentTeamId} found in considering: ${considering} (${schoolIdMatches.length} total schools)`);
+  
+  // If current school is included, check if it's the only one
+  if (schoolIdMatches.length === 1) {
+    return 'only';
+  } else {
+    return 'included';
+  }
+}
+
 // Update recruits list in the UI
 async function updateRecruitsList() {
   if (!elements.recruitsList) return;
@@ -957,9 +1002,7 @@ async function updateRecruitsList() {
         return cell;      };// Helper function to add cell (simplified - no visibility logic needed)
       const addCell = (cellElement) => {
         row.appendChild(cellElement);
-      };
-
-      // Create name cell with hyperlink to recruit profile
+      };      // Create name cell with hyperlink to recruit profile
       const nameCell = document.createElement('td');
       const nameLink = document.createElement('a');
       nameLink.href = `https://www.whatifsports.com/gd/RecruitProfile/Ratings.aspx?rid=${recruit.id}&section=Ratings`;
@@ -974,6 +1017,17 @@ async function updateRecruitsList() {
         nameLink.style.textDecoration = 'none';
       });
       nameCell.appendChild(nameLink);
+
+      // Apply same formatting to name cell based on considering status
+      const recruitConsidering = recruit.considering || 'undecided';
+      if (teamInfo && teamInfo.teamId && recruitConsidering !== 'undecided') {
+        const nameCurrentSchoolStatus = checkCurrentSchoolInConsidering(recruitConsidering, teamInfo.teamId);
+        if (nameCurrentSchoolStatus === 'only') {
+          nameCell.classList.add('considering-school-only');
+        } else if (nameCurrentSchoolStatus === 'included') {
+          nameCell.classList.add('considering-school-included');
+        }
+      }
 
       // Add all cells (CSS will handle visibility)
       addCell(nameCell);
@@ -1009,13 +1063,25 @@ async function updateRecruitsList() {
       addCell(createCell(recruit.r3, true));
       addCell(createCell(recruit.r4, true));
       addCell(createCell(recruit.r5, true));
-      addCell(createCell(recruit.r6, true));
-      
-      // Considering schools cell - truncate if too long
+      addCell(createCell(recruit.r6, true));      // Considering schools cell - truncate if too long and apply formatting based on current school
       const consideringCell = document.createElement('td');
       const considering = recruit.considering || 'undecided';
       consideringCell.textContent = considering.length > 50 ? considering.substring(0, 47) + '...' : considering;
-      consideringCell.title = considering; // Show full text on hover
+      
+      // Build enhanced tooltip with status information
+      let tooltip = considering;
+      if (teamInfo && teamInfo.teamId && considering !== 'undecided') {
+        const currentSchoolStatus = checkCurrentSchoolInConsidering(considering, teamInfo.teamId);
+        if (currentSchoolStatus === 'only') {
+          consideringCell.classList.add('considering-school-only');
+          tooltip += '\n\n✓ Your school is the ONLY school this recruit is considering';
+        } else if (currentSchoolStatus === 'included') {
+          consideringCell.classList.add('considering-school-included');
+          tooltip += '\n\n⚠ Your school is among the schools this recruit is considering';
+        }
+      }
+      consideringCell.title = tooltip;
+      
       addCell(consideringCell);
 
       // Add row to table

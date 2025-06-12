@@ -593,6 +593,65 @@ th:nth-child(33), td:nth-child(33) {
   text-overflow: ellipsis;
 }
 
+/* Considering Schools column highlighting */
+.considering-school-only {
+  background-color: #d4edda !important; /* Light green */
+  border-left: 3px solid #28a745 !important;
+  position: relative;
+}
+
+.considering-school-included {
+  background-color: #fff3cd !important; /* Light yellow */
+  border-left: 3px solid #ffc107 !important;
+  position: relative;
+}
+
+/* Special handling for name cell (first column) with considering school highlighting */
+td:first-child.considering-school-only {
+  background-color: #d4edda !important;
+  border-left: 3px solid #28a745 !important;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  font-weight: 500;
+  min-width: 150px;
+  box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+}
+
+td:first-child.considering-school-included {
+  background-color: #fff3cd !important;
+  border-left: 3px solid #ffc107 !important;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  font-weight: 500;
+  min-width: 150px;
+  box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+}
+
+/* Add subtle visual indicators */
+.considering-school-only::before {
+  content: "✓";
+  position: absolute;
+  right: 4px;
+  top: 2px;
+  color: #28a745;
+  font-weight: bold;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.considering-school-included::before {
+  content: "⚠";
+  position: absolute;
+  right: 4px;
+  top: 2px;
+  color: #856404;
+  font-weight: bold;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
 /* Table sorting styles */
 .recruits-table thead th {
   position: relative;

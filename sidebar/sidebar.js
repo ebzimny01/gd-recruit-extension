@@ -610,8 +610,11 @@ function updateSchoolNameDisplay(schoolName, teamInfo) {
   
   // Build tooltip with available team information
   let tooltip = '';
+  if (displayName) {
+    tooltip = displayName;
+  }
   if (teamInfo?.division) {
-    tooltip += `Division: ${teamInfo.division}`;
+    tooltip += (tooltip ? ', ' : '') + `Division: ${teamInfo.division}`;
   }
   if (teamInfo?.world) {
     tooltip += (tooltip ? ', ' : '') + `World: ${teamInfo.world}`;
@@ -1932,7 +1935,7 @@ function handleImportData() {
   fileInput.click();
 }
 
-// Handle clear data action
+// Handle clear data action with enhanced error handling
 async function handleClearData() {
   if (!confirm('Are you sure you want to clear all data? This cannot be undone.')) {
     return;
@@ -1941,7 +1944,7 @@ async function handleClearData() {
   setStatusMessage('Clearing all data...');
 
   try {
-    // Clear data
+    // Clear data with enhanced error handling
     const result = await sendMessageToBackground({
       action: 'clearAllData'
     });
@@ -1952,25 +1955,34 @@ async function handleClearData() {
     if (result && result.error) {
       throw new Error(result.error);
     }
+    
     // Check for warning
     if (result && result.warning) {
       console.warn('Warning during clear operation:', result.warning);
-      setStatusMessage(`Data cleared with warning: ${result.warning}`);
+      setStatusMessage(`Data cleared with warnings: ${result.warning}`, 'warning');
     } else {
-      // Reset local state for season
-      state.currentSeason = null;
-
-      // Reload data
-      await loadData();
-      updateDashboardStats();
-      await updateButtonState();
-
-      setStatusMessage('All data and season information cleared successfully');
+      setStatusMessage('All data cleared successfully', 'success');
     }
+
+    // Reset local state for season
+    state.currentSeason = null;
+
+    // Reload data regardless of warnings
+    await loadData();
+    updateDashboardStats();
+    await updateButtonState();
+
+    // If there were no warnings, show a more positive message
+    if (!result.warning) {
+      setStatusMessage('All data and season information cleared successfully', 'success');
+    }
+
   } catch (error) {
     console.error('Error clearing data:', error);
-    // Format error message properly to avoid [object Object]
+    
+    // Enhanced error message handling
     let errorMessage;
+    let errorType = 'error';
 
     if (error instanceof Error) {
       errorMessage = error.message;
@@ -1979,10 +1991,19 @@ async function handleClearData() {
     } else if (error && typeof error === 'object') {
       errorMessage = JSON.stringify(error);
     } else {
-      errorMessage = 'Unknown error';
+      errorMessage = 'Unknown error occurred';
     }
 
-    setStatusMessage('Error clearing data: ' + errorMessage);
+    // Provide user-friendly suggestions based on error type
+    if (errorMessage.includes('connection')) {
+      errorMessage += '\n\nTry refreshing the extension or restarting your browser.';
+    } else if (errorMessage.includes('timeout')) {
+      errorMessage += '\n\nThe operation may still be processing. Wait a moment and try again.';
+    } else if (errorMessage.includes('transaction')) {
+      errorMessage += '\n\nTry using the "Check Database" button to diagnose the issue.';
+    }
+
+    setStatusMessage('Error clearing data: ' + errorMessage, errorType);
   }
 }
 

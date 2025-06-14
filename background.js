@@ -1123,56 +1123,81 @@ async function importData(data) {
   return { recruitsImported: data.recruits.length };
 }
 
-// Clear all data
+// Clear all data with enhanced error handling
 async function clearAllData() {
-  console.log('Clearing all data');
+  console.log('Clearing all data - enhanced version');
 
   try {
-    // Clear recruits data first
+    // Clear recruits data first with retries
+    console.log('Starting recruit data clear operation...');
     const clearResult = await recruitStorage.clearAllRecruits();
     console.log('Clear recruits result:', clearResult);
 
     if (!clearResult.success) {
       console.warn('Warning during clear operation:', clearResult.warning);
     }
-    // Clear lastUpdated instead of setting to current time
-    try {
-      await recruitStorage.saveConfig('lastUpdated', null);
-      console.log('Successfully cleared lastUpdated timestamp');
-    } catch (configError) {
-      console.error('Error clearing lastUpdated config:', configError);
-      // Continue with other operations despite this error
+    
+    // Clear configuration data - use individual operations with error handling
+    const configOperations = [
+      { key: 'lastUpdated', value: null, description: 'lastUpdated timestamp' },
+      { key: 'watchlistCount', value: 0, description: 'watchlistCount' },
+      { key: 'currentSeason', value: null, description: 'current season' },
+      { key: SEASON_RECRUITING_URL_KEY, value: null, description: 'recruiting URL' }
+    ];
+
+    const configResults = [];
+    for (const operation of configOperations) {
+      try {
+        await recruitStorage.saveConfig(operation.key, operation.value);
+        console.log(`Successfully cleared ${operation.description}`);
+        configResults.push({ success: true, operation: operation.description });
+      } catch (configError) {
+        console.error(`Error clearing ${operation.description}:`, configError);
+        configResults.push({ 
+          success: false, 
+          operation: operation.description, 
+          error: configError.message 
+        });
+        // Continue with other operations despite this error
+      }
     }
 
-    try {
-      await recruitStorage.saveConfig('watchlistCount', 0);
-      console.log('Successfully reset watchlistCount');
-    } catch (configError) {
-      console.error('Error resetting watchlistCount config:', configError);
-      // Continue with other operations despite this error
-    }    try {
-      await recruitStorage.saveConfig('currentSeason', null);
-      console.log('Successfully removed current season');
-    } catch (configError) {
-      console.error('Error removing currentSeason config:', configError);
-      // Continue with other operations despite this error
-    }    try {
-      await recruitStorage.saveConfig(SEASON_RECRUITING_URL_KEY, null);
-      console.log('Successfully cleared stored recruiting URL');
-    } catch (configError) {
-      console.error('Error clearing seasonRecruitingUrl config:', configError);
-      // Continue with other operations despite this error
+    // Check if any config operations failed
+    const failedConfigs = configResults.filter(r => !r.success);
+    
+    let warningMessage = null;
+    if (failedConfigs.length > 0) {
+      warningMessage = `Some configuration settings could not be cleared: ${failedConfigs.map(f => f.operation).join(', ')}`;
+      console.warn(warningMessage);
     }
+
+    // Combine warnings
+    const combinedWarning = [clearResult.warning, warningMessage].filter(Boolean).join('; ');
 
     return {
       success: true,
-      warning: clearResult.success ? null : clearResult.warning
+      warning: combinedWarning || null,
+      details: {
+        recruitsCleared: clearResult.success,
+        configResults: configResults
+      }
     };
   } catch (error) {
-    // Format error for better display
+    // Enhanced error handling with specific error types
     const errorMessage = error.message || 'Unknown error';
     console.error('Error in clearAllData:', errorMessage, error);
-    throw new Error(`Failed to clear data: ${errorMessage}`);
+    
+    // Provide more specific error messages
+    let userFriendlyMessage = errorMessage;
+    if (errorMessage.includes('connection is closing')) {
+      userFriendlyMessage = 'Database connection issue. Please try again or restart the extension.';
+    } else if (errorMessage.includes('timeout')) {
+      userFriendlyMessage = 'Operation timed out. The database may be busy. Please try again.';
+    } else if (errorMessage.includes('transaction')) {
+      userFriendlyMessage = 'Database transaction failed. Please try again or check database status.';
+    }
+    
+    throw new Error(userFriendlyMessage);
   }
 }
 
@@ -1513,9 +1538,9 @@ chrome.declarativeNetRequest.getMatchedRules({}, function (details) {
   // details.rulesMatchedInfo will contain information about matched rules
 });
 
-// Check database status for diagnostic purposes
+// Check database status for diagnostic purposes - using storage module only
 async function checkDatabaseStatus() {
-  console.log('Checking database status');
+  console.log('Checking database status using storage module');
 
   // Get IDB factory details
   const idbDetails = {
@@ -1525,103 +1550,34 @@ async function checkDatabaseStatus() {
 
   let dbInfo = {
     name: 'gdRecruitDB',
-    version: null,
-    objectStores: [],
+    version: 1, // Known version from storage.js
+    objectStores: ['recruits', 'config'], // Known stores from storage.js
     recruitCount: 0,
     lastError: null,
     idbDetails
   };
 
   try {
-    // Try to use the existing storage module first for safety
-    try {
-      const recruits = await recruitStorage.getAllRecruits();
-      dbInfo.recruitCount = recruits ? recruits.length : 0;
-      dbInfo.lastError = null;
-      dbInfo.objectStores = ['recruits', 'config']; // Known stores from storage.js
+    // Use the existing storage module exclusively to avoid connection conflicts
+    console.log('Checking connection health...');
+    const isHealthy = await recruitStorage.isConnectionHealthy();
+    
+    if (!isHealthy) {
+      dbInfo.lastError = 'Database connection is not healthy';
       return dbInfo;
-    } catch (storageError) {
-      console.log('Storage module unavailable, checking database directly:', storageError.message);
     }
 
-    // Fallback to direct database access for diagnosis
-    return new Promise((resolve, reject) => {
-      // Reduce timeout to 3 seconds to prevent message port closure
-      const timeoutId = setTimeout(() => {
-        dbInfo.lastError = 'Database connection timed out after 3 seconds';
-        resolve(dbInfo);
-      }, 3000);
+    console.log('Getting recruit count...');
+    const recruits = await recruitStorage.getAllRecruits();
+    dbInfo.recruitCount = recruits ? recruits.length : 0;
+    dbInfo.lastError = null;
+    
+    console.log(`Database check completed successfully. Found ${dbInfo.recruitCount} recruits.`);
+    return dbInfo;
 
-      try {
-        const request = indexedDB.open('gdRecruitDB');
-
-        request.onerror = event => {
-          clearTimeout(timeoutId);
-          const lastError = event.target.error
-            ? `${event.target.error.name}: ${event.target.error.message}`
-            : 'Unknown error opening database';
-
-          dbInfo.lastError = lastError;
-          console.error('Error opening database for diagnosis:', lastError);
-          resolve(dbInfo);
-        };
-
-        request.onsuccess = event => {
-          clearTimeout(timeoutId);
-          const db = event.target.result;
-
-          try {
-            dbInfo.name = db.name;
-            dbInfo.version = db.version;
-            dbInfo.objectStores = Array.from(db.objectStoreNames);
-
-            // Check for recruits if the store exists
-            if (dbInfo.objectStores.includes('recruits')) {
-              const transaction = db.transaction('recruits', 'readonly');
-              const store = transaction.objectStore('recruits');
-              const countRequest = store.count();
-
-              countRequest.onsuccess = () => {
-                dbInfo.recruitCount = countRequest.result;
-                db.close();
-                resolve(dbInfo);
-              };
-
-              countRequest.onerror = event => {
-                const lastError = event.target.error
-                  ? `${event.target.error.name}: ${event.target.error.message}`
-                  : 'Unknown error counting recruits';
-
-                dbInfo.lastError = lastError;
-                db.close();
-                resolve(dbInfo);
-              };
-            } else {
-              dbInfo.lastError = 'Recruits store not found in database';
-              db.close();
-              resolve(dbInfo);
-            }
-          } catch (error) {
-            dbInfo.lastError = `Error in transaction: ${error.message}`;
-            db.close();
-            resolve(dbInfo);
-          }
-        };
-
-        request.onupgradeneeded = event => {
-          clearTimeout(timeoutId);
-          dbInfo.lastError = 'Database needed initialization during diagnosis';
-          resolve(dbInfo);
-        };
-
-      } catch (error) {
-        clearTimeout(timeoutId);
-        dbInfo.lastError = `Error setting up diagnosis: ${error.message}`;
-        resolve(dbInfo);
-      }
-    });
-  } catch (outerError) {
-    dbInfo.lastError = `Outer error in diagnosis: ${outerError.message}`;
+  } catch (error) {
+    console.error('Error checking database via storage module:', error);
+    dbInfo.lastError = `Storage module error: ${error.message || 'Unknown error'}`;
     return dbInfo;
   }
 }

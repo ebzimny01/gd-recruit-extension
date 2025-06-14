@@ -34,11 +34,12 @@ const elements = {
   currentSeason: document.getElementById('current-season'),
   btnScrapeRecruits: document.getElementById('btn-scrape-recruits'),
   btnUpdateConsidering: document.getElementById('btn-update-considering'),
-  statusMessage: document.getElementById('status-message'),
-  // Recruits tab elements
+  statusMessage: document.getElementById('status-message'),  // Recruits tab elements
   filterName: document.getElementById('filter-name'),
   filterPosition: document.getElementById('filter-position'),
-  filterWatched: document.getElementById('filter-watched'),  filterPotential: document.getElementById('filter-potential'),
+  filterWatched: document.getElementById('filter-watched'),
+  filterPotential: document.getElementById('filter-potential'),
+  filterDivision: document.getElementById('filter-division'),
   filterPriority: document.getElementById('filter-priority'),
   filterDistance: document.getElementById('filter-distance'),
   filterHideSigned: document.getElementById('filter-hide-signed'),
@@ -84,16 +85,16 @@ let state = {
   sorting: {
     column: null,
     direction: 'asc' // 'asc' or 'desc'
-  },
-  filters: {
+  },  filters: {
     name: '',
     position: '',
     watched: '',
     potential: '',
+    division: '',
     priority: '',
     distance: '',
     hideSigned: false
-  },  // Role ratings modal state
+  },// Role ratings modal state
   roleRatings: {
     data: null,
     currentPosition: null,
@@ -297,9 +298,12 @@ function setupEventListeners() {
   if (elements.filterWatched) {
     elements.filterWatched.addEventListener('change', applyFilters);
   }
-
   if (elements.filterPotential) {
     elements.filterPotential.addEventListener('change', applyFilters);
+  }
+
+  if (elements.filterDivision) {
+    elements.filterDivision.addEventListener('change', applyFilters);
   }
 
   if (elements.filterPriority) {
@@ -519,19 +523,25 @@ async function loadData() {
 
     if (response.error) {
       throw new Error(response.error);
-    }
-
-    state.recruits = response.recruits || [];
+    }    state.recruits = response.recruits || [];
     console.log(`Loaded ${state.recruits.length} recruits from storage`);
+    
+    // Debug: Log watched recruits count
+    const watchedCount = state.recruits.filter(recruit => recruit.watched === 1).length;
+    console.log(`Found ${watchedCount} watched recruits`);
 
     // Populate position filter if it exists
     if (elements.filterPosition) {
       populatePositionFilter();
     }
-    
-    // Populate potential filter if it exists
+      // Populate potential filter if it exists
     if (elements.filterPotential) {
       populatePotentialFilter();
+    }
+    
+    // Populate division filter if it exists
+    if (elements.filterDivision) {
+      populateDivisionFilter();
     }
     
     // Populate priority filter if it exists
@@ -635,12 +645,12 @@ function updateSchoolNameDisplay(schoolName, teamInfo) {
 }
 
 // Apply filters to recruits list
-function applyFilters() {
-  // Update filter values
+function applyFilters() {  // Update filter values
   state.filters.name = elements.filterName ? elements.filterName.value.toLowerCase() : '';
   state.filters.position = elements.filterPosition ? elements.filterPosition.value : '';
   state.filters.watched = elements.filterWatched ? elements.filterWatched.checked : false;
   state.filters.potential = elements.filterPotential ? elements.filterPotential.value : '';
+  state.filters.division = elements.filterDivision ? elements.filterDivision.value : '';
   state.filters.priority = elements.filterPriority ? elements.filterPriority.value : '';
   state.filters.distance = elements.filterDistance ? elements.filterDistance.value : '';
   state.filters.hideSigned = elements.filterHideSigned ? elements.filterHideSigned.checked : false;
@@ -655,10 +665,13 @@ function applyFilters() {
     // Watched filter (changed to checkbox)
     if (state.filters.watched && recruit.watched !== 1) {
       return false;
+    }    // Potential filter
+    if (state.filters.potential && recruit.potential !== state.filters.potential) {
+      return false;
     }
 
-    // Potential filter
-    if (state.filters.potential && recruit.potential !== state.filters.potential) {
+    // Division filter
+    if (state.filters.division && recruit.division !== state.filters.division) {
       return false;
     }
 
@@ -1057,8 +1070,63 @@ async function updateRecruitsList() {
       });
       nameLink.addEventListener('mouseout', () => {
         nameLink.style.textDecoration = 'none';
-      });
-      nameCell.appendChild(nameLink);      // Check signed status first for row-level formatting
+      });      // Add eyeball icon for watched recruits
+      if (recruit.watched === 1) {
+        console.log(`Adding watched indicator for recruit: ${recruit.name}`);
+        
+        // Create a container for the indicator
+        const indicatorContainer = document.createElement('span');
+        indicatorContainer.className = 'watched-indicator';
+        indicatorContainer.title = 'This recruit is being watched';
+        
+        // Try to use the image first
+        const eyeballIcon = document.createElement('img');
+        let iconLoaded = false;
+        
+        try {
+          if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+            eyeballIcon.src = chrome.runtime.getURL('icons/eyeball-icon-png-eye-icon-1.png');
+            eyeballIcon.alt = 'Watched recruit';
+            eyeballIcon.style.width = '16px';
+            eyeballIcon.style.height = '16px';
+            
+            // Handle image load error by replacing with symbol
+            eyeballIcon.onerror = function() {
+              indicatorContainer.innerHTML = '👁';
+              indicatorContainer.className = 'watched-indicator-symbol';
+            };
+            
+            // Handle successful load
+            eyeballIcon.onload = function() {
+              iconLoaded = true;
+            };
+            
+            indicatorContainer.appendChild(eyeballIcon);
+            
+            // Fallback timeout in case the image doesn't load quickly
+            setTimeout(() => {
+              if (!iconLoaded && indicatorContainer.querySelector('img')) {
+                indicatorContainer.innerHTML = '👁';
+                indicatorContainer.className = 'watched-indicator-symbol';
+              }
+            }, 500);
+            
+          } else {
+            // No chrome.runtime available, use symbol directly
+            indicatorContainer.innerHTML = '👁';
+            indicatorContainer.className = 'watched-indicator-symbol';
+          }
+        } catch (error) {
+          console.log('Error loading watched icon, using symbol fallback:', error);
+          indicatorContainer.innerHTML = '👁';
+          indicatorContainer.className = 'watched-indicator-symbol';
+        }
+        
+        nameCell.appendChild(nameLink);
+        nameCell.appendChild(indicatorContainer);
+      } else {
+        nameCell.appendChild(nameLink);
+      }// Check signed status first for row-level formatting
       const signedStatus = teamInfo && teamInfo.teamId ? checkSignedStatus(recruit, teamInfo.teamId) : 'not_signed';
       
       // Apply signed status formatting to the entire row
@@ -1348,6 +1416,31 @@ function populatePotentialFilter() {
     option.value = potential;
     option.textContent = potential;
     elements.filterPotential.appendChild(option);
+  });
+}
+
+// Populate division filter
+function populateDivisionFilter() {
+  // Get unique divisions from recruits data
+  const divisions = [...new Set(state.recruits.map(recruit => recruit.division))]
+    .filter(division => division && division !== 'N/A') // Filter out null, undefined, and 'N/A' values
+    .sort();
+
+  // Clear current options
+  elements.filterDivision.innerHTML = '';
+
+  // Add default option
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'All Divisions';
+  elements.filterDivision.appendChild(defaultOption);
+
+  // Add division options
+  divisions.forEach(division => {
+    const option = document.createElement('option');
+    option.value = division;
+    option.textContent = division;
+    elements.filterDivision.appendChild(option);
   });
 }
 

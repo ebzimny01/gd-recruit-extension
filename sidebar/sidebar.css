@@ -2152,3 +2152,39 @@ td:first-child.signed-recruit-to-school {
 .division-checkbox-item.required .checkbox-label-text {
   color: #2d5a2d;
 }
+
+/* Watched recruit indicator styles */
+.watched-indicator {
+  display: inline-block;
+  margin-left: 5px;
+  vertical-align: middle;
+  font-size: 14px;
+  color: #007bff;
+  cursor: help;
+}
+
+.watched-indicator img {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+/* Fallback styles for when image fails to load */
+.watched-indicator-symbol {
+  display: inline-block;
+  margin-left: 5px;
+  vertical-align: middle;
+  font-size: 14px;
+  color: #007bff;
+  cursor: help;
+  font-weight: bold;
+}
+
+/* Alternative CSS-only eye icon using pseudo-elements */
+.watched-indicator-css::before {
+  content: "👁";
+  font-size: 14px;
+  margin-left: 5px;
+  color: #007bff;
+  cursor: help;
+}

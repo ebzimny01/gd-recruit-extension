@@ -47,8 +47,7 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  },
-  "web_accessible_resources": [
+  },  "web_accessible_resources": [
     {
       "resources": [
         "content/advanced-scraper.js",
@@ -56,7 +55,8 @@
         "data/bold_attributes_defaults.json",
         "data/role_ratings_defaults.json",
         "modules/bold-attributes-config.js",
-        "modules/xlsx.full.min.js"
+        "modules/xlsx.full.min.js",
+        "icons/eyeball-icon-png-eye-icon-1.png"
       ],
       "matches": ["https://*.whatifsports.com/*"]
     }

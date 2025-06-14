@@ -2,7 +2,7 @@
 // This script facilitates communication between the sidebar and the main page/content scripts
 
 // Function to send a message to the background script with enhanced retry logic
-function sendMessageToBackground(message) {
+export function sendMessageToBackground(message) {
   return new Promise(async (resolve, reject) => {
     const maxRetries = 3;
     let lastError;
@@ -77,7 +77,7 @@ function sendMessageToBackground(message) {
 }
 
 // Helper function to identify database-related errors
-function isDatabaseError(errorMessage) {
+export function isDatabaseError(errorMessage) {
   if (!errorMessage || typeof errorMessage !== 'string') return false;
   
   const dbErrorPatterns = [
@@ -96,7 +96,7 @@ function isDatabaseError(errorMessage) {
 }
 
 // Function to send a message to a content script
-async function sendMessageToContentScript(tabId, message) {
+export async function sendMessageToContentScript(tabId, message) {
   return new Promise((resolve, reject) => {
     chrome.tabs.sendMessage(tabId, message, response => {
       if (chrome.runtime.lastError) {
@@ -109,25 +109,25 @@ async function sendMessageToContentScript(tabId, message) {
 }
 
 // Function to get the active tab
-async function getActiveTab() {
+export async function getActiveTab() {
   const tabs = await chrome.tabs.query({active: true, currentWindow: true});
   return tabs[0] || null;
 }
 
 // Function to check if current page is a GD recruiting page
-async function isOnRecruitingPage() {
+export async function isOnRecruitingPage() {
   const tab = await getActiveTab();
   return tab && tab.url && tab.url.includes('whatifsports.com/gd/recruiting');
 }
 
 // Function to check if current page is the advanced recruiting page
-async function isOnAdvancedRecruitingPage() {
+export async function isOnAdvancedRecruitingPage() {
   const tab = await getActiveTab();
   return tab && tab.url && tab.url.includes('whatifsports.com/gd/recruiting/Advanced.aspx');
 }
 
 // Function to listen for sidebar-specific messages
-function setupSidebarListeners() {
+export function setupSidebarListeners() {
   // Listen for sidebar visibility changes
   if (chrome.sidePanel && chrome.sidePanel.onVisibilityChanged) {
     chrome.sidePanel.onVisibilityChanged.addListener((isVisible) => {
@@ -142,12 +142,13 @@ function setupSidebarListeners() {
   }
 }
 
-// Export functions
+// Export sidebarComms object for backward compatibility
 export const sidebarComms = {
   sendMessageToBackground,
   sendMessageToContentScript,
   getActiveTab,
   isOnRecruitingPage,
   isOnAdvancedRecruitingPage,
-  setupSidebarListeners
+  setupSidebarListeners,
+  isDatabaseError
 };

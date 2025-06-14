@@ -51,11 +51,41 @@ The system extracts 5-digit school IDs from the considering text using the patte
 - Includes status message explaining the highlighting:
   - "✓ Your school is the ONLY school this recruit is considering"
   - "⚠ Your school is among the schools this recruit is considering"
+- Additional context for signed recruits
+
+## Signed Recruit Formatting
+
+### Overview
+The extension also applies special formatting to the entire row based on the recruit's signed status and relationship to your school.
 
 ### Visual Indicators
-- Color-coded left borders for quick visual identification
-- Small icons (✓ and ⚠) in the top-right corner of highlighted cells
-- High contrast colors for accessibility
+
+#### Green Row Background (Signed to Your School)
+- **When**: Recruit is signed AND your school appears in their considering schools list
+- **Styling**: Light green background for entire row with darker green text and enhanced borders
+- **Interpretation**: This recruit successfully signed with your school
+- **Example**: A recruit showing "Signed: Yes" with your school ID in the considering field
+
+#### Gray Row Background (Signed Elsewhere)
+- **When**: Recruit is signed but your school does NOT appear in their considering schools list
+- **Styling**: Light gray background with muted text color and reduced opacity
+- **Interpretation**: This recruit signed with another school and is no longer available
+- **Example**: A recruit showing "Signed: Yes" with only other school IDs in the considering field
+
+#### No Special Row Formatting
+- **When**: Recruit is not signed (Signed: No)
+- **Styling**: Standard row appearance with normal considering school highlighting
+- **Interpretation**: Recruit is still available for recruitment
+
+### Combined Formatting Rules
+The system applies both considering school highlighting and signed status formatting with the following priority:
+1. **Highest Priority**: Signed status (entire row formatting)
+2. **Secondary**: Considering school status (cell-level highlighting within the row context)
+
+### Implementation Notes
+- Signed recruit formatting takes precedence over standard considering school formatting
+- Name cell receives special sticky positioning treatment for all formatting types
+- Tooltips are enhanced to provide clear status messaging for all scenarios
 
 ## Browser Compatibility
 

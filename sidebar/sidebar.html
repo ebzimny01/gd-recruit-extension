@@ -280,8 +280,7 @@
             </div>
             <div class="modal-body">
               <p>
-                You are about to initialize recruits for a new season. Please
-                enter the season number:
+                You are about to initialize recruits for a new season. Please enter the season number and select which divisions to include:
               </p>
               <div class="input-group">
                 <label for="season-number">Season Number:</label>
@@ -294,11 +293,34 @@
                 />
                 <small id="season-input-error" class="error-text"></small>
               </div>
-              <div class="input-group">
-                <label class="checkbox-label">
-                  <input type="checkbox" id="include-lower-divisions" />
-                  Include Lower Divisions
-                </label>
+              <div class="division-selection-group">
+                <label class="division-selection-label">Select Divisions to Include:</label>
+                <div class="division-checkboxes">
+                  <div class="division-checkbox-item">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="division-d1a" value="1" />
+                      <span class="checkbox-label-text">D-IA</span>
+                    </label>
+                  </div>
+                  <div class="division-checkbox-item">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="division-d1aa" value="2" />
+                      <span class="checkbox-label-text">D-IAA</span>
+                    </label>
+                  </div>
+                  <div class="division-checkbox-item">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="division-d2" value="3" />
+                      <span class="checkbox-label-text">D-II</span>
+                    </label>
+                  </div>
+                  <div class="division-checkbox-item">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="division-d3" value="4" />
+                      <span class="checkbox-label-text">D-III</span>
+                    </label>
+                  </div>                </div>
+                <small class="division-help-text">Your school's division will be automatically selected and cannot be unchecked.</small>
               </div>
             </div>
             <div class="modal-footer">
@@ -435,9 +457,8 @@
           </div>
         </div>
       </main>
-    </div>
-
+    </div>    <script src="communications.js" type="module"></script>
     <script src="sidebar.js" type="module"></script>
-    <script src="error-handler.js" type="module"></script>
+    <script src="error-handler.js"></script>
   </body>
 </html>

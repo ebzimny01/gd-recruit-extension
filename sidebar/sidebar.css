@@ -652,116 +652,82 @@ td:first-child.considering-school-included {
   opacity: 0.7;
 }
 
-/* Table sorting styles */
-.recruits-table thead th {
-  position: relative;
+/* Signed recruit row formatting */
+.signed-recruit-elsewhere {
+  background-color: #f8f9fa !important; /* Light gray background */
+  color: #6c757d !important; /* Muted text color */
+  opacity: 0.7;
 }
 
-.recruits-table thead th:not(:last-child) {
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.2s;
+.signed-recruit-elsewhere td {
+  background-color: #f8f9fa !important;
+  color: #6c757d !important;
+  border-color: #dee2e6 !important;
 }
 
-.recruits-table thead th:not(:last-child):hover {
-  background-color: #e8e8e8 !important;
+.signed-recruit-to-school {
+  background-color: #d1f2eb !important; /* Light green background */
+  border: 2px solid #28a745 !important;
 }
 
-.recruits-table thead th.sort-asc,
-.recruits-table thead th.sort-desc {
-  background-color: #d4edda !important;
+.signed-recruit-to-school td {
+  background-color: #d1f2eb !important;
+  color: #155724 !important; /* Dark green text */
+  font-weight: 500;
+  border-color: #28a745 !important;
 }
 
-/* Enhanced table sorting experience */
-#recruits-table thead th:not(:last-child)::after {
-  content: '⇅';
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.3;
-  font-size: 0.8em;
-  transition: opacity 0.2s ease;
-}
-
-#recruits-table thead th:not(:last-child):hover::after {
-  opacity: 0.6;
-}
-
-#recruits-table thead th.sort-asc::after {
-  content: '▲';
-  opacity: 1;
-  color: #28a745;
-}
-
-#recruits-table thead th.sort-desc::after {
-  content: '▼';
-  opacity: 1;
-  color: #28a745;
-}
-
-/* Make sure the sort indicator doesn't interfere with text */
-#recruits-table thead th:not(:last-child) {
-  padding-right: 24px;
-}
-
-/* Remove the separate sort-indicator since we're using ::after */
-.sort-indicator {
-  display: none;
-}
-
-/* Ensure sorting styles work with sticky headers */
-#recruits-table thead th:first-child:hover,
-#recruits-table thead th:first-child.sort-asc,
-#recruits-table thead th:first-child.sort-desc {
-  background-color: #e8e8e8 !important;
-}
-
-#recruits-table thead th:first-child.sort-asc,
-#recruits-table thead th:first-child.sort-desc {
-  background-color: #d4edda !important;
-}
-
-/* Specific styling for the actions column header */
-/* thead th:nth-child(33) {
+/* Special handling for sticky name column when signed */
+td:first-child.signed-recruit-elsewhere {
+  background-color: #f8f9fa !important;
+  color: #6c757d !important;
   position: sticky;
-  top: 0;
-  right: 0;
-  background-color: #f0f0f0 !important;
-  z-index: 20;
-  cursor: default !important;
-} */
+  left: 0;
+  z-index: 5;
+  min-width: 150px;
+  box-shadow: 2px 0 4px rgba(0,0,0,0.05);
+}
 
-/* Replace with standard vertical sticky header only */
-thead th:nth-child(33) {
+td:first-child.signed-recruit-to-school {
+  background-color: #d1f2eb !important;
+  color: #155724 !important;
   position: sticky;
-  top: 0;
-  background-color: #f0f0f0;
-  font-weight: bold;
-  font-size: 12px;
-  white-space: nowrap;
-  z-index: 10;
-  border-right: 1px solid #ddd;
-  cursor: default !important; /* Keep this since it's not sortable */
+  left: 0;
+  z-index: 5;
+  font-weight: 600;
+  min-width: 150px;
+  box-shadow: 2px 0 4px rgba(40, 167, 69, 0.2);
+  border-left: 4px solid #28a745 !important;
 }
 
-tbody tr:hover {
-  background-color: #f5f5f5;
+/* Override considering school formatting when recruit is signed */
+.signed-recruit-elsewhere .considering-school-only,
+.signed-recruit-elsewhere .considering-school-included {
+  background-color: #f8f9fa !important;
+  color: #6c757d !important;
+  border-left: 3px solid #dee2e6 !important;
 }
 
-/* Responsive table scrolling hint */
-.recruits-container::before {
-  content: "← Scroll horizontally to see all columns →";
-  display: block;
-  text-align: center;
-  padding: 5px;
-  background-color: #e3f2fd;
-  color: #1976d2;
-  font-size: 11px;
-  font-style: italic;
-  border-bottom: 1px solid #ddd;
+.signed-recruit-elsewhere .considering-school-only::before,
+.signed-recruit-elsewhere .considering-school-included::before {
+  color: #6c757d !important;
+  opacity: 0.4;
 }
 
+.signed-recruit-to-school .considering-school-only,
+.signed-recruit-to-school .considering-school-included {
+  background-color: #d1f2eb !important;
+  color: #155724 !important;
+  border-left: 3px solid #28a745 !important;
+}
+
+.signed-recruit-to-school .considering-school-only::before,
+.signed-recruit-to-school .considering-school-included::before {
+  color: #28a745 !important;
+  opacity: 1;
+}
+
+/* Pagination styles */
 .pagination {
   flex-shrink: 0; /* Don't shrink this section */
   display: flex;
@@ -2117,4 +2083,72 @@ tbody tr:hover {
 .notification.warning {
   background: #ffc107;
   color: #212529;
+}
+
+/* Division selection styles */
+.division-selection-group {
+  margin-top: 15px;
+}
+
+.division-selection-label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.division-checkboxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.division-checkbox-item {
+  display: flex;
+  align-items: center;
+}
+
+.division-checkbox-item .checkbox-label {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.division-checkbox-item input[type="checkbox"] {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.division-checkbox-item input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.division-checkbox-item .checkbox-label-text {
+  font-weight: 500;
+}
+
+.division-help-text {
+  color: #6c757d;
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Ensure required division is visually distinct */
+.division-checkbox-item.required {
+  background-color: #e8f5e8;
+  padding: 5px;
+  border-radius: 3px;
+  border: 1px solid #c3e6c3;
+}
+
+.division-checkbox-item.required .checkbox-label-text {
+  color: #2d5a2d;
 }

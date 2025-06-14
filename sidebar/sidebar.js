@@ -75,7 +75,8 @@ const elements = {
 };
 
 // State management
-let state = {  recruits: [],
+let state = {
+  recruits: [],
   filteredRecruits: [],
   currentPage: 1,
   itemsPerPage: 10, // Default value
@@ -200,8 +201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (error) {
     console.error('Failed to load version:', error);
   }
-  
-  // Initialize bold attributes configuration
+    // Initialize bold attributes configuration
   try {
     await boldAttributesConfig.init();
     console.log('Bold attributes configuration initialized successfully');
@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Failed to initialize bold attributes configuration:', error);
     setStatusMessage('Warning: Attribute styling configuration failed to load', 'warning');
   }
-  
+     
   // Set initial loading state for school name
   const schoolNameElements = [elements.schoolName, elements.dashboardSchoolName];
   schoolNameElements.forEach(element => {
@@ -879,6 +879,45 @@ function checkCurrentSchoolInConsidering(considering, currentTeamId) {
   }
 }
 
+/**
+ * Determine the signed status of a recruit relative to the current school
+ * 
+ * This function checks if a recruit is signed and whether they signed with the current school
+ * or elsewhere, enabling appropriate row-level formatting.
+ * 
+ * Formatting Rules:
+ * - Gray background: Recruit is signed but not to current school
+ * - Green background: Recruit is signed to current school
+ * - No special formatting: Recruit is not signed
+ * 
+ * @param {Object} recruit - The recruit object containing signed status and considering schools
+ * @param {string} currentTeamId - The current school's team ID (5-digit string)
+ * @returns {string} 'signed_to_school' if signed to current school, 'signed_elsewhere' if signed to another school, 'not_signed' if not signed
+ */
+function checkSignedStatus(recruit, currentTeamId) {
+  // Check if recruit is signed
+  if (!recruit.signed || recruit.signed !== 1) {
+    return 'not_signed';
+  }
+
+  // If signed, check if they signed with the current school
+  const considering = recruit.considering || 'undecided';
+  
+  // For signed recruits, the considering field typically shows the school they signed with
+  if (considering === 'undecided' || !currentTeamId) {
+    return 'signed_elsewhere';
+  }
+
+  const currentSchoolStatus = checkCurrentSchoolInConsidering(considering, currentTeamId);
+  
+  // If current school is in the considering list, they likely signed with us
+  if (currentSchoolStatus === 'only' || currentSchoolStatus === 'included') {
+    return 'signed_to_school';
+  } else {
+    return 'signed_elsewhere';
+  }
+}
+
 // Update recruits list in the UI
 async function updateRecruitsList() {
   if (!elements.recruitsList) return;
@@ -1016,11 +1055,21 @@ async function updateRecruitsList() {
       nameLink.addEventListener('mouseout', () => {
         nameLink.style.textDecoration = 'none';
       });
-      nameCell.appendChild(nameLink);
+      nameCell.appendChild(nameLink);      // Check signed status first for row-level formatting
+      const signedStatus = teamInfo && teamInfo.teamId ? checkSignedStatus(recruit, teamInfo.teamId) : 'not_signed';
+      
+      // Apply signed status formatting to the entire row
+      if (signedStatus === 'signed_to_school') {
+        row.classList.add('signed-recruit-to-school');
+        nameCell.classList.add('signed-recruit-to-school');
+      } else if (signedStatus === 'signed_elsewhere') {
+        row.classList.add('signed-recruit-elsewhere');
+        nameCell.classList.add('signed-recruit-elsewhere');
+      }
 
-      // Apply same formatting to name cell based on considering status
+      // Apply considering status formatting to name cell (unless overridden by signed status)
       const recruitConsidering = recruit.considering || 'undecided';
-      if (teamInfo && teamInfo.teamId && recruitConsidering !== 'undecided') {
+      if (teamInfo && teamInfo.teamId && recruitConsidering !== 'undecided' && signedStatus === 'not_signed') {
         const nameCurrentSchoolStatus = checkCurrentSchoolInConsidering(recruitConsidering, teamInfo.teamId);
         if (nameCurrentSchoolStatus === 'only') {
           nameCell.classList.add('considering-school-only');
@@ -1072,12 +1121,29 @@ async function updateRecruitsList() {
       let tooltip = considering;
       if (teamInfo && teamInfo.teamId && considering !== 'undecided') {
         const currentSchoolStatus = checkCurrentSchoolInConsidering(considering, teamInfo.teamId);
-        if (currentSchoolStatus === 'only') {
+        
+        // Add status-specific CSS classes and tooltips
+        if (signedStatus === 'signed_to_school') {
+          // Already signed to our school - different messaging
           consideringCell.classList.add('considering-school-only');
-          tooltip += '\n\n✓ Your school is the ONLY school this recruit is considering';
-        } else if (currentSchoolStatus === 'included') {
-          consideringCell.classList.add('considering-school-included');
-          tooltip += '\n\n⚠ Your school is among the schools this recruit is considering';
+          tooltip += '\n\n✓ This recruit SIGNED with your school!';
+        } else if (signedStatus === 'signed_elsewhere') {
+          // Signed elsewhere - show as neutral/grayed out
+          if (currentSchoolStatus === 'only' || currentSchoolStatus === 'included') {
+            consideringCell.classList.add('considering-school-included');
+            tooltip += '\n\n❌ This recruit signed elsewhere despite considering your school';
+          } else {
+            tooltip += '\n\n❌ This recruit signed with another school';
+          }
+        } else {
+          // Not signed yet - normal considering logic
+          if (currentSchoolStatus === 'only') {
+            consideringCell.classList.add('considering-school-only');
+            tooltip += '\n\n✓ Your school is the ONLY school this recruit is considering';
+          } else if (currentSchoolStatus === 'included') {
+            consideringCell.classList.add('considering-school-included');
+            tooltip += '\n\n⚠ Your school is among the schools this recruit is considering';
+          }
         }
       }
       consideringCell.title = tooltip;
@@ -1663,18 +1729,16 @@ async function handleScrapeRecruits(options = {}) {
         if (elements.watchlistCount) {
           elements.watchlistCount.textContent = '0';
         }
-      }
-
-      // Now proceed with season initialization (for both new season and first-time init)
+      }      // Now proceed with season initialization (for both new season and first-time init)
       let seasonNumber = null;
-      let includeLowerDivisions = false;
+      let selectedDivisions = [];
 
       try {
         const modalResult = await showSeasonInputModal();
         seasonNumber = modalResult.seasonNumber;
-        includeLowerDivisions = modalResult.includeLowerDivisions;
+        selectedDivisions = modalResult.selectedDivisions || [];
         console.log('Season number from modal:', seasonNumber);
-        console.log('Include lower divisions from modal:', includeLowerDivisions);
+        console.log('Selected divisions from modal:', selectedDivisions);
 
         // If we have a valid season number, update the dashboard immediately
         if (seasonNumber) {
@@ -1690,11 +1754,11 @@ async function handleScrapeRecruits(options = {}) {
         return;
       }      // Send request to background script to fetch and scrape recruits
       setScrapingStatus('Opening recruit page in background...');
-      console.log('Sending fetchAndScrapeRecruits with seasonNumber:', seasonNumber);
+      console.log('Sending fetchAndScrapeRecruits with seasonNumber:', seasonNumber, 'and selectedDivisions:', selectedDivisions);
       const result = await sendMessageToBackground({
         action: 'fetchAndScrapeRecruits',
-        includeLowerDivisions: includeLowerDivisions,
-        seasonNumber: seasonNumber
+        seasonNumber: seasonNumber,
+        selectedDivisions: selectedDivisions
       });
 
       if (!result.success) {
@@ -1973,7 +2037,7 @@ IndexedDB supported: ${dbInfo.idbDetails ? dbInfo.idbDetails.supported : 'Unknow
       errorMessage += 'Connection to background script was lost. Try reloading the extension.';
     } else {
       errorMessage += error.message;
-    }
+       }
     
     setStatusMessage(errorMessage, 'error');
     
@@ -1990,21 +2054,95 @@ Possible solutions:
   }
 }
 
+// Function to initialize division checkboxes based on current team division
+async function initializeDivisionCheckboxes() {
+  try {
+    // Get current team info
+    const stats = await sendMessageToBackground({ action: 'getStats' });
+    const currentDivision = stats?.teamInfo?.division;
+    
+    console.log('Initializing division checkboxes, current division:', currentDivision);
+
+    // Division mapping: checkbox ID -> {division name, value, element}
+    const divisionMapping = {
+      'division-d1a': { division: 'D-IA', value: '1' },
+      'division-d1aa': { division: 'D-IAA', value: '2' },
+      'division-d2': { division: 'D-II', value: '3' },
+      'division-d3': { division: 'D-III', value: '4' }
+    };
+
+    // Reset all checkboxes and containers
+    Object.keys(divisionMapping).forEach(checkboxId => {
+      const checkbox = document.getElementById(checkboxId);
+      const container = checkbox?.closest('.division-checkbox-item');
+      
+      if (checkbox && container) {
+        // Reset checkbox state
+        checkbox.checked = false;
+        checkbox.disabled = false;
+        
+        // Reset container styling
+        container.classList.remove('required');
+        
+        // Reset checkbox label styling
+        const labelText = container.querySelector('.checkbox-label-text');
+        if (labelText) {
+          labelText.style.color = '';
+          labelText.style.fontWeight = '';
+        }
+      }
+    });
+
+    // Find and configure the current school's division
+    if (currentDivision) {
+      const currentDivisionEntry = Object.entries(divisionMapping).find(
+        ([, config]) => config.division === currentDivision
+      );
+
+      if (currentDivisionEntry) {
+        const [checkboxId, config] = currentDivisionEntry;
+        const checkbox = document.getElementById(checkboxId);
+        const container = checkbox?.closest('.division-checkbox-item');
+
+        if (checkbox && container) {
+          // Check and disable the current school's division
+          checkbox.checked = true;
+          checkbox.disabled = true;
+          
+          // Add visual styling to indicate it's required
+          container.classList.add('required');
+          
+          console.log(`Auto-selected and disabled ${config.division} (current school's division)`);
+        }
+      } else {
+        console.warn('Unknown division format:', currentDivision);
+      }
+    } else {
+      console.warn('No current division found in team info');
+    }
+
+  } catch (error) {
+    console.error('Error initializing division checkboxes:', error);
+    // If there's an error, don't prevent the modal from showing
+    // Just log the error and continue
+  }
+}
+
 // Function to show the season input modal
-function showSeasonInputModal() {
-  return new Promise((resolve, reject) => {
+function showSeasonInputModal() {  return new Promise(async (resolve, reject) => {
     const modal = document.getElementById('season-modal');
     const closeBtn = document.getElementById('season-modal-close');
     const confirmBtn = document.getElementById('season-confirm');
     const cancelBtn = document.getElementById('season-cancel');
     const seasonInput = document.getElementById('season-number');
     const errorText = document.getElementById('season-input-error');
-    const includeLowerDivisions = document.getElementById('include-lower-divisions');
 
     // Clear previous errors and reset input
     errorText.textContent = '';
     seasonInput.value = '1';
-    includeLowerDivisions.checked = false;
+
+    // Initialize division checkboxes based on current team division
+    await initializeDivisionCheckboxes();
 
     // Show the modal
     modal.style.display = 'block';
@@ -2022,8 +2160,7 @@ function showSeasonInputModal() {
     cancelBtn.onclick = () => {
       modal.style.display = 'none';
       reject(new Error('Season input cancelled'));
-    };
-    // Handle confirm button click
+    };    // Handle confirm button click
     confirmBtn.onclick = () => {
       const seasonNumber = parseInt(seasonInput.value);
       console.log('Confirm button clicked, parsed season number:', seasonNumber, 'from input value:', seasonInput.value);
@@ -2033,10 +2170,30 @@ function showSeasonInputModal() {
         return;
       }
 
+      // Collect selected divisions
+      const selectedDivisions = [];
+      const divisionCheckboxes = [
+        { element: document.getElementById('division-d1a'), value: '1' },
+        { element: document.getElementById('division-d1aa'), value: '2' },
+        { element: document.getElementById('division-d2'), value: '3' },
+        { element: document.getElementById('division-d3'), value: '4' }
+      ];
+
+      divisionCheckboxes.forEach(({ element, value }) => {
+        if (element && element.checked) {
+          selectedDivisions.push(value);
+        }
+      });
+
+      if (selectedDivisions.length === 0) {
+        errorText.textContent = 'Please select at least one division';
+        return;
+      }
+
       modal.style.display = 'none';
       resolve({
         seasonNumber,
-        includeLowerDivisions: includeLowerDivisions.checked
+        selectedDivisions
       });
     };
 
@@ -2282,6 +2439,9 @@ function setStatusMessage(message, type = 'info') {
 
   elements.statusMessage.textContent = message;
 }
+
+// Make setStatusMessage globally available for error-handler.js
+window.setStatusMessage = setStatusMessage;
 
 // Helper function to format date
 function formatDate(dateStr) {

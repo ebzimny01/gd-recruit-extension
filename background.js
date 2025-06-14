@@ -11,6 +11,9 @@ import {
   initializeDefaultRatings
 } from './lib/calculator.js';
 
+// Configuration constants
+const SEASON_RECRUITING_URL_KEY = 'seasonRecruitingUrl';
+
 // Add this code near the top of your background file, where other initialization happens
 
 // Check all existing tabs when extension is first loaded
@@ -188,23 +191,55 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         seasonPromise = recruitStorage.saveConfig('currentSeason', message.seasonNumber)
           .then(() => console.log('Season number saved successfully'))
           .catch(err => console.error('Error saving season number:', err));
-      }
-
-      // Only proceed with team info AFTER season number is saved
+      }      // Only proceed with team info AFTER season number is saved
       seasonPromise.then(() => {
         // Get team info to determine appropriate URL
         return getTeamInfoFromCookies();
-      }).then(teamInfo => {        // Determine URL based on team division and includeLowerDivisions preference
-        const url = getUrlForDivision(
-          teamInfo?.division,
-          message.includeLowerDivisions
-        );
+      }).then(async (teamInfo) => {        
+        // Determine URL based on selected divisions or team division
+        const selectedDivisions = message.selectedDivisions || [];
+        let url;
         
-        // Add url parameters for auto scrape mode
+        if (selectedDivisions.length > 0 && !isRefreshOnly) {
+          // Use selected divisions from the modal for new season initialization
+          url = getUrlForSelectedDivisions(selectedDivisions);
+          console.log('Using selected divisions:', selectedDivisions);
+            // Store the URL for future refresh operations
+          try {
+            await recruitStorage.saveConfig(SEASON_RECRUITING_URL_KEY, url);
+            console.log('Stored recruiting URL for future refresh operations:', url);
+          } catch (error) {
+            console.error('Error storing recruiting URL:', error);
+          }
+              } else if (isRefreshOnly) {
+          // For refresh operations, try to use the stored URL first
+          try {
+            const storedUrl = await recruitStorage.getConfig(SEASON_RECRUITING_URL_KEY);
+            if (storedUrl) {
+              url = storedUrl;
+              console.log('✓ Using stored recruiting URL for refresh:', url);
+            } else {
+              // Fallback to team division if no stored URL
+              url = getUrlForDivision(teamInfo?.division);
+              console.log('⚠ No stored URL found, using team division fallback:', teamInfo?.division);
+            }
+          } catch (error) {
+            console.error('Error retrieving stored URL, using team division:', error);
+            url = getUrlForDivision(teamInfo?.division);
+          }
+        } else {
+          // Fallback to team division for new seasons when no divisions selected
+          url = getUrlForDivision(teamInfo?.division);
+          console.log('Using team division:', teamInfo?.division);
+        }
+          // Add url parameters for auto scrape mode
         const urlWithParams = isRefreshOnly ? 
           `${url}&auto_scrape=true&refresh_mode=true` : 
           `${url}&auto_scrape=true`;
-        
+          
+        console.log(`Final recruiting URL with parameters: ${urlWithParams}`);
+        return { urlWithParams, teamInfo };
+      }).then(({ urlWithParams, teamInfo }) => {
         // Store the fields to update if this is a refresh
         if (isRefreshOnly && fieldsToUpdate.length > 0) {
           recruitStorage.saveConfig('refreshFieldsToUpdate', JSON.stringify(fieldsToUpdate))
@@ -1115,13 +1150,17 @@ async function clearAllData() {
     } catch (configError) {
       console.error('Error resetting watchlistCount config:', configError);
       // Continue with other operations despite this error
-    }
-
-    try {
+    }    try {
       await recruitStorage.saveConfig('currentSeason', null);
       console.log('Successfully removed current season');
     } catch (configError) {
       console.error('Error removing currentSeason config:', configError);
+      // Continue with other operations despite this error
+    }    try {
+      await recruitStorage.saveConfig(SEASON_RECRUITING_URL_KEY, null);
+      console.log('Successfully cleared stored recruiting URL');
+    } catch (configError) {
+      console.error('Error clearing seasonRecruitingUrl config:', configError);
       // Continue with other operations despite this error
     }
 
@@ -1361,59 +1400,50 @@ async function getTeamInfoFromCookies() {
 }
 
 // Get URL for division
-function getUrlForDivision(division, includeLowerDivisions = false) {
+function getUrlForDivision(division) {
   // If division is not found or not provided, use the default URL
   if (!division) {
     return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=1&positions=1,2,3,4,5,6,7,8,9,10';
   }
 
-  // Map division to URL
+  // Map division to URL - only include the exact division
   // D-IA is the highest division
   if (division === 'D-IA') {
-    if (includeLowerDivisions) {
-      // Include D-IA and D-IAA
-      return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=1,2&positions=1,2,3,4,5,6,7,8,9,10';
-    } else {
-      // Only D-IA
-      return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=1&positions=1,2,3,4,5,6,7,8,9,10';
-    }
+    return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=1&positions=1,2,3,4,5,6,7,8,9,10';
   }
 
   // D-IAA is the second division
   if (division === 'D-IAA') {
-    if (includeLowerDivisions) {
-      // Include D-IAA and D-II
-      return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=2,3&positions=1,2,3,4,5,6,7,8,9,10';
-    } else {
-      // Only D-IAA
-      return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=2&positions=1,2,3,4,5,6,7,8,9,10';
-    }
+    return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=2&positions=1,2,3,4,5,6,7,8,9,10';
   }
 
   // D-II is the third division
   if (division === 'D-II') {
-    if (includeLowerDivisions) {
-      // Include D-II and D-III
-      return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=3,4&positions=1,2,3,4,5,6,7,8,9,10';
-    } else {
-      // Only D-II
-      return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=3&positions=1,2,3,4,5,6,7,8,9,10';
-    }
+    return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=3&positions=1,2,3,4,5,6,7,8,9,10';
   }
 
   // D-III is the lowest division
   if (division === 'D-III') {
-    if (includeLowerDivisions) {
-      // Include D-II and D-III
-      return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=3,4&positions=1,2,3,4,5,6,7,8,9,10';
-    } else {
-      // Only D-III
-      return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=4&positions=1,2,3,4,5,6,7,8,9,10';
-    }
+    return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=4&positions=1,2,3,4,5,6,7,8,9,10';
   }
-
   // Default URL if division doesn't match any known division
   return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=4&positions=1,2,3,4,5,6,7,8,9,10';
+}
+
+// Get URL for multiple selected divisions
+function getUrlForSelectedDivisions(selectedDivisions) {
+  if (!selectedDivisions || selectedDivisions.length === 0) {
+    // Fallback to D-IA if no divisions selected
+    return 'https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=1&positions=1,2,3,4,5,6,7,8,9,10';
+  }
+
+  // Sort the divisions to ensure consistent URL generation
+  const sortedDivisions = selectedDivisions.sort((a, b) => parseInt(a) - parseInt(b));
+  const divisionsParam = sortedDivisions.join(',');
+  
+  console.log('Selected division values:', selectedDivisions, 'URL param:', divisionsParam);
+  
+  return `https://www.whatifsports.com/gd/recruiting/Advanced.aspx?divisions=${divisionsParam}&positions=1,2,3,4,5,6,7,8,9,10`;
 }
 
 // Module-level variable to store current scrape tab ID

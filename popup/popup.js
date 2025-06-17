@@ -1255,9 +1255,8 @@ async function handleClearData() {
     if (!confirmed) return;
     
     setStatusMessage('Clearing data...', 'info');
-    
-    const response = await popupComms.sendMessageToBackground({
-      action: 'clearData'
+      const response = await popupComms.sendMessageToBackground({
+      action: 'clearAllData'
     });
     
     if (response.error) {
@@ -1300,9 +1299,8 @@ async function handleRefreshAllData() {
 async function handleCheckDatabase() {
   try {
     setStatusMessage('Checking database...', 'info');
-    
-    const response = await popupComms.sendMessageToBackground({
-      action: 'checkDatabase'
+      const response = await popupComms.sendMessageToBackground({
+      action: 'checkDatabaseStatus'
     });
     
     if (response.error) {
@@ -1851,9 +1849,8 @@ async function handleRecalculateAllRatings() {
   
   try {
     setStatusMessage('Recalculating all role ratings...', 'info');
-    
-    const response = await popupComms.sendMessageToBackground({
-      action: 'recalculateAllRoleRatings'
+      const response = await popupComms.sendMessageToBackground({
+      action: 'recalculateRoleRatings'
     });
     
     if (response.error) {

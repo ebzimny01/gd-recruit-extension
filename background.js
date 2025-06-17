@@ -153,39 +153,149 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }).catch(error => {
         console.error('Error checking login:', error);
         sendResponse({ loggedIn: false, error: error.message });
-      });
-      return true; // Indicate asynchronous response      // Case to scrape / sync recruits
-    case 'syncRecruits':
+      });      return true; // Indicate asynchronous response    case 'syncRecruits':
       console.log('Syncing recruits from existing tab');
       // Get the tab ID, either from sender or find active tab
       if (sender.tab && sender.tab.id) {
-        // Inject directly if we have the tab ID
-        injectContentScript('content/scraper.js', sender.tab.id)
-          .then(() => {
-            sendResponse({ success: true });
-          })
-          .catch(error => {
-            console.error('Error injecting script:', error);
-            sendResponse({ success: false, error: error.message });
-          });
+        // Check if tab is valid before injecting
+        isValidTabForInjection(sender.tab.id).then(isValid => {
+          if (!isValid) {
+            sendResponse({ 
+              success: false, 
+              error: 'Current tab is not on whatifsports.com or not fully loaded. Please navigate to a recruiting page first.' 
+            });
+            return;
+          }
+          
+          // Inject directly if we have the tab ID
+          injectContentScript('content/scraper.js', sender.tab.id)
+            .then(() => {
+              sendResponse({ success: true });
+            })
+            .catch(error => {
+              console.error('Error injecting script:', error);
+              sendResponse({ success: false, error: error.message });
+            });
+        }).catch(error => {
+          sendResponse({ success: false, error: 'Error validating tab: ' + error.message });
+        });
       } else {
         // Find the active tab and inject there
         chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
           if (tabs && tabs.length > 0) {
-            injectContentScript('content/scraper.js', tabs[0].id)
-              .then(() => {
-                sendResponse({ success: true });
-              })
-              .catch(error => {
-                console.error('Error injecting script:', error);
-                sendResponse({ success: false, error: error.message });
-              });
+            isValidTabForInjection(tabs[0].id).then(isValid => {
+              if (!isValid) {
+                sendResponse({ 
+                  success: false, 
+                  error: 'Active tab is not on whatifsports.com or not fully loaded. Please navigate to a recruiting page first.' 
+                });
+                return;
+              }
+              
+              injectContentScript('content/scraper.js', tabs[0].id)
+                .then(() => {
+                  sendResponse({ success: true });
+                })
+                .catch(error => {
+                  console.error('Error injecting script:', error);
+                  sendResponse({ success: false, error: error.message });
+                });
+            }).catch(error => {
+              sendResponse({ success: false, error: 'Error validating tab: ' + error.message });
+            });
           } else {
             sendResponse({ success: false, error: 'No active tab found' });
           }
         });
       }
       return true; // Indicate asynchronous response
+
+    case 'updateConsidering':
+      console.log('Handling updateConsidering request');
+      updateConsideringStatus()
+        .then(result => {
+          sendResponse({ success: true, result });
+        })
+        .catch(error => {
+          console.error('Error updating considering status:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Indicate asynchronous response    case 'scrapeRecruits':
+      console.log('Handling scrapeRecruits request');
+      // This can be handled similarly to syncRecruits
+      if (sender.tab && sender.tab.id) {
+        isValidTabForInjection(sender.tab.id).then(isValid => {
+          if (!isValid) {
+            sendResponse({ 
+              success: false, 
+              error: 'Current tab is not on whatifsports.com or not fully loaded. Please navigate to a recruiting page first.' 
+            });
+            return;
+          }
+          
+          injectContentScript('content/scraper.js', sender.tab.id)
+            .then(() => {
+              sendResponse({ success: true });
+            })
+            .catch(error => {
+              console.error('Error injecting script:', error);
+              sendResponse({ success: false, error: error.message });
+            });
+        }).catch(error => {
+          sendResponse({ success: false, error: 'Error validating tab: ' + error.message });
+        });
+      } else {
+        chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+          if (tabs && tabs.length > 0) {
+            isValidTabForInjection(tabs[0].id).then(isValid => {
+              if (!isValid) {
+                sendResponse({ 
+                  success: false, 
+                  error: 'Active tab is not on whatifsports.com or not fully loaded. Please navigate to a recruiting page first.' 
+                });
+                return;
+              }
+              
+              injectContentScript('content/scraper.js', tabs[0].id)
+                .then(() => {
+                  sendResponse({ success: true });
+                })
+                .catch(error => {
+                  console.error('Error injecting script:', error);
+                  sendResponse({ success: false, error: error.message });
+                });
+            }).catch(error => {
+              sendResponse({ success: false, error: 'Error validating tab: ' + error.message });
+            });
+          } else {
+            sendResponse({ success: false, error: 'No active tab found' });
+          }
+        });
+      }
+      return true; // Indicate asynchronous response
+
+    case 'exportData':
+      console.log('Handling exportData request');
+      exportAllData()
+        .then(data => {
+          sendResponse({ success: true, data });
+        })
+        .catch(error => {
+          console.error('Error exporting data:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Indicate asynchronous response    case 'importData':
+      console.log('Handling importData request');
+      importData(message.data)
+        .then(result => {
+          sendResponse({ success: true, result });
+        })
+        .catch(error => {
+          console.error('Error importing data:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Indicate asynchronous response
+
     case 'fetchAndScrapeRecruits':
       console.log('Fetching and scraping recruits from new tab');
 
@@ -609,6 +719,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         })
         .catch(error => {
           console.error('Error resetting role ratings:', error);
+          sendResponse({ success: false, error: error.message });        });
+      return true;
+
+    case 'resetPositionRoleRatings':
+      // Reset role ratings for a specific position
+      console.log('Resetting role ratings for position:', message.position);
+      resetRoleRatingsToDefaults(message.position)
+        .then(async () => {
+          // Recalculate role ratings for this position
+          const recalcResult = await recalculateRoleRatings([message.position]);
+          
+          // Broadcast the update
+          broadcastDataUpdate('positionRoleRatingsReset', {
+            position: message.position,
+            recalculated: recalcResult.updatedCount,
+            totalRecruits: recalcResult.totalRecruits
+          });
+          
+          sendResponse({ 
+            success: true, 
+            position: message.position,
+            recalculated: recalcResult.updatedCount,
+            totalRecruits: recalcResult.totalRecruits 
+          });
+        })
+        .catch(error => {
+          console.error('Error resetting position role ratings:', error);
           sendResponse({ success: false, error: error.message });
         });
       return true;
@@ -816,12 +953,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           } else {
             sendResponse({ success: false, error: 'Could not retrieve team info' });
           }
-        })
-        .catch(error => {
+        })        .catch(error => {
           console.error('Error refreshing team info:', error);
           sendResponse({ success: false, error: error.message });
         });
       return true;
+
+    default:
+      console.warn('Unknown message action:', message.action);
+      sendResponse({ success: false, error: `Unknown action: ${message.action}` });
+      return false;
   }
 });
 
@@ -1076,13 +1217,42 @@ async function updateWatchlist(watchlist) {
 }
 
 // Inject a content script into a tab
+// Helper function to check if a tab is valid for script injection
+async function isValidTabForInjection(tabId) {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    return tab.url && tab.url.includes('whatifsports.com') && tab.status === 'complete';
+  } catch (error) {
+    console.error('Error checking tab validity:', error);
+    return false;
+  }
+}
+
 async function injectContentScript(scriptPath, tabId) {
   console.log(`Injecting script ${scriptPath} into tab ${tabId}`);
 
-  return chrome.scripting.executeScript({
-    target: { tabId },
-    files: [scriptPath]
-  });
+  try {
+    // First, get the tab info to check if we have permission
+    const tab = await chrome.tabs.get(tabId);
+    
+    // Check if the tab URL is on whatifsports.com domain
+    if (!tab.url || !tab.url.includes('whatifsports.com')) {
+      throw new Error(`Cannot inject script: Tab is not on whatifsports.com domain. Current URL: ${tab.url}`);
+    }
+
+    // Check if the tab is completely loaded
+    if (tab.status !== 'complete') {
+      console.warn(`Tab ${tabId} is not fully loaded (status: ${tab.status}), attempting injection anyway`);
+    }
+
+    return await chrome.scripting.executeScript({
+      target: { tabId },
+      files: [scriptPath]
+    });
+  } catch (error) {
+    console.error(`Failed to inject script ${scriptPath} into tab ${tabId}:`, error);
+    throw error;
+  }
 }
 
 // Export all data

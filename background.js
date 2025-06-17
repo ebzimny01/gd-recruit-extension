@@ -14,6 +14,30 @@ import {
 // Configuration constants
 const SEASON_RECRUITING_URL_KEY = 'seasonRecruitingUrl';
 
+// Handle extension icon click - open popup as new tab for better user experience
+chrome.action.onClicked.addListener(async (tab) => {
+  try {
+    // Check if popup tab is already open
+    const existingTabs = await chrome.tabs.query({ 
+      url: chrome.runtime.getURL('popup/popup.html') 
+    });
+    
+    if (existingTabs.length > 0) {
+      // Focus existing tab
+      chrome.tabs.update(existingTabs[0].id, { active: true });
+      chrome.windows.update(existingTabs[0].windowId, { focused: true });
+    } else {
+      // Create new tab
+      chrome.tabs.create({
+        url: chrome.runtime.getURL('popup/popup.html'),
+        active: true
+      });
+    }
+  } catch (error) {
+    console.error('Error opening popup tab:', error);
+  }
+});
+
 // Add this code near the top of your background file, where other initialization happens
 
 // Check all existing tabs when extension is first loaded
@@ -59,21 +83,15 @@ chrome.runtime.onInstalled.addListener(async () => {
     console.error('Error initializing default role ratings:', error);
     // Continue with other initialization even if this fails
   }
-
   // Set initial stats
   recruitStorage.saveConfig('lastUpdated', new Date().toISOString());
   recruitStorage.saveConfig('watchlistCount', 0);
 
-  // Set up side panel
-  if (chrome.sidePanel) {
-    chrome.sidePanel.setOptions({
-      path: 'sidebar/sidebar.html',
-      enabled: true
-    });
-  }
+  // Extension uses popup window instead of side panel
+  console.log('Extension initialized - popup ready');
 });
 
-// Set up action listener to open side panel
+// Handle action clicks - popup will open automatically via manifest
 chrome.action.onClicked.addListener((tab) => {
   // Scan all open tabs for GD Office page when extension is clicked
   checkAllTabsForGDOffice();
@@ -87,17 +105,8 @@ chrome.action.onClicked.addListener((tab) => {
     console.error('Error checking for cookie on extension click:', error);
   });
   
-  // Only open side panel on whatifsports.com domains or when developing locally
-  if (chrome.sidePanel) {
-    // First open the panel
-    chrome.sidePanel.open({ tabId: tab.id });
-
-    // Then set the focus to it
-    chrome.sidePanel.setOptions({
-      enabled: true,
-      path: 'sidebar/sidebar.html'
-    });
-  }
+  // Note: Popup will open automatically due to default_popup in manifest
+  console.log('Extension action clicked - popup should open automatically');
 });
 
 // Listen for messages from content scripts or popup

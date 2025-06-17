@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GD Recruit Assistant</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="popup-container">
+      <header class="popup-header">
+        <div class="school-info">
+          <span id="schoolName">Loading...</span>
+        </div>
+        <div class="tabs">
+          <button id="tab-dashboard" class="tab-btn active">Dashboard</button>
+          <button id="tab-recruits" class="tab-btn">Recruits</button>
+          <button id="tab-settings" class="tab-btn">Settings</button>
+        </div>
+      </header>
+
+      <main class="popup-main">
+        <!-- Dashboard Tab -->
+        <section id="dashboard-section" class="tab-content active">
+          <div class="stats-container">
+            <div class="stat-card">
+              <h3>School</h3>
+              <p id="dashboardSchoolName" class="stat-value">-</p>
+            </div>
+            <div class="stat-card">
+              <h3>Division</h3>
+              <p id="team-division" class="stat-value">-</p>
+            </div>
+            <div class="stat-card">
+              <h3>World</h3>
+              <p id="team-world" class="stat-value">-</p>
+            </div>
+            <div class="stat-card">
+              <h3>Recruits</h3>
+              <p id="recruit-count">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Watchlist</h3>
+              <p id="watchlist-count">0</p>
+            </div>
+            <div class="stat-card">
+              <h3>Season</h3>
+              <p id="current-season">N/A</p>
+            </div>
+            <div class="stat-card">
+              <h3>Last Updated</h3>
+              <p id="last-updated">Never</p>
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button id="btn-scrape-recruits" class="action-btn">
+              Initialize Season
+            </button>
+            <button id="btn-update-considering" class="action-btn">
+              Refresh Recruit Data
+            </button>
+          </div>
+          <div class="status-box">
+            <p id="status-message">Ready</p>
+          </div>
+        </section>
+
+        <!-- Recruits Tab -->
+        <section id="recruits-section" class="tab-content">
+          <div class="filter-controls">
+            <div class="filter-section">
+              <div class="filter-item">
+                <label for="filter-position">Position:</label>
+                <select
+                  id="filter-position"
+                  title="Filter by position"
+                ></select>
+              </div>
+              <div class="filter-item">
+                <label for="filter-potential">Potential:</label>
+                <select
+                  id="filter-potential"
+                  title="Filter by potential"
+                ></select>
+              </div>
+              <div class="filter-item">
+                <label for="filter-division">Division:</label>
+                <select
+                  id="filter-division"
+                  title="Filter by division"
+                ></select>
+              </div>
+              <div class="filter-item checkbox-filter">
+                <label for="filter-watched">
+                  <input
+                    type="checkbox"
+                    id="filter-watched"
+                    title="Show only watched recruits"
+                  />
+                  <span class="checkbox-label-text">Watched Only</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="filter-section">
+              <div class="filter-item">
+                <label for="filter-priority">Priority:</label>
+                <select
+                  id="filter-priority"
+                  title="Filter by priority"
+                ></select>
+              </div>
+              <div class="filter-item">
+                <label for="filter-distance">Distance:</label>
+                <select
+                  id="filter-distance"
+                  title="Filter by distance"
+                ></select>
+              </div>
+              <div class="filter-item checkbox-filter">
+                <label for="filter-hide-signed">
+                  <input
+                    type="checkbox"
+                    id="filter-hide-signed"
+                    title="Hide signed recruits"
+                  />
+                  <span class="checkbox-label-text">Hide Signed</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <div class="pagination-controls">
+            <div class="page-size-control">
+              <label for="page-size-select">Results per page</label>
+              <select
+                id="page-size-select"
+                title="Select number of results per page"
+              >
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="all">All</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="recruits-container">
+            <div class="table-wrapper">
+              <table id="recruits-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Pos</th>
+                    <th>Watched</th>
+                    <th>Pot</th>
+                    <th>Priority</th>
+                    <th>Height</th>
+                    <th>Weight</th>
+                    <th>Rating</th>
+                    <th>Rank</th>
+                    <th>Hometown</th>
+                    <th>Division</th>
+                    <th>Miles</th>
+                    <th>Signed</th>
+                    <th>GPA</th>
+                    <th>Ath</th>
+                    <th>Spd</th>
+                    <th>Dur</th>
+                    <th>WE</th>
+                    <th>Sta</th>
+                    <th>Str</th>
+                    <th>Blk</th>
+                    <th>Tkl</th>
+                    <th>Han</th>
+                    <th>GI</th>
+                    <th>Elu</th>
+                    <th>Tec</th>
+                    <th>R1</th>
+                    <th>R2</th>
+                    <th>R3</th>
+                    <th>R4</th>
+                    <th>R5</th>
+                    <th>R6</th>
+                    <th>Considering Schools</th>
+                  </tr>
+                </thead>
+                <tbody id="recruits-list"></tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="pagination">
+            <button id="prev-page">Previous</button>
+            <div class="pagination-info">
+              <span id="page-info">Page 1 of 1</span>
+            </div>
+            <button id="next-page">Next</button>
+          </div>
+        </section>
+
+        <!-- Settings Tab -->
+        <section id="settings-section" class="tab-content">
+          <div class="settings-group">
+            <h3>Data Management</h3>
+            <div class="setting-row">
+              <button 
+                id="btn-export-data"
+                class="setting-btn"
+                disabled
+                title="Export functionality not yet implemented">
+                Export Data
+              </button>
+              <button
+                id="btn-import-data"
+                class="setting-btn"
+                disabled
+                title="Import functionality not yet implemented"
+              >
+                Import Data
+              </button>
+            </div>
+            <div class="setting-row">
+              <button id="btn-clear-data" class="setting-btn">
+                Clear Data
+              </button>
+              <button id="btn-check-db" class="setting-btn">
+                Check Database
+              </button>
+            </div>
+            <div class="setting-row">
+              <button id="btn-refresh-data" class="setting-btn">
+                Manual Refresh
+              </button>
+            </div>
+          </div>
+          
+          <div class="settings-group">
+            <h3>Role Ratings Configuration</h3>
+            <p>
+              Customize the weight values applied to recruit attributes for
+              different position roles:
+            </p>
+            <div class="setting-row">
+              <button id="btn-edit-role-ratings" class="setting-btn">
+                Edit Role Ratings
+              </button>
+              <button id="btn-reset-role-ratings" class="setting-btn">
+                Reset to Defaults
+              </button>
+            </div>
+          </div>
+          
+          <div class="settings-group">
+            <h3>Attribute Styling Configuration</h3>
+            <p>
+              Configure which attributes should be highlighted for each
+              position:
+            </p>
+            <div class="setting-row">
+              <button id="btn-edit-bold-attributes" class="setting-btn">
+                Edit Attribute Styling
+              </button>
+              <button id="btn-reset-bold-attributes" class="setting-btn">
+                Reset to Defaults
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>Table Column Visibility</h3>
+            <p>Customize which columns are visible in the recruits table:</p>
+            <div class="setting-row">
+              <button id="btn-column-visibility" class="setting-btn">
+                Manage Column Visibility
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-group">
+            <h3>About</h3>
+            <p id="version-display">GD Recruit Assistant v0.0.0</p>
+            <p>
+              A browser extension for Gridiron Dynasty recruiting management
+            </p>
+          </div>
+        </section>
+
+        <!-- Season Input Modal -->
+        <div id="season-modal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>Initialize Season</h2>
+              <span class="close-button" id="season-modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+              <p>
+                You are about to initialize recruits for a new season. Please enter the season number and select which divisions to include:
+              </p>
+              <div class="input-group">
+                <label for="season-number">Season Number:</label>
+                <input
+                  type="number"
+                  id="season-number"
+                  min="1"
+                  step="1"
+                  value="1"
+                />
+                <small id="season-input-error" class="error-text"></small>
+              </div>
+              <div class="division-selection-group">
+                <label class="division-selection-label">Select Divisions to Include:</label>
+                <div class="division-checkboxes">
+                  <div class="division-checkbox-item">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="division-d1a" value="1" />
+                      <span class="checkbox-label-text">D-IA</span>
+                    </label>
+                  </div>
+                  <div class="division-checkbox-item">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="division-d1aa" value="2" />
+                      <span class="checkbox-label-text">D-IAA</span>
+                    </label>
+                  </div>
+                  <div class="division-checkbox-item">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="division-d2" value="3" />
+                      <span class="checkbox-label-text">D-II</span>
+                    </label>
+                  </div>
+                  <div class="division-checkbox-item">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="division-d3" value="4" />
+                      <span class="checkbox-label-text">D-III</span>
+                    </label>
+                  </div>
+                </div>
+                <small class="division-help-text">Your school's division will be automatically selected and cannot be unchecked.</small>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button id="season-confirm" class="action-btn">Confirm</button>
+              <button id="season-cancel" class="action-btn secondary">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Role Ratings Configuration Modal -->
+        <div id="role-ratings-modal" class="modal hidden">
+          <div class="modal-content role-ratings-modal-content">
+            <div class="modal-header">
+              <h2>Role Ratings Configuration</h2>
+              <span class="close-button" id="role-ratings-modal-close"
+                >&times;</span
+              >
+            </div>
+            <div class="modal-body">
+              <p>
+                Customize the weight values for each attribute in role
+                calculations. Each role's total should equal 100.
+              </p>
+
+              <!-- Position Tabs -->
+              <div class="position-tabs" id="position-tabs">
+                <!-- Position tabs will be populated dynamically -->
+              </div>
+
+              <!-- Position Content -->
+              <div class="position-content" id="position-content">
+                <!-- Dynamic content for each position -->
+              </div>
+
+              <div class="role-actions">
+                <button id="role-reset-position" class="action-btn secondary">
+                  Reset Position
+                </button>
+                <button id="role-recalculate" class="action-btn secondary">
+                  Recalculate All Ratings
+                </button>
+                <button id="role-debug" class="action-btn debug hidden">
+                  Debug Ratings
+                </button>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button id="role-ratings-save" class="action-btn">
+                Save Changes
+              </button>
+              <button id="role-ratings-cancel" class="action-btn secondary">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bold Attributes Configuration Modal -->
+        <div id="bold-attributes-modal" class="modal hidden">
+          <div class="modal-content bold-attributes-modal-content">
+            <div class="modal-header">
+              <h2>Attribute Styling Configuration</h2>
+              <span class="close-button" id="bold-attributes-modal-close"
+                >&times;</span
+              >
+            </div>
+            <div class="modal-body">
+              <p>
+                Select which attributes should be highlighted (bold) for each
+                position:
+              </p>
+
+              <div class="position-selector">
+                <label for="position-select">Position:</label>
+                <select id="position-select">
+                  <!-- Options will be populated dynamically -->
+                </select>
+              </div>
+
+              <div class="attributes-grid" id="attributes-grid">
+                <!-- Attribute checkboxes will be populated dynamically -->
+              </div>
+
+              <div class="preview-section">
+                <h4>Preview:</h4>
+                <div class="attribute-preview" id="attribute-preview">
+                  <!-- Preview will be shown here -->
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button id="bold-attributes-save" class="action-btn">
+                Save Changes
+              </button>
+              <button
+                id="bold-attributes-reset-position"
+                class="action-btn secondary"
+              >
+                Reset Defaults
+              </button>
+              <button id="bold-attributes-cancel" class="action-btn secondary">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column Visibility Modal -->
+        <div id="column-visibility-modal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Show/Hide Columns</h3>
+              <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+              <div class="column-visibility-grid" id="column-visibility-grid">
+                <!-- Column checkboxes will be populated dynamically -->
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button id="column-visibility-save" class="action-btn">
+                Apply
+              </button>
+              <button id="column-visibility-reset" class="action-btn secondary">
+                Reset to Default
+              </button>
+              <button
+                id="column-visibility-cancel"
+                class="action-btn secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Load JavaScript modules -->
+    <script src="communications.js" type="module"></script>
+    <script src="popup.js" type="module"></script>
+    <script src="error-handler.js"></script>
+  </body>
+</html>

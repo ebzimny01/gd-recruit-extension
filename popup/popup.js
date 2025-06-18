@@ -1302,6 +1302,13 @@ function formatDate(dateString) {
   }
 }
 
+// Helper function to format hometown for URL (remove space before state abbreviation)
+const formatHometownForUrl = (hometown) => {
+  if (!hometown) return '';
+  // Remove space before state abbreviation (e.g., "City, ST" -> "City,ST")
+  return hometown.replace(/,\s+([A-Z]{2})$/, ',$1');
+};
+
 // Setup filter event listeners
 function setupFilterListeners() {
   // Position filter
@@ -3062,14 +3069,15 @@ function createRecruitRow(recruit) {
   
   // Get position for bold attribute checking
   const position = recruit.pos ? recruit.pos.toLowerCase() : '';
-  
   // Column data mapping with attribute names for bold styling and enhanced features
   const columnData = [
     { 
       content: recruit.name || '', 
       attribute: null, 
-      isLink: false,
-      tooltip: recruit.name ? `${recruit.name} - ${recruit.pos || 'No Position'}` : null
+      isLink: true,
+      linkUrl: recruit.id ? `https://www.whatifsports.com/gd/RecruitProfile/Ratings.aspx?rid=${recruit.id}&section=Ratings` : null,
+      tooltip: recruit.name ? `${recruit.name} - ${recruit.pos || 'No Position'}` : null,
+      isWatched: recruit.watched === 1
     },
     { 
       content: recruit.pos || '', 
@@ -3119,11 +3127,19 @@ function createRecruitRow(recruit) {
       attribute: null, 
       isLink: false,
       tooltip: recruit.rank ? `National Rank: ${recruit.rank}` : null
-    },
-    { 
+    },    { 
       content: recruit.hometown || '', 
       attribute: null, 
-      isLink: false,
+      isLink: recruit.hometown && recruit.hometown !== 'N/A',
+      linkUrl: (recruit.hometown && recruit.hometown !== 'N/A') ? (() => {
+        const teamWorld = elements.team_world?.textContent?.trim();
+        const teamDivision = elements.team_division?.textContent?.trim();
+        if (teamWorld && teamDivision) {
+          const formattedHometown = formatHometownForUrl(recruit.hometown);
+          return `https://www.thenextguess.com/gdanalyst/${teamWorld}/${teamDivision}/mapLocation?town=${encodeURIComponent(formattedHometown)}`;
+        }
+        return null;
+      })() : null,
       tooltip: recruit.hometown ? `Hometown: ${recruit.hometown}` : null
     },
     { 
@@ -3176,10 +3192,83 @@ function createRecruitRow(recruit) {
       tooltip: recruit.considering ? `Considering Schools: ${recruit.considering}` : null,
       classes: recruit.considering ? ['considering-schools'] : []
     }
-  ];
-    columnData.forEach(({ content, attribute, tooltip, classes = [] }, index) => {
+  ];  columnData.forEach(({ content, attribute, tooltip, classes = [], isLink, linkUrl, isWatched }, index) => {
     const cell = document.createElement('td');
-    cell.textContent = content;
+    
+    // Create link or plain text content
+    if (isLink && linkUrl && content) {
+      const link = document.createElement('a');
+      link.href = linkUrl;
+      link.target = '_blank';
+      link.textContent = content;
+      link.style.color = '#007bff';
+      link.style.textDecoration = 'none';
+      
+      // Add hover effects
+      link.addEventListener('mouseover', () => {
+        link.style.textDecoration = 'underline';
+      });
+      link.addEventListener('mouseout', () => {
+        link.style.textDecoration = 'none';
+      });
+      
+      cell.appendChild(link);
+      
+      // Add watched indicator for name column (index 0) if recruit is watched
+      if (index === 0 && isWatched) {
+        const indicatorContainer = document.createElement('span');
+        indicatorContainer.className = 'watched-indicator';
+        indicatorContainer.title = 'This recruit is being watched';
+        indicatorContainer.style.marginLeft = '5px';
+        
+        // Try to use the eyeball icon image
+        const eyeballIcon = document.createElement('img');
+        let iconLoaded = false;
+        
+        try {
+          if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getURL) {
+            eyeballIcon.src = chrome.runtime.getURL('icons/eyeball-icon-png-eye-icon-1.png');
+            eyeballIcon.alt = 'Watched recruit';
+            eyeballIcon.style.width = '16px';
+            eyeballIcon.style.height = '16px';
+            
+            // Handle image load error by replacing with symbol
+            eyeballIcon.onerror = function() {
+              indicatorContainer.innerHTML = '👁';
+              indicatorContainer.className = 'watched-indicator-symbol';
+            };
+            
+            // Handle successful load
+            eyeballIcon.onload = function() {
+              iconLoaded = true;
+            };
+            
+            indicatorContainer.appendChild(eyeballIcon);
+            
+            // Fallback timeout in case the image doesn't load quickly
+            setTimeout(() => {
+              if (!iconLoaded && indicatorContainer.querySelector('img')) {
+                indicatorContainer.innerHTML = '👁';
+                indicatorContainer.className = 'watched-indicator-symbol';
+              }
+            }, 500);
+            
+          } else {
+            // No chrome.runtime available, use symbol directly
+            indicatorContainer.innerHTML = '👁';
+            indicatorContainer.className = 'watched-indicator-symbol';
+          }
+        } catch (error) {
+          console.log('Error loading watched icon, using symbol fallback:', error);
+          indicatorContainer.innerHTML = '👁';
+          indicatorContainer.className = 'watched-indicator-symbol';
+        }
+        
+        cell.appendChild(indicatorContainer);
+      }
+    } else {
+      cell.textContent = content;
+    }
     
     // Add ARIA attributes for accessibility
     cell.setAttribute('role', 'gridcell');

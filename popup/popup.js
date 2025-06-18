@@ -3156,12 +3156,40 @@ function updatePaginationDisplay() {
       state.filtered_recruits = [];
     }
     
-    const totalPages = Math.ceil(state.filtered_recruits.length / state.items_per_page);
+    const totalFiltered = state.filtered_recruits.length;
+    const totalAll = state.recruits ? state.recruits.length : 0;
+    const totalPages = Math.ceil(totalFiltered / state.items_per_page);
+    
+    // Check if filters are active
+    const filtersActive = totalFiltered !== totalAll;
     
     if (state.show_all_results) {
-      elements.page_info.textContent = `Showing all ${state.filtered_recruits.length} results`;
+      // Show total filtered count when showing all results
+      let displayText = `Showing all ${totalFiltered} results`;
+      if (filtersActive) {
+        displayText += ` (filtered from ${totalAll} total)`;
+      }
+      elements.page_info.textContent = displayText;
     } else {
-      elements.page_info.textContent = `Page ${state.current_page} of ${totalPages}`;
+      // Calculate start and end indices for current page
+      const startIndex = (state.current_page - 1) * state.items_per_page + 1;
+      const endIndex = Math.min(state.current_page * state.items_per_page, totalFiltered);
+      
+      if (totalFiltered === 0) {
+        let displayText = 'No results found';
+        if (filtersActive) {
+          displayText += ` (${totalAll} total available)`;
+        }
+        elements.page_info.textContent = displayText;
+      } else {
+        // Show detailed pagination info with filter indication
+        let displayText = `Showing ${startIndex}-${endIndex} of ${totalFiltered}`;
+        if (filtersActive) {
+          displayText += ` (filtered from ${totalAll})`;
+        }
+        displayText += ` | Page ${state.current_page} of ${totalPages}`;
+        elements.page_info.textContent = displayText;
+      }
     }
     
     // Update button states

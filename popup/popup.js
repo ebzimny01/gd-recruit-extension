@@ -954,12 +954,10 @@ async function handleSeasonConfirm() {
     }
     
     setStatusMessage('Initializing season...', 'info');
-    closeSeasonModal();
-    
-    const response = await popupComms.sendMessageToBackground({
-      action: 'scrapeRecruits',
+    closeSeasonModal();    const response = await popupComms.sendMessageToBackground({
+      action: 'fetchAndScrapeRecruits',
       seasonNumber: parseInt(seasonNumber, 10),
-      divisions: selectedDivisions
+      selectedDivisions: selectedDivisions
     });
     
     if (response.error) {

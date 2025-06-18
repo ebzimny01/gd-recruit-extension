@@ -857,7 +857,7 @@ function updateDashboardButtonStates(stats) {
     if (refreshDataBtn) {
       refreshDataBtn.disabled = false;
       refreshDataBtn.classList.remove('btn-disabled');
-      refreshDataBtn.title = 'Refresh recruit data for current season';
+      refreshDataBtn.title = 'Re-scrape recruit data from stored recruiting URL';
     }
   } else {
     // Season not initialized - only enable initialize button, disable refresh button
@@ -960,7 +960,8 @@ async function handleUpdateConsidering() {
     }
     
     // Show scraping overlay for refresh
-    setScrapingStatus('Refreshing recruit data...');
+    setScrapingStatus('Refreshing recruit data ...');
+    console.log('Starting recruit data refresh from stored URL...');
 
     // Set up a listener for the scraped data
     const handleScrapeComplete = (message) => {
@@ -969,7 +970,7 @@ async function handleUpdateConsidering() {
         chrome.runtime.onMessage.removeListener(handleScrapeComplete);
         hideScrapingOverlay();
 
-        // Reload data
+        // Reload data to show refreshed results
         Promise.all([loadRecruitsData(), refreshDashboardData()]).then(() => {
           // Show success message with recruit count
           setStatusMessage(`Refresh completed successfully for ${state.recruits?.length || 0} recruits`, 'success');
@@ -980,13 +981,17 @@ async function handleUpdateConsidering() {
     // Add the listener
     chrome.runtime.onMessage.addListener(handleScrapeComplete);
     
+    // Call fetchAndScrapeRecruits with refresh parameters
     const response = await popupComms.sendMessageToBackground({
-      action: 'updateConsidering'
+      action: 'fetchAndScrapeRecruits',
+      isRefreshOnly: true,
+      fieldsToUpdate: ['watched', 'potential', 'priority', 'signed', 'considering']
     });
     
     if (response.error) {
       // Remove listener on error
       chrome.runtime.onMessage.removeListener(handleScrapeComplete);
+      hideScrapingOverlay();
       throw new Error(response.error);
     }
 
@@ -998,6 +1003,8 @@ async function handleUpdateConsidering() {
     }, 120000); // 2 minutes
     
   } catch (error) {
+    console.error('Error during recruit data refresh:', error);
+    setStatusMessage(`Error refreshing recruit data: ${error.message}`, 'error');
     handleError(error, 'recruit data refresh');
   }
 }

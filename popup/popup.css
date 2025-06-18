@@ -214,8 +214,11 @@ body {
   transform: none;
 }
 
-.action-btn.secondary {
-  background: var(--text-secondary);
+.action-btn.btn-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  pointer-events: none;
 }
 
 /* Status box */

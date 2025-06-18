@@ -716,6 +716,77 @@ function refreshDataIfStale() {
   }
 }
 
+// Update dashboard button states based on season initialization status
+function updateDashboardButtonStates(stats) {
+  console.log('Updating dashboard button states with stats:', stats);
+  
+  const isSeasonInitialized = checkIfSeasonInitialized(stats);
+  console.log('Season initialized status:', isSeasonInitialized);
+  
+  // Get button references
+  const initializeSeasonBtn = elements.btn_scrape_recruits;
+  const refreshDataBtn = elements.btn_update_considering;
+  
+  if (isSeasonInitialized) {
+    // Season is initialized - enable refresh button, keep initialize button enabled but change text
+    if (initializeSeasonBtn) {
+      initializeSeasonBtn.disabled = false;
+      initializeSeasonBtn.textContent = 'Initialize New Season';
+      initializeSeasonBtn.title = 'Start a new season (will clear existing data)';
+      initializeSeasonBtn.classList.remove('btn-disabled');
+    }
+    
+    if (refreshDataBtn) {
+      refreshDataBtn.disabled = false;
+      refreshDataBtn.classList.remove('btn-disabled');
+      refreshDataBtn.title = 'Refresh recruit data for current season';
+    }
+  } else {
+    // Season not initialized - only enable initialize button, disable refresh button
+    if (initializeSeasonBtn) {
+      initializeSeasonBtn.disabled = false;
+      initializeSeasonBtn.textContent = 'Initialize Season';
+      initializeSeasonBtn.title = 'Initialize the first season with recruit data';
+      initializeSeasonBtn.classList.remove('btn-disabled');
+    }
+    
+    if (refreshDataBtn) {
+      refreshDataBtn.disabled = true;
+      refreshDataBtn.classList.add('btn-disabled');
+      refreshDataBtn.title = 'Season must be initialized first';
+    }
+  }
+}
+
+// Check if a season has been initialized based on stats
+function checkIfSeasonInitialized(stats) {
+  // A season is considered initialized if:
+  // 1. Current season is not null/undefined AND not 'N/A'
+  // 2. OR there are existing recruits (recruit count > 0)
+  // 3. OR there are watchlist entries (watchlist count > 0)
+  
+  const hasValidSeason = stats.currentSeason && 
+                        stats.currentSeason !== null && 
+                        stats.currentSeason !== 'N/A' && 
+                        stats.currentSeason !== '';
+  
+  const hasRecruits = (state.recruits && state.recruits.length > 0) || 
+                     (stats.recruitCount && stats.recruitCount > 0);
+  
+  const hasWatchlist = stats.watchlistCount && stats.watchlistCount > 0;
+  
+  console.log('Season initialization check:', {
+    hasValidSeason,
+    hasRecruits,
+    hasWatchlist,
+    currentSeason: stats.currentSeason,
+    recruitCount: stats.recruitCount || state.recruits?.length || 0,
+    watchlistCount: stats.watchlistCount || 0
+  });
+  
+  return hasValidSeason || hasRecruits || hasWatchlist;
+}
+
 // Setup dashboard event listeners and functionality
 function setupDashboardListeners() {
   // Initialize Season button
@@ -757,6 +828,16 @@ async function handleScrapeRecruits() {
 // Handle Refresh Recruit Data button click
 async function handleUpdateConsidering() {
   try {
+    // Check if season is initialized before allowing refresh
+    const statsResponse = await popupComms.sendMessageToBackground({
+      action: 'getStats'
+    });
+    
+    if (!checkIfSeasonInitialized(statsResponse)) {
+      setStatusMessage('Please initialize a season first before refreshing recruit data', 'warning');
+      return;
+    }
+    
     setStatusMessage('Refreshing recruit data...', 'info');
     
     const response = await popupComms.sendMessageToBackground({
@@ -896,6 +977,8 @@ async function refreshDashboardData() {
 
 // Update dashboard display with fresh data
 function updateDashboardDisplay(stats) {
+  console.log('Updating dashboard display with stats:', stats);
+  
   // Update school name displays
   updateSchoolNameDisplay(stats.schoolName, stats.teamInfo);
   
@@ -931,6 +1014,9 @@ function updateDashboardDisplay(stats) {
       elements.current_season.textContent = 'N/A';
     }
   }
+  
+  // Update button states based on season initialization status
+  updateDashboardButtonStates(stats);
 }
 
 // Update school name displays with proper fallbacks

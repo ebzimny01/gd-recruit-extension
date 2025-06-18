@@ -249,9 +249,23 @@ function validateElement(element, elementName) {
   return true;
 }
 
-function handleError(error, context = 'Unknown') {
-  console.error(`Error in ${context}:`, error);
-  setStatusMessage(`Error: ${error.message || error}`, 'error');
+function handleError(error, context = 'operation') {
+  console.error(`Error during ${context}:`, error);
+  hideScrapingOverlay(); // Hide overlay on any error
+  
+  // Provide user-friendly error messages
+  let message = `Error during ${context}`;
+  if (error?.message) {
+    if (error.message.includes('403')) {
+      message = 'Error: Not authenticated. Please log in to WhatifsIports.com in another tab first.';
+    } else if (error.message.includes('Failed to fetch')) {
+      message = 'Error: Network connection failed. Please check your internet connection.';
+    } else {
+      message = error.message;
+    }
+  }
+  
+  setStatusMessage(message, 'error');
 }
 
 // Performance optimization utilities
@@ -315,6 +329,110 @@ function setStatusMessage(message, type = 'info') {
 
 // Make setStatusMessage globally available for error-handler.js
 window.setStatusMessage = setStatusMessage;
+
+// Enhanced status display with progress indicator for scraping operations
+function setScrapingStatus(message, showProgress = true) {
+  if (!elements.status_message) return;
+  
+  // Create or update progress overlay
+  let overlay = document.getElementById('scraping-overlay');
+  if (showProgress && !overlay) {
+    overlay = createScrapingOverlay();
+    document.body.appendChild(overlay);
+  }
+  
+  if (overlay) {
+    const messageEl = overlay.querySelector('.scraping-message');
+    if (messageEl) {
+      messageEl.textContent = message;
+    }
+  }
+  
+  // Also update the regular status message
+  setStatusMessage(message, 'info');
+}
+
+// Create scraping overlay with spinner and progress feedback
+function createScrapingOverlay() {
+  const overlay = document.createElement('div');
+  overlay.id = 'scraping-overlay';
+  overlay.innerHTML = `
+    <div class="scraping-content">
+      <div class="spinner"></div>
+      <div class="scraping-message">Initializing scraping process...</div>
+      <div class="scraping-details">
+        <small>A background tab is processing recruit data. This may take a moment.</small>
+      </div>
+    </div>
+  `;
+  
+  // Add styles if not already present
+  if (!document.getElementById('scraping-overlay-styles')) {
+    const style = document.createElement('style');
+    style.id = 'scraping-overlay-styles';
+    style.textContent = `
+      #scraping-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        color: white;
+      }
+
+      .scraping-content {
+        text-align: center;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid #fff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .scraping-message {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+      }
+
+      .scraping-details {
+        opacity: 0.8;
+        font-size: 0.9rem;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  return overlay;
+}
+
+// Hide scraping overlay
+function hideScrapingOverlay() {
+  const overlay = document.getElementById('scraping-overlay');
+  if (overlay) {
+    overlay.remove();
+  }
+}
 
 // Initialize popup application
 async function initializePopup() {
@@ -798,8 +916,7 @@ function setupDashboardListeners() {
   if (elements.btn_update_considering) {
     elements.btn_update_considering.addEventListener('click', handleUpdateConsidering);
   }
-  
-  // Listen for data update messages from background
+    // Listen for data update messages from background
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'dataUpdated') {
       handleDataUpdate(message);
@@ -807,6 +924,10 @@ function setupDashboardListeners() {
     if (message.action === 'teamChanged') {
       console.log('Received team change notification:', message);
       handleTeamChange(message.teamInfo);
+    }
+    if (message.action === 'scrapeComplete') {
+      console.log('Received scrape complete notification:', message);
+      handleScrapeComplete(message);
     }
     return false; // Don't keep the message channel open
   });
@@ -838,21 +959,43 @@ async function handleUpdateConsidering() {
       return;
     }
     
-    setStatusMessage('Refreshing recruit data...', 'info');
+    // Show scraping overlay for refresh
+    setScrapingStatus('Refreshing recruit data...');
+
+    // Set up a listener for the scraped data
+    const handleScrapeComplete = (message) => {
+      if (message.action === 'scrapeComplete') {
+        // Remove this listener and hide overlay
+        chrome.runtime.onMessage.removeListener(handleScrapeComplete);
+        hideScrapingOverlay();
+
+        // Reload data
+        Promise.all([loadRecruitsData(), refreshDashboardData()]).then(() => {
+          // Show success message with recruit count
+          setStatusMessage(`Refresh completed successfully for ${state.recruits?.length || 0} recruits`, 'success');
+        });
+      }
+    };
+
+    // Add the listener
+    chrome.runtime.onMessage.addListener(handleScrapeComplete);
     
     const response = await popupComms.sendMessageToBackground({
       action: 'updateConsidering'
     });
     
     if (response.error) {
+      // Remove listener on error
+      chrome.runtime.onMessage.removeListener(handleScrapeComplete);
       throw new Error(response.error);
     }
-    
-    // Reload data after update
-    await loadRecruitsData();
-    await refreshDashboardData();
-    
-    setStatusMessage('Recruit data refreshed successfully', 'success');
+
+    // Set a timeout to remove the listener if no response within 2 minutes
+    setTimeout(() => {
+      chrome.runtime.onMessage.removeListener(handleScrapeComplete);
+      hideScrapingOverlay();
+      setStatusMessage('Refresh timed out. Please try again.', 'warning');
+    }, 120000); // 2 minutes
     
   } catch (error) {
     handleError(error, 'recruit data refresh');
@@ -953,22 +1096,46 @@ async function handleSeasonConfirm() {
       throw new Error('Please select at least one division');
     }
     
-    setStatusMessage('Initializing season...', 'info');
-    closeSeasonModal();    const response = await popupComms.sendMessageToBackground({
+    // Show scraping overlay
+    setScrapingStatus('Preparing to fetch recruit data...');
+    closeSeasonModal();
+
+    // Set up a listener for the scraped data
+    const handleScrapeComplete = (message) => {
+      if (message.action === 'scrapeComplete') {
+        // Remove this listener and hide overlay
+        chrome.runtime.onMessage.removeListener(handleScrapeComplete);
+        hideScrapingOverlay();
+
+        // Reload data
+        Promise.all([loadRecruitsData(), refreshDashboardData()]).then(() => {
+          // Show success message with recruit count
+          setStatusMessage(`Season ${seasonNumber} initialized successfully with ${state.recruits?.length || 0} recruits`, 'success');
+        });
+      }
+    };
+
+    // Add the listener
+    chrome.runtime.onMessage.addListener(handleScrapeComplete);
+
+    const response = await popupComms.sendMessageToBackground({
       action: 'fetchAndScrapeRecruits',
       seasonNumber: parseInt(seasonNumber, 10),
       selectedDivisions: selectedDivisions
     });
     
     if (response.error) {
+      // Remove listener on error
+      chrome.runtime.onMessage.removeListener(handleScrapeComplete);
       throw new Error(response.error);
     }
-    
-    // Reload data after successful initialization
-    await loadRecruitsData();
-    await refreshDashboardData();
-    
-    setStatusMessage(`Season ${seasonNumber} initialized successfully`, 'success');
+
+    // Set a timeout to remove the listener if no response within 2 minutes
+    setTimeout(() => {
+      chrome.runtime.onMessage.removeListener(handleScrapeComplete);
+      hideScrapingOverlay();
+      setStatusMessage('Scraping timed out. Please try again.', 'warning');
+    }, 120000); // 2 minutes
     
   } catch (error) {
     handleError(error, 'season confirmation');
@@ -2644,6 +2811,7 @@ function updateRecruitsList() {
     
     // Apply column visibility
     console.log('Applying column visibility...');
+
     applyColumnVisibility();
     
     console.log('=== updateRecruitsList END ===');
@@ -2982,7 +3150,13 @@ function updatePaginationDisplay() {
 async function handleEditBoldAttributes() {
   try {
     setStatusMessage('Opening attribute styling configuration...');
+
+    // Show overlay while processing
+    setScrapingStatus('Loading attribute styling configuration...', true);
+    
     const result = await showBoldAttributesModal();
+    
+    hideScrapingOverlay(); // Hide overlay after processing
     
     if (result === 'cancelled') {
       // User cancelled - no message needed

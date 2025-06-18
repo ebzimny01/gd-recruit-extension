@@ -31,6 +31,20 @@ const DEFAULT_PAGE_SIZE = PAGE_SIZE_OPTIONS.SMALL;
 const PAGE_SIZE_STORAGE_KEY = 'preferredPageSize';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'columnVisibility';
 
+// Custom position order for dropdown - modify this array to change the order
+const POSITION_DROPDOWN_ORDER = [
+  'QB',  // Quarterback first
+  'RB',  // Running Back
+  'WR',  // Wide Receiver  
+  'TE',  // Tight End
+  'OL',  // Offensive Line
+  'DL',  // Defensive Line
+  'LB',  // Linebacker
+  'DB',  // Defensive Back
+  'K',   // Kicker
+  'P'    // Punter last
+];
+
 // Column configuration for recruit table
 const COLUMNS = [
   { key: 'name', label: 'Name', sortable: true },
@@ -1691,9 +1705,6 @@ async function handleResetRoleRatings() {
 
 
 
-
-
-
 // Setup column visibility modal listeners
 function setupColumnVisibilityModalListeners() {
   if (elements.column_visibility_save) {
@@ -2581,12 +2592,32 @@ function populateFilterOptions() {
 function populatePositionFilter() {
   if (!elements.filter_position) return;
   
-  const positions = [...new Set(state.recruits.map(r => r.pos).filter(Boolean))].sort();
+  // Get unique positions from recruits
+  const availablePositions = [...new Set(state.recruits.map(r => r.pos).filter(Boolean))];
+  
+  // Sort positions according to custom order, with unknown positions at the end
+  const sortedPositions = availablePositions.sort((a, b) => {
+    const indexA = POSITION_DROPDOWN_ORDER.indexOf(a);
+    const indexB = POSITION_DROPDOWN_ORDER.indexOf(b);
+    
+    // If both positions are in the custom order, sort by their index
+    if (indexA !== -1 && indexB !== -1) {
+      return indexA - indexB;
+    }
+    
+    // If only one position is in the custom order, prioritize it
+    if (indexA !== -1) return -1;
+    if (indexB !== -1) return 1;
+    
+    // If neither position is in the custom order, sort alphabetically
+    return a.localeCompare(b);
+  });
   
   // Clear existing options except "All"
   elements.filter_position.innerHTML = '<option value="">All Positions</option>';
   
-  positions.forEach(position => {
+  // Add positions in custom order
+  sortedPositions.forEach(position => {
     const option = document.createElement('option');
     option.value = position;
     option.textContent = position;

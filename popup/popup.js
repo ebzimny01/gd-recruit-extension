@@ -2677,16 +2677,14 @@ function populatePriorityFilter() {
 function populateDistanceFilter() {
   if (!elements.filter_distance) return;
   
-  // Create distance ranges
+  // Create distance ranges - updated to match requirements
   const distanceRanges = [
-    { value: '0-50', label: '0-50 miles' },
-    { value: '51-100', label: '51-100 miles' },
-    { value: '101-200', label: '101-200 miles' },
-    { value: '201-500', label: '201-500 miles' },
-    { value: '500+', label: '500+ miles' }
+    { value: '< 180', label: '< 180 miles' },
+    { value: '< 360', label: '< 360 miles' },
+    { value: '< 1400', label: '< 1400 miles' }
   ];
   
-  elements.filter_distance.innerHTML = '<option value="">All Distances</option>';
+  elements.filter_distance.innerHTML = '<option value="">Any Distance</option>';
   
   distanceRanges.forEach(range => {
     const option = document.createElement('option');
@@ -2792,18 +2790,14 @@ function matchesDistanceFilter(miles, distanceFilter) {
   if (isNaN(numMiles)) return true;
   
   switch (distanceFilter) {
-    case '0-50':
-      return numMiles <= 50;
-    case '51-100':
-      return numMiles > 50 && numMiles <= 100;
-    case '101-200':
-      return numMiles > 100 && numMiles <= 200;
-    case '201-500':
-      return numMiles > 200 && numMiles <= 500;
-    case '500+':
-      return numMiles > 500;
+    case '< 180':
+      return numMiles < 180;
+    case '< 360':
+      return numMiles < 360;
+    case '< 1400':
+      return numMiles < 1400;
     default:
-      return true;
+      return true; // 'Any Distance' case
   }
 }
 

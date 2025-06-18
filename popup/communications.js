@@ -153,19 +153,46 @@ export function handlePopupResize() {
   // Ensure proper layout adjustments for different popup sizes
   const container = document.querySelector('.popup-container');
   if (container) {
+    console.log('Setting up ResizeObserver for popup container');
+    
+    // Use requestAnimationFrame to prevent ResizeObserver loops
+    let isProcessingResize = false;
+    
     const resizeObserver = new ResizeObserver(entries => {
-      for (let entry of entries) {
-        const { width, height } = entry.contentRect;
-        console.log(`Popup resized to: ${width}x${height}`);
-        
-        // Dispatch resize event for components to respond
-        document.dispatchEvent(new CustomEvent('popup-resize', {
-          detail: { width, height }
-        }));
+      // Prevent ResizeObserver loops by debouncing
+      if (isProcessingResize) {
+        console.log('Skipping resize processing - already in progress');
+        return;
       }
+      
+      isProcessingResize = true;
+      
+      // Use requestAnimationFrame to ensure DOM changes happen outside the ResizeObserver callback
+      requestAnimationFrame(() => {
+        try {
+          for (let entry of entries) {
+            const { width, height } = entry.contentRect;
+            console.log(`Popup resized to: ${width}x${height}`);
+            
+            // Dispatch resize event for components to respond
+            console.log('Dispatching popup-resize event with dimensions:', { width, height });
+            document.dispatchEvent(new CustomEvent('popup-resize', {
+              detail: { width, height }
+            }));
+          }
+        } catch (error) {
+          console.error('Error in ResizeObserver callback:', error);
+        } finally {
+          // Reset the flag after processing
+          isProcessingResize = false;
+        }
+      });
     });
     
     resizeObserver.observe(container);
+    console.log('ResizeObserver started observing popup container');
+  } else {
+    console.warn('No .popup-container found for resize observation');
   }
 }
 

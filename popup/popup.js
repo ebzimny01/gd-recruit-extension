@@ -70,9 +70,9 @@ const COLUMNS = [
 
 // DOM elements cache - organized by functional area
 const elements = {
-  // Tab navigation
-  tab_buttons: document.querySelectorAll('.tab-btn'),
-  tab_sections: document.querySelectorAll('.tab-content'),
+  // Tab navigation - convert NodeLists to Arrays for better error handling
+  tab_buttons: Array.from(document.querySelectorAll('.tab-btn') || []),
+  tab_sections: Array.from(document.querySelectorAll('.tab-content') || []),
 
   // Dashboard elements
   school_name: document.getElementById('schoolName'),
@@ -226,13 +226,13 @@ let state = {
   is_popup_focused: true,
   last_data_refresh: null,
   popup_lifecycle: 'initializing', // initializing, ready, closing
-  
-  // Performance optimization state
+    // Performance optimization state
   performance: {
     last_render_time: null,
     render_batch_size: 50,
     virtual_scrolling_threshold: 200,
     debounce_timers: new Map(),
+    handling_resize: false, // Prevent resize handler cascades
     cache: {
       filtered_results_hash: null,
       rendered_rows: new Map()
@@ -391,16 +391,25 @@ function setupPopupLifecycleListeners() {
   // Listen for popup focus events
   document.addEventListener('popup-focus', () => {
     state.is_popup_focused = true;
-    refreshDataIfStale();
-  });
+    refreshDataIfStale();  });
   
   document.addEventListener('popup-blur', () => {
     state.is_popup_focused = false;
   });
-  
   // Listen for popup resize events
   document.addEventListener('popup-resize', (event) => {
-    handlePopupResize(event.detail);
+    console.log('popup-resize event received with detail:', event.detail);
+    try {
+      console.log('Calling handlePopupResize with dimensions:', event.detail);
+      handlePopupResize(event.detail);
+      console.log('handlePopupResize completed successfully');
+    } catch (error) {
+      console.error('Error handling popup resize event:', error);
+      console.error('Error type:', typeof error, 'Error value:', error);
+      
+      // Don't call handleError to prevent cascading - just log the error
+      setStatusMessage(`Resize error: ${error && error.message ? error.message : error}`, 'warning');
+    }
   });
   
   // Setup keyboard accessibility
@@ -501,14 +510,24 @@ function handleTableNavigation(event) {
 
 // Tab navigation setup
 function setupTabNavigation() {
+  if (!elements.tab_buttons || !Array.isArray(elements.tab_buttons)) {
+    console.warn('tab_buttons not available for navigation setup');
+    return;
+  }
+  
   elements.tab_buttons.forEach(button => {
-    if (!button) return;
+    if (!button || !button.addEventListener) {
+      console.warn('Invalid button element found, skipping');
+      return;
+    }
     
     button.addEventListener('click', (event) => {
       try {
         switchTab(event.target.id);
       } catch (error) {
-        handleError(error, 'tab navigation');
+        console.error('Error in tab navigation click handler:', error);
+        // Don't use handleError to prevent cascades
+        setStatusMessage(`Tab navigation error: ${error.message || error}`, 'error');
       }
     });
   });
@@ -516,35 +535,60 @@ function setupTabNavigation() {
 
 // Switch between tabs with proper state management
 function switchTab(tabId) {
-  const tabMapping = {
-    'tab-dashboard': 'dashboard-section',
-    'tab-recruits': 'recruits-section',
-    'tab-settings': 'settings-section'
-  };
-  
-  const targetSection = tabMapping[tabId];
-  if (!targetSection) {
-    console.warn(`Unknown tab: ${tabId}`);
-    return;
-  }
-  
-  // Update button states
-  elements.tab_buttons.forEach(btn => {
-    if (btn) {
-      btn.classList.toggle('active', btn.id === tabId);
+  try {
+    const tabMapping = {
+      'tab-dashboard': 'dashboard-section',
+      'tab-recruits': 'recruits-section',
+      'tab-settings': 'settings-section'
+    };
+    
+    const targetSection = tabMapping[tabId];
+    if (!targetSection) {
+      console.warn(`Unknown tab: ${tabId}`);
+      return;
+    }      // Update button states
+    if (elements.tab_buttons && Array.isArray(elements.tab_buttons) && elements.tab_buttons.length > 0) {
+      elements.tab_buttons.forEach(btn => {
+        if (btn && btn.classList) {
+          btn.classList.toggle('active', btn.id === tabId);
+        }
+      });
+    } else {
+      console.warn('tab_buttons not properly initialized or empty');
     }
-  });
-  
-  // Update section visibility
-  elements.tab_sections.forEach(section => {
-    if (section) {
-      section.classList.toggle('active', section.id === targetSection);
+    
+    // Update section visibility
+    if (elements.tab_sections && Array.isArray(elements.tab_sections) && elements.tab_sections.length > 0) {
+      elements.tab_sections.forEach(section => {
+        if (section && section.classList) {
+          section.classList.toggle('active', section.id === targetSection);
+        }
+      });
+    } else {
+      console.warn('tab_sections not properly initialized or empty');
     }
-  });
-  
-  // Perform tab-specific initialization
-  if (targetSection === 'recruits-section') {
-    refreshRecruitsDisplay();
+      // Perform tab-specific initialization
+    if (targetSection === 'recruits-section') {
+      console.log('Switching to recruits section, refreshing display...');
+      try {
+        refreshRecruitsDisplay();
+        console.log('refreshRecruitsDisplay completed successfully');
+      } catch (error) {
+        console.error('Error in refreshRecruitsDisplay during tab switch:', error);
+        console.error('Error type:', typeof error, 'Error value:', error);
+        
+        if (error === null) {
+          console.error('CAUGHT NULL ERROR in refreshRecruitsDisplay!');
+        }
+        
+        // Don't propagate the error to prevent cascades
+        setStatusMessage(`Error loading recruits: ${error && error.message ? error.message : 'Unknown error'}`, 'error');
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error in switchTab:', error);
+    handleError(error, 'switching tab');
   }
 }
 
@@ -618,25 +662,47 @@ async function loadInitialData() {
 
 // Handle popup resize events
 function handlePopupResize(dimensions) {
-  const { width, height } = dimensions;
-  
-  // Adjust table container if needed
-  const tableWrapper = document.querySelector('.table-wrapper');
-  if (tableWrapper) {
-    // Recalculate table height based on popup size
-    const maxTableHeight = Math.max(200, height - 400); // Reserve space for other UI
-    tableWrapper.style.maxHeight = `${maxTableHeight}px`;
-  }
-  
-  // Adjust modal sizes if any are open
-  const openModals = document.querySelectorAll('.modal:not(.hidden)');
-  openModals.forEach(modal => {
-    const modalContent = modal.querySelector('.modal-content');
-    if (modalContent) {
-      const maxModalHeight = height * 0.9;
-      modalContent.style.maxHeight = `${maxModalHeight}px`;
+  try {
+    if (!dimensions) {
+      console.debug('handlePopupResize called with null/undefined dimensions - skipping');
+      return;
     }
-  });
+    
+    const { width, height } = dimensions;
+    
+    if (typeof width !== 'number' || typeof height !== 'number' || width <= 0 || height <= 0) {
+      console.debug('handlePopupResize called with invalid dimensions:', dimensions, '- skipping');
+      return;
+    }
+    
+    // Adjust table container if needed
+    const tableWrapper = document.querySelector('.table-wrapper');
+    if (tableWrapper) {
+      // Recalculate table height based on popup size
+      const maxTableHeight = Math.max(200, height - 400); // Reserve space for other UI
+      tableWrapper.style.maxHeight = `${maxTableHeight}px`;
+    }
+    
+    // Adjust modal sizes if any are open
+    const openModals = document.querySelectorAll('.modal:not(.hidden)');
+    if (openModals && openModals.length > 0) {
+      openModals.forEach(modal => {
+        try {
+          const modalContent = modal.querySelector('.modal-content');
+          if (modalContent) {
+            const maxModalHeight = height * 0.9;
+            modalContent.style.maxHeight = `${maxModalHeight}px`;
+          }
+        } catch (modalError) {
+          console.warn('Error adjusting modal during resize:', modalError);
+        }
+      });
+    }
+    
+  } catch (error) {
+    // Log error but don't propagate it to prevent cascades
+    console.warn('Non-critical error in handlePopupResize:', error);
+  }
 }
 
 // Check if data needs refreshing
@@ -973,12 +1039,19 @@ function setupFilterListeners() {
       applyFilters();
     });
   }
-  
   // Watched only checkbox
   if (elements.filter_watched) {
     elements.filter_watched.addEventListener('change', (event) => {
-      state.filters.watched = event.target.checked ? 'true' : '';
-      applyFilters();
+      try {
+        console.log('Watched filter changing, checked:', event.target.checked);
+        state.filters.watched = event.target.checked ? 'true' : '';
+        console.log('New filter state:', state.filters.watched);
+        applyFilters();
+        console.log('Filters applied successfully');
+      } catch (error) {
+        console.error('Error handling watched filter change:', error);
+        handleError(error, 'watched filter');
+      }
     });
   }
   
@@ -1913,35 +1986,70 @@ function getPositionDisplayName(positionKey) {
 
 // Apply column visibility to recruits table
 function applyColumnVisibility() {
-  const table = document.getElementById('recruits-table');
-  if (!table) return;
-  
-  const headerRow = table.querySelector('thead tr');
-  const dataRows = table.querySelectorAll('tbody tr');
-  
-  if (!headerRow) return;
-  
-  // Apply to header
-  const headerCells = headerRow.querySelectorAll('th');
-  headerCells.forEach((cell, index) => {
-    if (index < COLUMNS.length) {
-      const column = COLUMNS[index];
-      const isVisible = state.column_visibility[column.key] !== false;
-      cell.style.display = isVisible ? '' : 'none';
+  try {
+    const table = document.getElementById('recruits-table');
+    if (!table) {
+      console.warn('Recruits table not found for column visibility');
+      return;
     }
-  });
-  
-  // Apply to data rows
-  dataRows.forEach(row => {
-    const cells = row.querySelectorAll('td');
-    cells.forEach((cell, index) => {
-      if (index < COLUMNS.length) {
-        const column = COLUMNS[index];
-        const isVisible = state.column_visibility[column.key] !== false;
-        cell.style.display = isVisible ? '' : 'none';
+    
+    const headerRow = table.querySelector('thead tr');
+    const dataRows = table.querySelectorAll('tbody tr');
+    
+    if (!headerRow) {
+      console.warn('Table header row not found');
+      return;
+    }
+      // Ensure COLUMNS array exists
+    if (!COLUMNS || !Array.isArray(COLUMNS)) {
+      console.warn('COLUMNS array not found or invalid');
+      return;
+    }
+    
+    // Ensure column visibility state exists
+    if (!state.column_visibility) {
+      console.warn('Column visibility state not initialized');
+      return;
+    }
+    
+    // Apply to header
+    const headerCells = headerRow.querySelectorAll('th');
+    headerCells.forEach((cell, index) => {
+      try {
+        if (index < COLUMNS.length) {
+          const column = COLUMNS[index];
+          const isVisible = state.column_visibility[column.key] !== false;
+          cell.style.display = isVisible ? '' : 'none';
+        }
+      } catch (cellError) {
+        console.warn(`Error applying visibility to header cell ${index}:`, cellError);
       }
     });
-  });
+    
+    // Apply to data rows
+    dataRows.forEach((row, rowIndex) => {
+      try {
+        const cells = row.querySelectorAll('td');
+        cells.forEach((cell, index) => {
+          try {
+            if (index < COLUMNS.length) {
+              const column = COLUMNS[index];
+              const isVisible = state.column_visibility[column.key] !== false;
+              cell.style.display = isVisible ? '' : 'none';
+            }
+          } catch (cellError) {
+            console.warn(`Error applying visibility to cell ${rowIndex},${index}:`, cellError);
+          }
+        });
+      } catch (rowError) {
+        console.warn(`Error processing row ${rowIndex}:`, rowError);
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error in applyColumnVisibility:', error);
+    handleError(error, 'applying column visibility');
+  }
 }
 
 // Setup filter dropdown options
@@ -1970,13 +2078,66 @@ function setupFilterOptions() {
 
 // Refresh recruits display when tab becomes active
 function refreshRecruitsDisplay() {
-  if (state.recruits.length === 0) {
-    // Try to load data if not already loaded
-    loadRecruitsData();
-  } else {
-    // Just refresh the display
-    updateRecruitsList();
-    updatePaginationDisplay();
+  console.log('=== refreshRecruitsDisplay START ===');
+  try {
+    console.log('refreshRecruitsDisplay called, current state.recruits:', state.recruits);
+    
+    // Ensure state.recruits exists and is an array
+    if (!state.recruits || !Array.isArray(state.recruits)) {
+      console.warn('state.recruits is not initialized or not an array, initializing...');
+      state.recruits = [];
+    }
+    
+    // Ensure filtered_recruits exists  
+    if (!state.filtered_recruits || !Array.isArray(state.filtered_recruits)) {
+      console.warn('state.filtered_recruits is not initialized, initializing...');
+      state.filtered_recruits = [];
+    }
+    
+    if (state.recruits.length === 0) {
+      console.log('No recruits data, attempting to load...');
+      // Try to load data if not already loaded
+      loadRecruitsData().catch(error => {
+        console.error('Error loading recruits data:', error);
+        if (error === null) {
+          console.error('CAUGHT NULL ERROR in loadRecruitsData!');
+        }
+        // Don't call handleError to prevent cascades
+        setStatusMessage(`Error loading data: ${error && error.message ? error.message : 'Unknown error'}`, 'error');
+      });
+    } else {
+      console.log(`Refreshing display with ${state.recruits.length} recruits`);
+      // Just refresh the display
+      console.log('Calling updateRecruitsList...');
+      updateRecruitsList();
+      console.log('Calling updatePaginationDisplay...');
+      updatePaginationDisplay();
+      console.log('Display refresh completed');
+    }
+    console.log('=== refreshRecruitsDisplay END ===');
+  } catch (error) {
+    console.error('Error in refreshRecruitsDisplay:', error);
+    console.error('Error type:', typeof error, 'Error value:', error);
+    
+    if (error === null) {
+      console.error('CAUGHT NULL ERROR in refreshRecruitsDisplay main block!');
+    }
+    
+    // Don't call handleError to prevent cascades
+    setStatusMessage(`Error refreshing display: ${error && error.message ? error.message : 'Unknown error'}`, 'error');
+    
+    // Fallback: ensure we have basic state
+    if (!state.recruits) {
+      state.recruits = [];
+    }
+    if (!state.filtered_recruits) {
+      state.filtered_recruits = [];
+    }
+    try {
+      updateRecruitsList();
+    } catch (fallbackError) {
+      console.error('Error in fallback updateRecruitsList:', fallbackError);
+    }
   }
 }
 
@@ -2226,72 +2387,90 @@ function populateDistanceFilter() {
 
 // Apply filters to recruit data with performance optimization
 function applyFilters() {
-  if (!state.recruits) {
-    state.filtered_recruits = [];
+  try {
+    if (!state.recruits) {
+      state.filtered_recruits = [];
+      updateRecruitsList();
+      return;
+    }
+    
+    // Generate hash of current filters to check if we can use cached results
+    const filtersHash = generateDataHash(state.filters);
+    if (state.performance.cache.filtered_results_hash === filtersHash) {
+      // Filters haven't changed, no need to re-filter
+      return;
+    }
+    
+    const startTime = performance.now();
+    
+    state.filtered_recruits = state.recruits.filter(recruit => {
+      // Ensure recruit object exists
+      if (!recruit) {
+        console.warn('Null recruit found in array, skipping');
+        return false;
+      }
+      
+      // Position filter
+      if (state.filters.position && recruit.pos !== state.filters.position) {
+        return false;
+      }
+      
+      // Potential filter
+      if (state.filters.potential && recruit.potential !== state.filters.potential) {
+        return false;
+      }
+      
+      // Division filter
+      if (state.filters.division && recruit.division !== state.filters.division) {
+        return false;
+      }
+      
+      // Priority filter
+      if (state.filters.priority && recruit.priority !== state.filters.priority) {
+        return false;
+      }
+        // Distance filter
+      if (state.filters.distance && !matchesDistanceFilter(recruit.miles, state.filters.distance)) {
+        return false;
+      }
+      
+      // Watched filter
+      if (state.filters.watched === 'true' && recruit.watched !== 1) {
+        return false;
+      }
+      
+      // Hide signed filter
+      if (state.filters.hide_signed && recruit.signed === 'Yes') {
+        return false;
+      }
+      
+      return true;
+    });
+    
+    // Cache the results
+    state.performance.cache.filtered_results_hash = filtersHash;
+    
+    const endTime = performance.now();
+    if (endTime - startTime > 50) {
+      console.log(`Filter performance: ${state.filtered_recruits.length} results in ${(endTime - startTime).toFixed(2)}ms`);
+    }
+    
+    // Reset to first page when filters change
+    state.current_page = 1;
+    
     updateRecruitsList();
-    return;
+    updatePaginationDisplay();
+    
+  } catch (error) {
+    console.error('Error in applyFilters:', error);
+    handleError(error, 'applying filters');
+    
+    // Fallback: ensure we have valid state
+    if (!state.filtered_recruits) {
+      state.filtered_recruits = [];
+    }
+    updateRecruitsList();
   }
-  
-  // Generate hash of current filters to check if we can use cached results
-  const filtersHash = generateDataHash(state.filters);
-  if (state.performance.cache.filtered_results_hash === filtersHash) {
-    // Filters haven't changed, no need to re-filter
-    return;
-  }
-  
-  const startTime = performance.now();
-  
-  state.filtered_recruits = state.recruits.filter(recruit => {
-    // Position filter
-    if (state.filters.position && recruit.pos !== state.filters.position) {
-      return false;
-    }
-    
-    // Potential filter
-    if (state.filters.potential && recruit.potential !== state.filters.potential) {
-      return false;
-    }
-    
-    // Division filter
-    if (state.filters.division && recruit.division !== state.filters.division) {
-      return false;
-    }
-    
-    // Priority filter
-    if (state.filters.priority && recruit.priority !== state.filters.priority) {
-      return false;
-    }
-      // Distance filter
-    if (state.filters.distance && !matchesDistanceFilter(recruit.miles, state.filters.distance)) {
-      return false;
-    }
-    
-    // Watched filter
-    if (state.filters.watched === 'true' && recruit.watched !== 1) {
-      return false;
-    }
-    
-    // Hide signed filter
-    if (state.filters.hide_signed && recruit.signed === 'Yes') {
-      return false;
-    }
-    
-    return true;
-  });
-  
-  // Cache the results
-  state.performance.cache.filtered_results_hash = filtersHash;
-  
-  const endTime = performance.now();
-  if (endTime - startTime > 50) {
-    console.log(`Filter performance: ${state.filtered_recruits.length} results in ${(endTime - startTime).toFixed(2)}ms`);
-  }
-  
-  // Reset to first page when filters change
-  state.current_page = 1;
-  
-  updateRecruitsList();
-  updatePaginationDisplay();
 }
 
 // Check if recruit miles matches distance filter
@@ -2319,29 +2498,70 @@ function matchesDistanceFilter(miles, distanceFilter) {
 
 // Update recruits list display with virtual scrolling for performance
 function updateRecruitsList() {
-  if (!elements.recruits_list) return;
-  
-  // Calculate pagination
-  const startIndex = (state.current_page - 1) * state.items_per_page;
-  const endIndex = state.show_all_results ? 
-    state.filtered_recruits.length : 
-    Math.min(startIndex + state.items_per_page, state.filtered_recruits.length);
-  
-  const pageRecruits = state.show_all_results ? 
-    state.filtered_recruits : 
-    state.filtered_recruits.slice(startIndex, endIndex);
-  
-  // Performance optimization: use virtual scrolling for large datasets
-  const useVirtualScrolling = pageRecruits.length > state.performance.virtual_scrolling_threshold;
-  
-  if (useVirtualScrolling) {
-    updateRecruitsListVirtual(pageRecruits);
-  } else {
-    updateRecruitsListStandard(pageRecruits);
+  console.log('=== updateRecruitsList START ===');
+  try {
+    if (!elements.recruits_list) {
+      console.warn('Recruits list element not found');
+      return;
+    }
+    console.log('Found recruits_list element');
+    
+    // Ensure filtered_recruits exists
+    if (!state.filtered_recruits) {
+      console.warn('No filtered recruits data available');
+      state.filtered_recruits = [];
+    }
+    console.log(`Working with ${state.filtered_recruits.length} filtered recruits`);
+    
+    // Calculate pagination
+    const startIndex = (state.current_page - 1) * state.items_per_page;
+    const endIndex = state.show_all_results ? 
+      state.filtered_recruits.length : 
+      Math.min(startIndex + state.items_per_page, state.filtered_recruits.length);
+    
+    const pageRecruits = state.show_all_results ? 
+      state.filtered_recruits : 
+      state.filtered_recruits.slice(startIndex, endIndex);
+    
+    console.log(`Displaying ${pageRecruits.length} recruits for current page`);
+    
+    // Performance optimization: use virtual scrolling for large datasets
+    const useVirtualScrolling = pageRecruits.length > state.performance.virtual_scrolling_threshold;
+    console.log(`Using virtual scrolling: ${useVirtualScrolling}`);
+    
+    if (useVirtualScrolling) {
+      console.log('Calling updateRecruitsListVirtual...');
+      updateRecruitsListVirtual(pageRecruits);
+    } else {
+      console.log('Calling updateRecruitsListStandard...');
+      updateRecruitsListStandard(pageRecruits);
+    }
+    
+    // Apply column visibility
+    console.log('Applying column visibility...');
+    applyColumnVisibility();
+    
+    console.log('=== updateRecruitsList END ===');
+  } catch (error) {
+    console.error('Error in updateRecruitsList:', error);
+    console.error('Error type:', typeof error, 'Error value:', error);
+    
+    if (error === null) {
+      console.error('CAUGHT NULL ERROR in updateRecruitsList!');
+    }
+    
+    // Don't call handleError to prevent cascades
+    setStatusMessage(`Error updating list: ${error && error.message ? error.message : 'Unknown error'}`, 'error');
+    
+    // Fallback: clear the list and show error message
+    if (elements.recruits_list) {
+      try {
+        elements.recruits_list.innerHTML = '<tr><td colspan="33" style="text-align: center; padding: 20px; color: red;">Error loading recruits</td></tr>';
+      } catch (fallbackError) {
+        console.error('Error in fallback innerHTML update:', fallbackError);
+      }
+    }
   }
-  
-  // Apply column visibility
-  applyColumnVisibility();
 }
 
 // Standard list rendering for smaller datasets
@@ -2355,11 +2575,25 @@ function updateRecruitsListStandard(pageRecruits) {
     elements.recruits_list.appendChild(row);
     return;
   }
-  
-  // Create rows for recruits
-  pageRecruits.forEach(recruit => {
-    const row = createRecruitRow(recruit);
-    elements.recruits_list.appendChild(row);
+    // Create rows for recruits
+  pageRecruits.forEach((recruit, index) => {
+    try {
+      if (!recruit) {
+        console.warn(`Null recruit found at index ${index}, skipping`);
+        return;
+      }
+      
+      const row = createRecruitRow(recruit);
+      if (!row) {
+        console.warn(`createRecruitRow returned null for recruit ${recruit.id || index}`);
+        return;
+      }
+      
+      elements.recruits_list.appendChild(row);
+    } catch (error) {
+      console.error(`Error creating row for recruit ${recruit?.id || index}:`, error);
+      // Continue with other recruits
+    }
   });
 }
 
@@ -2405,15 +2639,21 @@ function updateRecruitsListVirtual(pageRecruits) {
 
 // Create a table row for a recruit
 function createRecruitRow(recruit) {
-  const row = document.createElement('tr');
-  
-  // Add ARIA attributes for accessibility
-  row.setAttribute('role', 'row');
-  row.setAttribute('tabindex', '0');
-  row.setAttribute('aria-label', `Recruit: ${recruit.name || 'Unknown'}, Position: ${recruit.pos || 'Unknown'}, Rating: ${recruit.rating || 'N/A'}`);
-  
-  // Add row-level classes for styling
-  if (recruit.watched === 1) {
+  try {
+    if (!recruit) {
+      console.error('createRecruitRow called with null/undefined recruit');
+      return null;
+    }
+    
+    const row = document.createElement('tr');
+    
+    // Add ARIA attributes for accessibility
+    row.setAttribute('role', 'row');
+    row.setAttribute('tabindex', '0');
+    row.setAttribute('aria-label', `Recruit: ${recruit.name || 'Unknown'}, Position: ${recruit.pos || 'Unknown'}, Rating: ${recruit.rating || 'N/A'}`);
+    
+    // Add row-level classes for styling
+    if (recruit.watched === 1) {
     row.classList.add('watched-recruit');
     row.setAttribute('aria-label', row.getAttribute('aria-label') + ', On Watchlist');
   }
@@ -2581,31 +2821,55 @@ function createRecruitRow(recruit) {
       cell.classList.add(className);
     });
     
-    row.appendChild(cell);
-  });
+    row.appendChild(cell);  });
   
   return row;
+  
+  } catch (error) {
+    console.error('Error in createRecruitRow:', error, 'Recruit:', recruit);
+    handleError(error, 'creating recruit row');
+    
+    // Return a basic error row instead of null
+    const errorRow = document.createElement('tr');
+    errorRow.innerHTML = '<td colspan="33" style="text-align: center; color: red;">Error rendering recruit</td>';
+    return errorRow;
+  }
 }
 
 // Update pagination display
 function updatePaginationDisplay() {
-  if (!elements.page_info) return;
-  
-  const totalPages = Math.ceil(state.filtered_recruits.length / state.items_per_page);
-  
-  if (state.show_all_results) {
-    elements.page_info.textContent = `Showing all ${state.filtered_recruits.length} results`;
-  } else {
-    elements.page_info.textContent = `Page ${state.current_page} of ${totalPages}`;
-  }
-  
-  // Update button states
-  if (elements.prev_page_btn) {
-    elements.prev_page_btn.disabled = state.current_page <= 1 || state.show_all_results;
-  }
-  
-  if (elements.next_page_btn) {
-    elements.next_page_btn.disabled = state.current_page >= totalPages || state.show_all_results;
+  try {
+    if (!elements.page_info) {
+      console.warn('Page info element not found');
+      return;
+    }
+    
+    // Ensure filtered_recruits exists
+    if (!state.filtered_recruits) {
+      console.warn('No filtered recruits data for pagination');
+      state.filtered_recruits = [];
+    }
+    
+    const totalPages = Math.ceil(state.filtered_recruits.length / state.items_per_page);
+    
+    if (state.show_all_results) {
+      elements.page_info.textContent = `Showing all ${state.filtered_recruits.length} results`;
+    } else {
+      elements.page_info.textContent = `Page ${state.current_page} of ${totalPages}`;
+    }
+    
+    // Update button states
+    if (elements.prev_page_btn) {
+      elements.prev_page_btn.disabled = state.current_page <= 1 || state.show_all_results;
+    }
+    
+    if (elements.next_page_btn) {
+      elements.next_page_btn.disabled = state.current_page >= totalPages || state.show_all_results;
+    }
+    
+  } catch (error) {
+    console.error('Error in updatePaginationDisplay:', error);
+    handleError(error, 'updating pagination');
   }
 }
 

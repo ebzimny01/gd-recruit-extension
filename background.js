@@ -112,6 +112,14 @@ chrome.action.onClicked.addListener((tab) => {
 // Listen for messages from content scripts or popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Background received message:', message);
+  
+  // Handle error reporting messages
+  if (message.type === 'popup_error') {
+    console.error('Popup reported error:', message.error);
+    // Don't send response for error reports
+    return false;
+  }
+  
   // Handle different types of messages
   switch (message.action) {
     case 'ping':

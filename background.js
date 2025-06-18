@@ -1971,6 +1971,12 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // Function to check if a specific tab is the GD Office page
 function checkIfGDOfficePage(tab) {
+  // Validate tab object
+  if (!tab || !tab.url || !tab.id) {
+    console.warn('Invalid tab object passed to checkIfGDOfficePage');
+    return;
+  }
+  
   const GD_OFFICE_URL = 'https://www.whatifsports.com/gd/office/';
   
   // Check for exact match or if it starts with our target URL (to catch any parameters)
@@ -2002,15 +2008,8 @@ function checkIfGDOfficePage(tab) {
       }
     }).catch(error => {
       console.error('Error getting wispersisted cookie:', error);
-    });
-    
-    // Inject content script if needed
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['content/office-page-handler.js']
-    }).catch(error => {
-      console.error('Error injecting content script:', error);
-    });
+    });    // Content script is now injected declaratively via manifest
+    console.log('GD Office page detected, content script will be injected automatically');
   }
 }
 

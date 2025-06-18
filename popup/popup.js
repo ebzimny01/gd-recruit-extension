@@ -45,6 +45,17 @@ const POSITION_DROPDOWN_ORDER = [
   'P'    // Punter last
 ];
 
+// Custom position groups for special filtering
+const CUSTOM_POSITION_GROUPS = {
+  'Ret': {
+    label: 'Returner',
+    positions: ['RB', 'WR', 'TE', 'DB']
+  }
+  // Future custom groups can be added here
+  // 'OFF': { label: 'Offense', positions: ['QB', 'RB', 'WR', 'TE', 'OL'] }
+  // 'DEF': { label: 'Defense', positions: ['DL', 'LB', 'DB'] }
+};
+
 // Column configuration for recruit table
 const COLUMNS = [
   { key: 'name', label: 'Name', sortable: true },
@@ -2616,11 +2627,24 @@ function populatePositionFilter() {
   // Clear existing options except "All"
   elements.filter_position.innerHTML = '<option value="">All Positions</option>';
   
-  // Add positions in custom order
+  // Add positions in custom order with counts
   sortedPositions.forEach(position => {
+    const count = state.recruits.filter(r => r.pos === position).length;
     const option = document.createElement('option');
     option.value = position;
-    option.textContent = position;
+    option.textContent = `${position} (${count})`;
+    elements.filter_position.appendChild(option);
+  });
+  
+  // Add custom groups with counts
+  Object.entries(CUSTOM_POSITION_GROUPS).forEach(([groupKey, groupData]) => {
+    const count = state.recruits.filter(r => groupData.positions.includes(r.pos)).length;
+    const option = document.createElement('option');
+    option.value = groupKey;
+    option.textContent = `${groupData.label} (${count})`;
+    if (count === 0) {
+      option.style.color = '#888'; // Gray out if no recruits
+    }
     elements.filter_position.appendChild(option);
   });
 }
@@ -2634,9 +2658,10 @@ function populatePotentialFilter() {
   elements.filter_potential.innerHTML = '<option value="">All Potentials</option>';
   
   potentials.forEach(potential => {
+    const count = state.recruits.filter(r => r.potential === potential).length;
     const option = document.createElement('option');
     option.value = potential;
-    option.textContent = potential;
+    option.textContent = `${potential} (${count})`;
     elements.filter_potential.appendChild(option);
   });
 }
@@ -2650,9 +2675,10 @@ function populateDivisionFilter() {
   elements.filter_division.innerHTML = '<option value="">All Divisions</option>';
   
   divisions.forEach(division => {
+    const count = state.recruits.filter(r => r.division === division).length;
     const option = document.createElement('option');
     option.value = division;
-    option.textContent = division;
+    option.textContent = `${division} (${count})`;
     elements.filter_division.appendChild(option);
   });
 }
@@ -2697,17 +2723,36 @@ function populateDistanceFilter() {
   
   // Create distance ranges - updated to match requirements
   const distanceRanges = [
-    { value: '< 180', label: '< 180 miles' },
-    { value: '< 360', label: '< 360 miles' },
-    { value: '< 1400', label: '< 1400 miles' }
+    { value: '< 180', label: '< 180' },
+    { value: '< 360', label: '< 360' },
+    { value: '< 1400', label: '< 1400' }
   ];
   
   elements.filter_distance.innerHTML = '<option value="">Any Distance</option>';
   
   distanceRanges.forEach(range => {
+    // Calculate count for this distance range
+    let count = 0;
+    switch (range.value) {
+      case '< 180':
+        count = state.recruits.filter(r => r.miles && r.miles < 180).length;
+        break;
+      case '< 360':
+        count = state.recruits.filter(r => r.miles && r.miles < 360).length;
+        break;
+      case '< 1400':
+        count = state.recruits.filter(r => r.miles && r.miles < 1400).length;
+        break;
+    }
+    
     const option = document.createElement('option');
     option.value = range.value;
-    option.textContent = range.label;
+    option.textContent = `${range.label} (${count})`;
+    
+    if (count === 0) {
+      option.style.color = '#888'; // Gray out if no recruits in this range
+    }
+    
     elements.filter_distance.appendChild(option);
   });
 }
@@ -2736,10 +2781,22 @@ function applyFilters() {
         console.warn('Null recruit found in array, skipping');
         return false;
       }
-      
-      // Position filter
-      if (state.filters.position && recruit.pos !== state.filters.position) {
-        return false;
+        // Position filter - handle both regular positions and custom groups
+      if (state.filters.position) {
+        let positionMatch = false;
+        
+        // Check if it's a custom group
+        if (CUSTOM_POSITION_GROUPS[state.filters.position]) {
+          // Check if recruit's position is in the custom group
+          positionMatch = CUSTOM_POSITION_GROUPS[state.filters.position].positions.includes(recruit.pos);
+        } else {
+          // Regular position match
+          positionMatch = recruit.pos === state.filters.position;
+        }
+        
+        if (!positionMatch) {
+          return false;
+        }
       }
       
       // Potential filter

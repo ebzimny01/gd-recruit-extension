@@ -1316,11 +1316,11 @@ function setupFilterListeners() {
       applyFilters();
     });
   }
-  
-  // Priority filter
+    // Priority filter
   if (elements.filter_priority) {
     elements.filter_priority.addEventListener('change', (event) => {
       state.filters.priority = event.target.value;
+      console.log(`Priority filter changed to: "${state.filters.priority}" (type: ${typeof state.filters.priority})`);
       applyFilters();
     });
   }
@@ -2661,14 +2661,32 @@ function populateDivisionFilter() {
 function populatePriorityFilter() {
   if (!elements.filter_priority) return;
   
-  const priorities = [...new Set(state.recruits.map(r => r.priority).filter(Boolean))].sort();
+  // Priority levels in GD are typically 0-5, so show all possible values
+  // Even if no recruits currently have certain priority levels
+  const allPriorities = [0, 1, 2, 3, 4, 5];
+  
+  // Get unique priorities actually present in data
+  const actualPriorities = [...new Set(state.recruits.map(r => r.priority)
+    .filter(p => p !== null && p !== undefined && p !== ''))]
+    .sort((a, b) => a - b);
   
   elements.filter_priority.innerHTML = '<option value="">All Priorities</option>';
   
-  priorities.forEach(priority => {
+  // Show all standard priority levels, but indicate which ones have data
+  allPriorities.forEach(priority => {
     const option = document.createElement('option');
     option.value = priority;
-    option.textContent = priority;
+    
+    // Count how many recruits have this priority
+    const count = state.recruits.filter(r => r.priority === priority).length;
+    
+    if (count > 0) {
+      option.textContent = `${priority} (${count})`;
+    } else {
+      option.textContent = `${priority} (0)`;
+      option.style.color = '#888'; // Gray out options with no data
+    }
+    
     elements.filter_priority.appendChild(option);
   });
 }
@@ -2732,11 +2750,15 @@ function applyFilters() {
       // Division filter
       if (state.filters.division && recruit.division !== state.filters.division) {
         return false;
-      }
-      
-      // Priority filter
-      if (state.filters.priority && recruit.priority !== state.filters.priority) {
-        return false;
+      }      // Priority filter - convert filter value to number for comparison
+      if (state.filters.priority) {
+        const filterPriority = parseInt(state.filters.priority);
+        const recruitPriority = parseInt(recruit.priority);
+        
+        if (recruitPriority !== filterPriority) {
+          console.log(`Filtering out recruit ${recruit.name}: priority ${recruitPriority} !== ${filterPriority}`);
+          return false;
+        }
       }
         // Distance filter
       if (state.filters.distance && !matchesDistanceFilter(recruit.miles, state.filters.distance)) {

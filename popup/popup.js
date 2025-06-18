@@ -870,6 +870,18 @@ function showSeasonModal() {
     setupSeasonModalListeners();
     elements.season_modal.dataset.initialized = 'true';
   }
+  
+  // Auto-select team's division
+  const teamDivision = elements.team_division?.textContent?.trim();
+  const divisionMap = { 'D-IA': 'division-d1a', 'D-IAA': 'division-d1aa', 'D-II': 'division-d2', 'D-III': 'division-d3' };
+  
+  if (teamDivision && divisionMap[teamDivision]) {
+    const checkbox = document.getElementById(divisionMap[teamDivision]);
+    if (checkbox) {
+      checkbox.checked = true;
+      checkbox.disabled = true;
+    }
+  }
 }
 
 // Setup season modal event listeners
@@ -901,6 +913,15 @@ function setupSeasonModalListeners() {
 function closeSeasonModal() {
   if (elements.season_modal) {
     elements.season_modal.classList.add('hidden');
+    
+    // Reset division checkboxes
+    ['division-d1a', 'division-d1aa', 'division-d2', 'division-d3'].forEach(id => {
+      const checkbox = document.getElementById(id);
+      if (checkbox) {
+        checkbox.checked = false;
+        checkbox.disabled = false;
+      }
+    });
   }
 }
 

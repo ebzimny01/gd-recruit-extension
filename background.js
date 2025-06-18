@@ -371,15 +371,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (isRefreshOnly && fieldsToUpdate.length > 0) {
           recruitStorage.saveConfig('refreshFieldsToUpdate', JSON.stringify(fieldsToUpdate))
             .catch(error => console.error('Error storing fields to update:', error));
-        }
-          // Store the new tab ID when created for future reference
+        }          // Store the new tab ID when created for future reference
         // Create tab in background (inactive) to make scraping less intrusive
         chrome.tabs.create({ 
           url: urlWithParams,
           active: false  // This keeps the tab in background
         }).then(tab => {
           currentScrapeTabId = tab.id;
-          console.log(`Created background tab with ID ${tab.id} for scraping`);
+          console.log(`Created background tab with ID ${tab.id} for scraping`);          // The background-overlay.js script will automatically load via manifest
+          // and detect the auto_scrape parameter to show the overlay
+          console.log('Background tab created, overlay script will auto-detect and display');
 
           // Listen for tab to finish loading before injecting the scraper
           const tabListener = (tabId, changeInfo) => {

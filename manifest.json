@@ -30,11 +30,10 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
-  },
-  "content_scripts": [
+  },  "content_scripts": [
     {
       "matches": ["https://*.whatifsports.com/gd/recruiting/*"],
-      "js": ["content/page-detector.js"]
+      "js": ["content/page-detector.js", "content/background-overlay.js"]
     }
   ],
   "icons": {

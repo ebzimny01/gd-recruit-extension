@@ -1693,6 +1693,7 @@ async function handleResetRoleRatings() {
 
 
 
+
 // Setup column visibility modal listeners
 function setupColumnVisibilityModalListeners() {
   if (elements.column_visibility_save) {
@@ -3524,4 +3525,23 @@ if (typeof window !== 'undefined') {
     switchTab,
     handleError
   };
+}
+
+// Handle scrape complete messages
+function handleScrapeComplete(message) {
+  console.log('Handling scrape complete:', message);
+  
+  // Hide any active overlays
+  hideScrapingOverlay();
+  
+  // Refresh data if scraping was successful
+  if (message.success) {
+    console.log('Scraping completed successfully, refreshing data');
+    setTimeout(() => {
+      loadInitialData();
+    }, 1000);
+  } else {
+    console.log('Scraping failed:', message.error);
+    // Could add user notification here if needed
+  }
 }

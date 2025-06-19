@@ -127,6 +127,29 @@
                   <span class="checkbox-label-text">Hide Signed</span>
                 </label>
               </div>
+              <div class="filter-item checkbox-filter">
+                <label for="filter-undecided">
+                  <input
+                    type="checkbox"
+                    id="filter-undecided"
+                    title="Show only undecided recruits"
+                  />
+                  <span class="checkbox-label-text">Undecided Only</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Attribute Filters Section -->
+            <div class="attribute-filters-section">
+              <div class="attribute-filters-header">
+                <h4>Attribute Filters (>= values)</h4>
+                <button type="button" id="clear-attribute-filters" class="clear-filters-btn">
+                  Clear All
+                </button>
+              </div>
+              <div id="attribute-filters-container" class="attribute-filters-grid">
+                <!-- Dynamically generated filter inputs -->
+              </div>
             </div>
           </div>
           

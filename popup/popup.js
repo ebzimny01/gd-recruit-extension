@@ -56,6 +56,29 @@ const CUSTOM_POSITION_GROUPS = {
   // 'DEF': { label: 'Defense', positions: ['DL', 'LB', 'DB'] }
 };
 
+// Attribute filter configuration
+const ATTRIBUTE_COLUMNS = [
+  { key: 'gpa', label: 'GPA', type: 'decimal', min: 0, max: 4.0, step: 0.1 },
+  { key: 'ath', label: 'Ath', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'spd', label: 'Spd', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'dur', label: 'Dur', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'we', label: 'WE', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'sta', label: 'Sta', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'str', label: 'Str', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'blk', label: 'Blk', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'tkl', label: 'Tkl', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'han', label: 'Han', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'gi', label: 'GI', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'elu', label: 'Elu', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'tec', label: 'Tec', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'r1', label: 'R1', type: 'decimal', min: 0, max: 100, step: 0.1 },
+  { key: 'r2', label: 'R2', type: 'decimal', min: 0, max: 100, step: 0.1 },
+  { key: 'r3', label: 'R3', type: 'decimal', min: 0, max: 100, step: 0.1 },
+  { key: 'r4', label: 'R4', type: 'decimal', min: 0, max: 100, step: 0.1 },
+  { key: 'r5', label: 'R5', type: 'decimal', min: 0, max: 100, step: 0.1 },
+  { key: 'r6', label: 'R6', type: 'decimal', min: 0, max: 100, step: 0.1 }
+];
+
 // Column configuration for recruit table
 const COLUMNS = [
   { key: 'name', label: 'Name', sortable: true },
@@ -145,6 +168,11 @@ const elements = {
   btn_edit_bold_attributes: document.getElementById('btn-edit-bold-attributes'),
   btn_reset_bold_attributes: document.getElementById('btn-reset-bold-attributes'),
 
+  // New filter elements
+  filter_undecided: document.getElementById('filter-undecided'),
+  attribute_filters_container: document.getElementById('attribute-filters-container'),
+  clear_attribute_filters: document.getElementById('clear-attribute-filters'),
+
   // Season modal elements
   season_modal: document.getElementById('season-modal'),
   season_modal_close: document.getElementById('season-modal-close'),
@@ -204,7 +232,14 @@ let state = {
     division: '',
     priority: '',
     distance: '',
-    hide_signed: false
+    hide_signed: false,
+    undecided: false,
+    attribute_filters: {
+      gpa: '',
+      ath: '', spd: '', dur: '', we: '', sta: '', str: '',
+      blk: '', tkl: '', han: '', gi: '', elu: '', tec: '',
+      r1: '', r2: '', r3: '', r4: '', r5: '', r6: ''
+    }
   },
   
   // Modal states
@@ -1468,6 +1503,151 @@ function setupFilterListeners() {
       applyFilters();
     });
   }
+
+  // Undecided filter
+  if (elements.filter_undecided) {
+    elements.filter_undecided.addEventListener('change', (event) => {
+      state.filters.undecided = event.target.checked;
+      applyFilters();
+    });
+  }
+
+  // Clear attribute filters button
+  if (elements.clear_attribute_filters) {
+    elements.clear_attribute_filters.addEventListener('click', clearAttributeFilters);
+  }
+
+  // Setup attribute filter inputs
+  setupAttributeFilters();
+}
+
+// Setup attribute filter inputs
+function setupAttributeFilters() {
+  if (!elements.attribute_filters_container) return;
+
+  // Clear existing content
+  elements.attribute_filters_container.innerHTML = '';
+
+  // Create attribute filter inputs dynamically
+  ATTRIBUTE_COLUMNS.forEach(column => {
+    // Create the filter group container
+    const filterGroup = document.createElement('div');
+    filterGroup.className = 'attribute-filter-group';
+
+    // Create the label
+    const label = document.createElement('label');
+    label.htmlFor = `filter-${column.key}`;
+    label.textContent = `${column.label} ≥`;
+
+    // Create the input
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.id = `filter-${column.key}`;
+    input.className = 'attribute-filter-input';
+    input.placeholder = column.type === 'decimal' ? '0.0' : '0';
+    input.min = column.min;
+    input.max = column.max;
+    input.step = column.step;
+    input.title = `Filter ${column.label} (minimum value)`;
+
+    // Add event listener
+    input.addEventListener('input', (event) => {
+      const value = event.target.value.trim();
+      state.filters.attribute_filters[column.key] = value;
+      
+      // Add visual indicator if filter is active
+      if (value) {
+        input.classList.add('filter-active');
+      } else {
+        input.classList.remove('filter-active');
+      }
+      
+      // Debounce the filter application
+      debounce(() => {
+        applyFilters();
+        updateFilterSummary();
+      }, 300, `attribute-filter-${column.key}`);
+    });
+
+    // Apply existing filter value if any
+    if (state.filters.attribute_filters[column.key]) {
+      input.value = state.filters.attribute_filters[column.key];
+      input.classList.add('filter-active');
+    }
+
+    // Assemble the filter group
+    filterGroup.appendChild(label);
+    filterGroup.appendChild(input);
+    elements.attribute_filters_container.appendChild(filterGroup);
+  });
+
+  // Initialize filter summary
+  updateFilterSummary();
+}
+
+// Clear all attribute filters
+function clearAttributeFilters() {
+  // Reset all attribute filter values
+  Object.keys(state.filters.attribute_filters).forEach(key => {
+    state.filters.attribute_filters[key] = '';
+  });
+
+  // Clear all input values and remove active indicators
+  ATTRIBUTE_COLUMNS.forEach(column => {
+    const input = document.getElementById(`filter-${column.key}`);
+    if (input) {
+      input.value = '';
+      input.classList.remove('filter-active');
+    }
+  });
+
+  // Update filter summary and apply filters
+  updateFilterSummary();
+  applyFilters();
+}
+
+// Update filter summary with count of active filters
+function updateFilterSummary() {
+  const header = document.querySelector('.attribute-filters-header h4');
+  if (!header) return;
+
+  const activeFilterCount = Object.values(state.filters.attribute_filters)
+    .filter(value => value && value.trim() !== '').length;
+
+  // Update header text with count
+  const baseText = 'Attribute Filters (>= values)';
+  if (activeFilterCount > 0) {
+    header.innerHTML = `${baseText} <span class="filter-summary-badge">${activeFilterCount}</span>`;
+  } else {
+    header.textContent = baseText;
+  }
+}
+
+// Check if recruit matches attribute filters
+function matchesAttributeFilters(recruit) {
+  for (const [attribute, filterValue] of Object.entries(state.filters.attribute_filters)) {
+    if (!filterValue || filterValue.trim() === '') continue;
+
+    const recruitValue = recruit[attribute];
+    if (recruitValue === null || recruitValue === undefined || recruitValue === '') {
+      continue; // Skip if recruit doesn't have this attribute
+    }
+
+    const numericFilterValue = parseFloat(filterValue);
+    const numericRecruitValue = parseFloat(recruitValue);
+
+    // Skip if either value is not numeric
+    if (isNaN(numericFilterValue) || isNaN(numericRecruitValue)) {
+      continue;
+    }
+
+    // Filter should show recruits with values >= the filter value
+    if (numericRecruitValue < numericFilterValue) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 // Setup pagination event listeners
@@ -2800,32 +2980,118 @@ function refreshRecruitsDisplay() {
   }
 }
 
-// Setup basic table sorting functionality
+// Enhanced table sorting functionality with accessibility and validation
 function setupTableSorting() {
   const table = document.getElementById('recruits-table');
-  if (!table) return;
+  if (!table) {
+    console.warn('Recruits table not found for sorting setup');
+    return;
+  }
   
   const headerCells = table.querySelectorAll('thead th');
-  headerCells.forEach((header, index) => {
+  if (headerCells.length === 0) {
+    console.warn('No header cells found for sorting setup');
+    return;
+  }
+  
+  // Clear any existing event listeners to prevent duplicates
+  headerCells.forEach(header => {
+    // Clone the node to remove all event listeners
+    const newHeader = header.cloneNode(true);
+    header.parentNode.replaceChild(newHeader, header);
+  });
+  
+  // Re-query after cloning to get fresh references
+  const freshHeaderCells = table.querySelectorAll('thead th');
+  
+  freshHeaderCells.forEach((header, index) => {
     if (index < COLUMNS.length && COLUMNS[index].sortable) {
-      header.style.cursor = 'pointer';
-      header.title = `Click to sort by ${COLUMNS[index].label}`;
+      // Enhanced accessibility attributes
+      header.setAttribute('tabindex', '0');
+      header.setAttribute('role', 'columnheader');
+      header.setAttribute('aria-sort', 'none');
+      header.setAttribute('data-sortable', 'true');
+      header.setAttribute('data-column-key', COLUMNS[index].key);
       
-      header.addEventListener('click', () => {
+      // Visual styling
+      header.style.cursor = 'pointer';
+      header.classList.add('sortable');
+      header.title = `Click to sort by ${COLUMNS[index].label}. Currently not sorted.`;
+      
+      // Single event handler with preventDefault to stop event bubbling
+      const handleSort = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        
+        console.log(`Sort triggered for column: ${COLUMNS[index].key}`);
         sortTable(COLUMNS[index].key);
+      };
+      
+      // Mouse click handler
+      header.addEventListener('click', handleSort, { once: false, passive: false });
+      
+      // Keyboard accessibility
+      header.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          
+          console.log(`Keyboard sort triggered for column: ${COLUMNS[index].key}`);
+          sortTable(COLUMNS[index].key);
+        }
+      }, { passive: false });
+      
+      // Enhanced hover feedback
+      header.addEventListener('mouseenter', () => {
+        if (!header.classList.contains('sort-asc') && !header.classList.contains('sort-desc')) {
+          header.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
+        }
       });
+      
+      header.addEventListener('mouseleave', () => {
+        if (!header.classList.contains('sort-asc') && !header.classList.contains('sort-desc')) {
+          header.style.backgroundColor = '';
+        }
+      });
+    } else {
+      // Mark non-sortable columns
+      header.setAttribute('aria-sort', 'none');
+      header.setAttribute('data-sortable', 'false');
+      header.title = `${COLUMNS[index]?.label || 'Column'} (not sortable)`;
     }
   });
+  
+  console.log(`Table sorting setup completed for ${freshHeaderCells.length} columns`);
 }
 
-// Sort table by column
+// Sort table by column with debouncing to prevent double-clicking issues
 function sortTable(columnKey) {
+  // Debounce to prevent rapid successive calls
+  const debounceKey = `sort-${columnKey}`;
+  if (state.performance.debounce_timers.has(debounceKey)) {
+    console.log(`Sort request for ${columnKey} debounced - already processing`);
+    return;
+  }
+  
+  console.log(`Starting sort for column: ${columnKey}, current: ${state.sorting.column}, direction: ${state.sorting.direction}`);
+  
+  // Set debounce timer
+  const timeoutId = setTimeout(() => {
+    state.performance.debounce_timers.delete(debounceKey);
+  }, 300); // 300ms debounce
+  
+  state.performance.debounce_timers.set(debounceKey, timeoutId);
+  
   // Toggle sort direction if same column, otherwise default to ascending
   if (state.sorting.column === columnKey) {
     state.sorting.direction = state.sorting.direction === 'asc' ? 'desc' : 'asc';
+    console.log(`Toggling direction for ${columnKey}: ${state.sorting.direction}`);
   } else {
     state.sorting.column = columnKey;
     state.sorting.direction = 'asc';
+    console.log(`New column ${columnKey}: ${state.sorting.direction}`);
   }
   
   // Sort the filtered recruits
@@ -2837,6 +3103,10 @@ function sortTable(columnKey) {
     if (isNumericColumn(columnKey)) {
       valueA = parseFloat(valueA) || 0;
       valueB = parseFloat(valueB) || 0;
+    } else if (columnKey === 'height') {
+      // Special handling for height
+      valueA = parseHeightToInches(valueA);
+      valueB = parseHeightToInches(valueB);
     } else {
       // String comparison
       valueA = valueA.toString().toLowerCase();
@@ -2853,6 +3123,11 @@ function sortTable(columnKey) {
     return state.sorting.direction === 'desc' ? -comparison : comparison;
   });
   
+  console.log(`Sort completed for ${columnKey}: ${state.sorting.direction}, ${state.filtered_recruits.length} items`);
+  
+  // Reset to first page when sorting changes
+  state.current_page = 1;
+  
   // Update display
   updateRecruitsList();
   updateSortIndicators();
@@ -2861,14 +3136,35 @@ function sortTable(columnKey) {
 // Check if column contains numeric data
 function isNumericColumn(columnKey) {
   const numericColumns = [
-    'height', 'weight', 'rating', 'rank', 'miles', 'gpa',
+    'height', 'weight', 'rating', 'rank', 'miles', 'gpa', 'priority',
     'ath', 'spd', 'dur', 'we', 'sta', 'str', 'blk', 'tkl',
     'han', 'gi', 'elu', 'tec', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6'
   ];
   return numericColumns.includes(columnKey);
 }
 
-// Update sort indicators in table headers
+// Parse height values like "6'2" to inches for proper sorting
+function parseHeightToInches(height) {
+  if (!height || typeof height !== 'string') return 0;
+  
+  // Handle formats like "6'2", "6'02", "6-2", "6 2", etc.
+  const heightMatch = height.match(/(\d+)['"\-\s](\d+)/);
+  if (heightMatch) {
+    const feet = parseInt(heightMatch[1], 10) || 0;
+    const inches = parseInt(heightMatch[2], 10) || 0;
+    return (feet * 12) + inches;
+  }
+  
+  // Handle simple numeric values (assume they're already in inches)
+  const numericHeight = parseFloat(height);
+  if (!isNaN(numericHeight)) {
+    return numericHeight;
+  }
+  
+  return 0;
+}
+
+// Update sort indicators in table headers with enhanced accessibility
 function updateSortIndicators() {
   const table = document.getElementById('recruits-table');
   if (!table) return;
@@ -2878,10 +3174,25 @@ function updateSortIndicators() {
     // Remove existing sort indicators
     header.classList.remove('sort-asc', 'sort-desc');
     
+    // Reset ARIA attributes
+    if (header.getAttribute('data-sortable') === 'true') {
+      header.setAttribute('aria-sort', 'none');
+      header.title = `Click to sort by ${COLUMNS[index]?.label || 'column'}. Currently not sorted.`;
+    }
+    
+    // Apply sort indicators and ARIA attributes for current sorted column
     if (index < COLUMNS.length && COLUMNS[index].key === state.sorting.column) {
-      header.classList.add(`sort-${state.sorting.direction}`);
+      const direction = state.sorting.direction;
+      header.classList.add(`sort-${direction}`);
+      header.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
+      
+      const directionText = direction === 'asc' ? 'ascending' : 'descending';
+      const nextDirection = direction === 'asc' ? 'descending' : 'ascending';
+      header.title = `Sorted by ${COLUMNS[index].label} (${directionText}). Click to sort ${nextDirection}.`;
     }
   });
+  
+  console.log(`Sort indicators updated for column: ${state.sorting.column} (${state.sorting.direction})`);
 }
 
 
@@ -3186,6 +3497,16 @@ function applyFilters() {
       
       // Hide signed filter
       if (state.filters.hide_signed && recruit.signed === 'Yes') {
+        return false;
+      }
+
+      // Undecided filter
+      if (state.filters.undecided && recruit.considering !== 'undecided') {
+        return false;
+      }
+
+      // Attribute filters
+      if (!matchesAttributeFilters(recruit)) {
         return false;
       }
       

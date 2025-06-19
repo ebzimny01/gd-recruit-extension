@@ -1001,6 +1001,18 @@ select:focus {
   text-decoration: line-through;
 }
 
+/* New conditional formatting classes for signed status */
+.signed-recruit-to-school {
+  background-color: #d4edda;
+  border-left: 4px solid #28a745;
+}
+
+.signed-recruit-elsewhere {
+  background-color: #f8f9fa;
+  opacity: 0.7;
+  border-left: 4px solid #6c757d;
+}
+
 .recruits-table tr.high-priority {
   background-color: #fff3cd;
   border-left: 4px solid #ffc107;
@@ -1031,6 +1043,21 @@ select:focus {
 .recruits-table td.considering-schools {
   font-style: italic;
   color: #6f42c1;
+}
+
+/* Conditional formatting for considering schools column */
+td.considering-only-school {
+  background-color: #d4edda;
+  color: #155724;
+  font-weight: 600;
+  border: 1px solid #c3e6cb;
+}
+
+td.considering-among-schools {
+  background-color: #fff3cd;
+  color: #856404;
+  font-weight: 500;
+  border: 1px solid #ffeaa7;
 }
 
 .recruits-table td.has-tooltip {

@@ -180,6 +180,10 @@ let state = {
   recruits: [],
   filtered_recruits: [],
   
+  // Team information
+  currentTeamId: null,
+  currentSeason: null,
+  
   // Pagination state
   current_page: 1,
   items_per_page: DEFAULT_PAGE_SIZE,
@@ -1197,6 +1201,12 @@ async function refreshDashboardData() {
 function updateDashboardDisplay(stats) {
   console.log('Updating dashboard display with stats:', stats);
   
+  // Store team information in state for use in conditional formatting
+  if (stats.teamInfo) {
+    state.currentTeamId = stats.teamInfo.teamId;
+    console.log('Updated current team ID in state:', state.currentTeamId);
+  }
+  
   // Update school name displays
   updateSchoolNameDisplay(stats.schoolName, stats.teamInfo);
   
@@ -1308,6 +1318,91 @@ const formatHometownForUrl = (hometown) => {
   // Remove space before state abbreviation (e.g., "City, ST" -> "City,ST")
   return hometown.replace(/,\s+([A-Z]{2})$/, ',$1');
 };
+
+
+/**
+ * Check if current school is in the considering schools list
+ * 
+ * This function analyzes the "Considering Schools" text to determine if the current
+ * school (based on team ID) is included in the recruit's consideration list.
+ * 
+ * Formatting Rules:
+ * - Green background: Current school is the ONLY school being considered
+ * - Yellow background: Current school is among multiple schools being considered
+ * - No highlighting: Current school is not being considered or status is "undecided"
+ * 
+ * @param {string} considering - The considering schools text (e.g., "54006 (Howard Payne University), 54448 (Greensboro College)")
+ * @param {string} currentTeamId - The current school's team ID (5-digit string)
+ * @returns {string} 'only' if current school is the only one, 'included' if current school is among others, 'not_included' if not present
+ */
+function checkCurrentSchoolInConsidering(considering, currentTeamId) {
+  if (!considering || considering === 'undecided' || !currentTeamId) {
+    return 'not_included';
+  }
+
+  // Extract all school IDs from the considering text
+  // Pattern: digits followed by space and parentheses with school name
+  const schoolIdMatches = considering.match(/\b\d{5}\b/g);
+  
+  if (!schoolIdMatches) {
+    return 'not_included';
+  }
+
+  const isCurrentSchoolIncluded = schoolIdMatches.includes(currentTeamId);
+  
+  if (!isCurrentSchoolIncluded) {
+    return 'not_included';
+  }
+  
+  // Debug logging for development
+  console.log(`School ${currentTeamId} found in considering: ${considering} (${schoolIdMatches.length} total schools)`);
+  
+  // If current school is included, check if it's the only one
+  if (schoolIdMatches.length === 1) {
+    return 'only';
+  } else {
+    return 'included';
+  }
+}
+
+/**
+ * Determine the signed status of a recruit relative to the current school
+ * 
+ * This function checks if a recruit is signed and whether they signed with the current school
+ * or elsewhere, enabling appropriate row-level formatting.
+ * 
+ * Formatting Rules:
+ * - Gray background: Recruit is signed but not to current school
+ * - Green background: Recruit is signed to current school
+ * - No special formatting: Recruit is not signed
+ * 
+ * @param {Object} recruit - The recruit object containing signed status and considering schools
+ * @param {string} currentTeamId - The current school's team ID (5-digit string)
+ * @returns {string} 'signed_to_school' if signed to current school, 'signed_elsewhere' if signed to another school, 'not_signed' if not signed
+ */
+function checkSignedStatus(recruit, currentTeamId) {
+  // Check if recruit is signed
+  if (!recruit.signed || recruit.signed !== 1) {
+    return 'not_signed';
+  }
+
+  // If signed, check if they signed with the current school
+  const considering = recruit.considering || 'undecided';
+  
+  // For signed recruits, the considering field typically shows the school they signed with
+  if (considering === 'undecided' || !currentTeamId) {
+    return 'signed_elsewhere';
+  }
+
+  const currentSchoolStatus = checkCurrentSchoolInConsidering(considering, currentTeamId);
+  
+  // If current school is in the considering list, they likely signed with us
+  if (currentSchoolStatus === 'only' || currentSchoolStatus === 'included') {
+    return 'signed_to_school';
+  } else {
+    return 'signed_elsewhere';
+  }
+}
 
 // Setup filter event listeners
 function setupFilterListeners() {
@@ -3222,7 +3317,16 @@ function updateRecruitsListStandard(pageRecruits) {
     elements.recruits_list.appendChild(row);
     return;
   }
-    // Create rows for recruits
+  
+  // Get team info from the current dashboard state
+  const teamInfo = {
+    teamId: state.currentTeamId || null,
+    schoolName: elements.school_name?.textContent || null,
+    division: elements.team_division?.textContent || null,
+    world: elements.team_world?.textContent || null
+  };
+  
+  // Create rows for recruits
   pageRecruits.forEach((recruit, index) => {
     try {
       if (!recruit) {
@@ -3230,7 +3334,7 @@ function updateRecruitsListStandard(pageRecruits) {
         return;
       }
       
-      const row = createRecruitRow(recruit);
+      const row = createRecruitRow(recruit, teamInfo);
       if (!row) {
         console.warn(`createRecruitRow returned null for recruit ${recruit.id || index}`);
         return;
@@ -3285,7 +3389,7 @@ function updateRecruitsListVirtual(pageRecruits) {
 }
 
 // Create a table row for a recruit
-function createRecruitRow(recruit) {
+function createRecruitRow(recruit, teamInfo) {
   try {
     if (!recruit) {
       console.error('createRecruitRow called with null/undefined recruit');
@@ -3299,31 +3403,43 @@ function createRecruitRow(recruit) {
     row.setAttribute('tabindex', '0');
     row.setAttribute('aria-label', `Recruit: ${recruit.name || 'Unknown'}, Position: ${recruit.pos || 'Unknown'}, Rating: ${recruit.rating || 'N/A'}`);
     
-    // Add row-level classes for styling
-    if (recruit.watched === 1) {
-    row.classList.add('watched-recruit');
-    row.setAttribute('aria-label', row.getAttribute('aria-label') + ', On Watchlist');
-  }
-  
-  if (recruit.signed === 'Y' || recruit.signed === 'Yes') {
-    row.classList.add('signed-recruit');
-    row.setAttribute('aria-label', row.getAttribute('aria-label') + ', Signed');
-  }
-  
-  // Add priority-based styling
-  if (recruit.priority) {
-    const priority = parseInt(recruit.priority, 10);
-    if (priority <= 2) {
-      row.classList.add('high-priority');
-      row.setAttribute('aria-label', row.getAttribute('aria-label') + ', High Priority');
-    } else if (priority <= 4) {
-      row.classList.add('medium-priority');
-      row.setAttribute('aria-label', row.getAttribute('aria-label') + ', Medium Priority');
+    // Check signed status first for row-level formatting
+    const signedStatus = teamInfo && teamInfo.teamId ? checkSignedStatus(recruit, teamInfo.teamId) : 'not_signed';
+    
+    // Apply signed status formatting to the entire row
+    if (signedStatus === 'signed_to_school') {
+      row.classList.add('signed-recruit-to-school');
+      row.setAttribute('aria-label', row.getAttribute('aria-label') + ', Signed to Your School');
+    } else if (signedStatus === 'signed_elsewhere') {
+      row.classList.add('signed-recruit-elsewhere');
+      row.setAttribute('aria-label', row.getAttribute('aria-label') + ', Signed Elsewhere');
     }
-  }
-  
-  // Get position for bold attribute checking
-  const position = recruit.pos ? recruit.pos.toLowerCase() : '';
+    
+    // Add legacy row-level classes for backward compatibility
+    if (recruit.watched === 1) {
+      row.classList.add('watched-recruit');
+      row.setAttribute('aria-label', row.getAttribute('aria-label') + ', On Watchlist');
+    }
+    
+    if (recruit.signed === 'Y' || recruit.signed === 'Yes') {
+      row.classList.add('signed-recruit');
+      row.setAttribute('aria-label', row.getAttribute('aria-label') + ', Signed');
+    }
+    
+    // Add priority-based styling
+    if (recruit.priority) {
+      const priority = parseInt(recruit.priority, 10);
+      if (priority <= 2) {
+        row.classList.add('high-priority');
+        row.setAttribute('aria-label', row.getAttribute('aria-label') + ', High Priority');
+      } else if (priority <= 4) {
+        row.classList.add('medium-priority');
+        row.setAttribute('aria-label', row.getAttribute('aria-label') + ', Medium Priority');
+      }
+    }
+    
+    // Get position for bold attribute checking
+    const position = recruit.pos ? recruit.pos.toLowerCase() : '';
   // Column data mapping with attribute names for bold styling and enhanced features
   const columnData = [
     { key: 'name', content: recruit.name || '', attribute: null, isLink: true,
@@ -3399,11 +3515,32 @@ function createRecruitRow(recruit) {
     { key: 'r5', content: recruit.r5 || '', attribute: null, tooltip: recruit.r5 ? `Rating 5: ${recruit.r5}` : null },
     { key: 'r6', content: recruit.r6 || '', attribute: null, tooltip: recruit.r6 ? `Rating 6: ${recruit.r6}` : null },
     { 
+      key: 'considering',
       content: recruit.considering || '', 
       attribute: null, 
       isLink: false,
       tooltip: recruit.considering ? `Considering Schools: ${recruit.considering}` : null,
-      classes: recruit.considering ? ['considering-schools'] : []
+      classes: (() => {
+        const baseClasses = recruit.considering ? ['considering-schools'] : [];
+        
+        // Add conditional formatting based on current school status
+        if (teamInfo && teamInfo.teamId && recruit.considering) {
+          const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, teamInfo.teamId);
+          switch (consideringStatus) {
+            case 'only':
+              baseClasses.push('considering-only-school');
+              break;
+            case 'included':
+              baseClasses.push('considering-among-schools');
+              break;
+            case 'not_included':
+              // No special formatting for not included
+              break;
+          }
+        }
+        
+        return baseClasses;
+      })()
     }
   ];  columnData.forEach(({ content, attribute, tooltip, classes = [], isLink, linkUrl, isWatched }, index) => {
     const cell = document.createElement('td');

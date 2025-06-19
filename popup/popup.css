@@ -580,7 +580,7 @@ body {
 
 .modal-body {
   padding: var(--spacing-md);
-  max-height: 400px;
+  max-height: 600px;
   overflow-y: auto;
 }
 
@@ -951,8 +951,9 @@ select:focus {
 .preview-attribute.bold {
   font-weight: bold;
   color: var(--text-primary);
-  background-color: #fff3cd;
-  border-color: #ffeaa7;
+  border: 1px solid var(--border-color);
+  background-color: #fff3cd !important;
+  color:rgb(102, 62, 1) !important;
 }
 
 /* Accessibility improvements */
@@ -986,9 +987,11 @@ select:focus {
 
 /* Bold Attribute Table Cell Styling */
 .bold-attribute {
+  font-weight: bold;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   background-color: #fff3cd !important;
-  border-left: 3px solid #ffc107 !important;
-  color: #856404 !important;
+  color:rgb(102, 62, 1) !important;
 }
 
 /* Enhance table visual hierarchy */

@@ -3379,13 +3379,7 @@ function updatePaginationDisplay() {
 async function handleEditBoldAttributes() {
   try {
     setStatusMessage('Opening attribute styling configuration...');
-
-    // Show overlay while processing
-    setScrapingStatus('Loading attribute styling configuration...', true);
-    
     const result = await showBoldAttributesModal();
-    
-    hideScrapingOverlay(); // Hide overlay after processing
     
     if (result === 'cancelled') {
       // User cancelled - no message needed
@@ -3410,10 +3404,9 @@ async function handleResetBoldAttributes() {
     // Clear user configuration
     boldAttributesConfig.resetAllToDefault();
     const success = await boldAttributesConfig.saveUserConfig();
-    
-    if (success) {
+      if (success) {
       // Refresh the recruits list to apply new styling
-      await refreshRecruitsDisplay();
+      await updateRecruitsList();
       setStatusMessage('Attribute styling reset to defaults successfully', 'success');
     } else {
       throw new Error('Failed to save reset configuration');
@@ -3701,12 +3694,11 @@ function showBoldAttributesModal() {
 
         // Save to storage
         const success = await boldAttributesConfig.saveUserConfig();
-        
-        if (success) {
+          if (success) {
           cleanup();
           
           // Refresh the recruits list to apply new styling
-          await refreshRecruitsDisplay();
+          await updateRecruitsList();
           
           resolve();
         } else {

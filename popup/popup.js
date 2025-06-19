@@ -1707,23 +1707,42 @@ async function handleResetRoleRatings() {
   }
 
   try {
-    setStatusMessage('Resetting role ratings to defaults...');    const response = await sendMessageToBackground({ 
+    setStatusMessage('Resetting role ratings to defaults...');
+    console.log('Starting reset of role ratings to defaults');
+
+    const response = await sendMessageToBackground({ 
       action: 'resetRoleRatings' 
     });
+
+    console.log('Reset role ratings response:', response);
 
     if (!response.success) {
       throw new Error(response.error || 'Failed to reset role ratings');
     }
 
-    setStatusMessage(
-      `Role ratings reset to defaults. Recalculated ${response.recalculated} of ${response.totalRecruits} recruits.`,
-      'success'
-    );
+    const successMessage = `Role ratings reset to defaults. Recalculated ${response.recalculated} of ${response.totalRecruits} recruits.`;
+    setStatusMessage(successMessage, 'success');
+    console.log('Reset completed:', successMessage);
 
-    // Refresh recruits list if we're on that tab
-    if (document.querySelector('.tab-btn.active')?.id === 'tab-recruits') {
-      await loadRecruitsData();
+    // Force a complete data refresh to show updated ratings
+    setStatusMessage('Refreshing recruit data...', 'info');
+    
+    // Clear current data to force fresh load
+    state.recruits = [];
+    state.filtered_recruits = [];
+    
+    // Refresh recruits data completely
+    await loadRecruitsData();
+    
+    // If we're on the recruits tab, update the display
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab?.id === 'tab-recruits') {
+      applyFilters();
+      updateRecruitsList();
+      console.log('Recruits list refreshed after role ratings reset');
     }
+    
+    setStatusMessage('Role ratings reset and data refreshed successfully', 'success');
 
   } catch (error) {
     console.error('Error resetting role ratings:', error);
@@ -2269,7 +2288,9 @@ async function handleSaveRoleRatings() {
     
     // Deep clone the data to avoid reference issues
     const ratingsToSave = JSON.parse(JSON.stringify(state.role_ratings.data));
-      setStatusMessage('Saving role ratings...');
+    
+    setStatusMessage('Saving role ratings...');
+    console.log('Saving role ratings with changed positions:', Array.from(changedPositions));
 
     const response = await sendMessageToBackground({
       action: 'saveRoleRatings',
@@ -2277,24 +2298,45 @@ async function handleSaveRoleRatings() {
       changedPositions: Array.from(changedPositions) // Convert Set to Array
     });
 
+    console.log('Save role ratings response:', response);
+
     if (!response.success) {
       throw new Error(response.error || 'Failed to save role ratings');
     }
 
     state.role_ratings.has_changes = false;
 
-    setStatusMessage(
-      `Role ratings saved successfully. Recalculated ${response.recalculated} of ${response.totalRecruits} recruits.`,
-      'success'
-    );
+    // Show detailed feedback about recalculation
+    const recalcMessage = response.recalculated > 0 
+      ? `Role ratings saved successfully. Recalculated ${response.recalculated} of ${response.totalRecruits} recruits.`
+      : 'Role ratings saved successfully. No recruits needed recalculation.';
+    
+    setStatusMessage(recalcMessage, 'success');
+    console.log('Role ratings save completed:', recalcMessage);
 
     // Close modal
     closeRoleRatingsModal();
 
-    // Refresh recruits list if we're on that tab
-    if (document.querySelector('.tab-btn.active')?.id === 'tab-recruits') {
-      await loadRecruitsData();
+    // Force a complete data refresh to ensure updated role ratings are visible
+    setStatusMessage('Refreshing recruit data...', 'info');
+    
+    // Clear current data to force fresh load
+    state.recruits = [];
+    state.filtered_recruits = [];
+    
+    // Refresh recruits data completely
+    await loadRecruitsData();
+    
+    // If we're on the recruits tab, also update the display
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab?.id === 'tab-recruits') {
+      // Apply current filters and update display
+      applyFilters();
+      updateRecruitsList();
+      console.log('Recruits list refreshed after role ratings save');
     }
+    
+    setStatusMessage('Role ratings applied and data refreshed successfully', 'success');
 
   } catch (error) {
     console.error('Error saving role ratings:', error);
@@ -2355,23 +2397,42 @@ async function handleRecalculateAllRatings() {
   }
 
   try {
-    setStatusMessage('Recalculating all role ratings...');    const response = await sendMessageToBackground({ 
+    setStatusMessage('Recalculating all role ratings...');
+    console.log('Starting recalculation of all role ratings');
+
+    const response = await sendMessageToBackground({ 
       action: 'recalculateRoleRatings'
     });
+
+    console.log('Recalculate response:', response);
 
     if (!response.success) {
       throw new Error(response.error || 'Failed to recalculate ratings');
     }
 
-    setStatusMessage(
-      `Successfully recalculated ratings for ${response.recalculated} of ${response.totalRecruits} recruits`,
-      'success'
-    );
+    const successMessage = `Successfully recalculated ratings for ${response.recalculated} of ${response.totalRecruits} recruits`;
+    setStatusMessage(successMessage, 'success');
+    console.log('Recalculation completed:', successMessage);
 
-    // Refresh recruits list if we're on that tab
-    if (document.querySelector('.tab-btn.active')?.id === 'tab-recruits') {
-      await loadRecruitsData();
+    // Force a complete data refresh to show updated ratings
+    setStatusMessage('Refreshing recruit data...', 'info');
+    
+    // Clear current data to force fresh load
+    state.recruits = [];
+    state.filtered_recruits = [];
+    
+    // Refresh recruits data completely
+    await loadRecruitsData();
+    
+    // If we're on the recruits tab, update the display
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab?.id === 'tab-recruits') {
+      applyFilters();
+      updateRecruitsList();
+      console.log('Recruits list refreshed after recalculation');
     }
+    
+    setStatusMessage('Role ratings recalculated and data refreshed successfully', 'success');
 
   } catch (error) {
     console.error('Error recalculating ratings:', error);
@@ -2381,9 +2442,52 @@ async function handleRecalculateAllRatings() {
 
 // Handle debug role ratings (developer feature)
 function handleDebugRoleRatings() {
+  console.log('=== ROLE RATINGS DEBUG INFO ===');
   console.log('Current role ratings state:', state.role_ratings);
   console.log('Role ratings data:', state.role_ratings.data);
-  alert('Debug information logged to console. Check browser developer tools.');
+  
+  // Show detailed information about current configuration
+  if (state.role_ratings.data) {
+    console.log('=== POSITION ANALYSIS ===');
+    for (const [positionKey, positionData] of Object.entries(state.role_ratings.data)) {
+      console.log(`\n${getPositionDisplayName(positionKey)} (${positionKey}):`);
+      
+      for (const [roleKey, roleData] of Object.entries(positionData)) {
+        if (roleData.isActive) {
+          const total = calculateRoleTotal(roleData.attributes);
+          const isValid = Math.abs(total - 100) < 0.1;
+          console.log(`  - ${roleData.roleLabel}: total=${total.toFixed(1)} (${isValid ? 'VALID' : 'INVALID'})`);
+          console.log(`    Attributes:`, roleData.attributes);
+        }
+      }
+    }
+  }
+  
+  // Show sample recruit role ratings if available
+  if (state.recruits && state.recruits.length > 0) {
+    console.log('\n=== SAMPLE RECRUIT ROLE RATINGS ===');
+    const sampleRecruits = state.recruits.slice(0, 3);
+    sampleRecruits.forEach(recruit => {
+      console.log(`${recruit.name} (${recruit.pos}):`);
+      if (recruit.r1 !== undefined) console.log(`  R1: ${recruit.r1}`);
+      if (recruit.r2 !== undefined) console.log(`  R2: ${recruit.r2}`);
+      if (recruit.r3 !== undefined) console.log(`  R3: ${recruit.r3}`);
+      if (recruit.r4 !== undefined) console.log(`  R4: ${recruit.r4}`);
+      if (recruit.r5 !== undefined) console.log(`  R5: ${recruit.r5}`);
+      if (recruit.r6 !== undefined) console.log(`  R6: ${recruit.r6}`);
+    });
+  }
+  
+  console.log('=== END DEBUG INFO ===');
+  
+  const debugSummary = `Debug information logged to console. Check browser developer tools.
+  
+Configuration Status: ${state.role_ratings.data ? 'Loaded' : 'Not loaded'}
+Has Changes: ${state.role_ratings.has_changes ? 'Yes' : 'No'}
+Current Position: ${state.role_ratings.current_position || 'None'}
+Total Recruits: ${state.recruits ? state.recruits.length : 0}`;
+
+  alert(debugSummary);
 }
 
 /**

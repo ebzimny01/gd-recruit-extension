@@ -2137,10 +2137,19 @@ function handleAttributeChange(event) {
     state.role_ratings.data[positionKey][roleKey].attributes[attribute] = newValue;
     state.role_ratings.has_changes = true;
 
-    // Update visual styling based on value
-    input.className = input.className.replace(/\b(high|medium|low)\b/, '');
-    const validationClass = newValue > 80 ? 'high' : newValue > 40 ? 'medium' : 'low';
-    input.classList.add(validationClass);
+    // Update visual styling based on value with smooth transitions
+    const currentClasses = input.className.split(' ').filter(cls => !['high', 'medium', 'low'].includes(cls));
+    let validationClass = 'low';
+    if (newValue > 80) validationClass = 'high';
+    else if (newValue > 40) validationClass = 'medium';
+    
+    input.className = [...currentClasses, validationClass].join(' ');
+
+    // Add a subtle visual feedback for the change
+    input.style.transform = 'scale(1.05)';
+    setTimeout(() => {
+      input.style.transform = '';
+    }, 150);
 
     // Update role total and validation
     updateRoleCardValidation(roleId);
@@ -2182,6 +2191,7 @@ function updateRoleCardValidation(roleId) {
 
   const total = calculateRoleTotal(roleData.attributes);
   const isValid = Math.abs(total - 100) < 0.1;
+  const wasValid = card.classList.contains('valid');
 
   // Update total display
   totalElement.textContent = total.toFixed(1);
@@ -2193,6 +2203,14 @@ function updateRoleCardValidation(roleId) {
   const totalContainer = card.querySelector('.role-total');
   totalContainer?.classList.toggle('valid', isValid);
   totalContainer?.classList.toggle('invalid', !isValid);
+
+  // Add visual feedback animation if validation state changed
+  if (wasValid !== isValid) {
+    card.classList.add('validation-changed');
+    setTimeout(() => {
+      card.classList.remove('validation-changed');
+    }, 300);
+  }
 
   // Update save button state
   updateSaveButtonState();

@@ -1698,30 +1698,45 @@ async function handleCheckDatabase() {
   }
 }
 
-// Handle reset role ratings
+/**
+ * Handle reset role ratings to defaults
+ */
 async function handleResetRoleRatings() {
+  if (!confirm('Are you sure you want to reset ALL role ratings to default values? This will remove all your customizations and recalculate all recruit ratings.')) {
+    return;
+  }
+
   try {
-    const confirmed = confirm('Are you sure you want to reset role ratings to defaults?');
-    if (!confirmed) return;
-    
-    setStatusMessage('Resetting role ratings...', 'info');
-    
-    const response = await popupComms.sendMessageToBackground({
-      action: 'resetRoleRatings'
+    setStatusMessage('Resetting role ratings to defaults...');    const response = await sendMessageToBackground({ 
+      action: 'resetRoleRatings' 
     });
-    
-    if (response.error) {
-      throw new Error(response.error);
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to reset role ratings');
     }
-    
-    setStatusMessage('Role ratings reset to defaults', 'success');
-    
+
+    setStatusMessage(
+      `Role ratings reset to defaults. Recalculated ${response.recalculated} of ${response.totalRecruits} recruits.`,
+      'success'
+    );
+
+    // Refresh recruits list if we're on that tab
+    if (document.querySelector('.tab-btn.active')?.id === 'tab-recruits') {
+      await loadRecruitsData();
+    }
+
   } catch (error) {
-    handleError(error, 'role ratings reset');
+    console.error('Error resetting role ratings:', error);
+    setStatusMessage('Error resetting role ratings: ' + error.message, 'error');
   }
 }
 
 
+
+// Helper function for background communication - matches sidebar implementation
+function sendMessageToBackground(message) {
+  return popupComms.sendMessageToBackground(message);
+}
 
 // Setup column visibility modal listeners
 function setupColumnVisibilityModalListeners() {
@@ -1898,354 +1913,469 @@ async function handleEditRoleRatings() {
   }
 }
 
-// Show role ratings modal with full functionality
+/**
+ * Show role ratings configuration modal
+ */
 async function showRoleRatingsModal() {
-  if (!validateElement(elements.role_ratings_modal, 'role-ratings-modal')) return;
-  
   try {
-    // Load role ratings data from background
-    const response = await popupComms.sendMessageToBackground({
-      action: 'getRoleRatings'
-    });
+    // Load current role ratings data
+    const response = await sendMessageToBackground({ action: 'getRoleRatings' });
     
-    if (response.error) {
-      throw new Error(response.error);
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to load role ratings');
     }
-    
-    // Store role ratings data in state
-    state.role_ratings.data = response.roleRatings || {};
+
+    state.role_ratings.data = response.ratings;
     state.role_ratings.has_changes = false;
-    
-    // Initialize modal content
-    setupRoleRatingsModalContent();
+    state.role_ratings.active_roles = {};
+
+    // Setup position tabs and content
+    setupPositionTabs();
     
     // Show modal
-    elements.role_ratings_modal.classList.remove('hidden');
-    
-    setStatusMessage('Role ratings loaded', 'success');
-    
+    if (elements.role_ratings_modal) {
+      elements.role_ratings_modal.classList.remove('hidden');
+    }
+
+    // Select first position by default
+    const firstTab = elements.position_tabs?.querySelector('.position-tab');
+    if (firstTab) {
+      firstTab.click();
+    }
+
+    setStatusMessage('Role ratings configuration loaded', 'success');
+
   } catch (error) {
-    handleError(error, 'role ratings modal setup');
+    console.error('Error showing role ratings modal:', error);
+    setStatusMessage('Error loading role ratings: ' + error.message, 'error');
   }
 }
 
-// Setup role ratings modal content
-function setupRoleRatingsModalContent() {
-  // Clear existing content
-  if (elements.position_tabs) {
-    elements.position_tabs.innerHTML = '';
-  }
-  
-  if (elements.position_content) {
-    elements.position_content.innerHTML = '';
-  }
-  
-  // Position mapping for role ratings
-  const positions = [
-    { key: 'quarterback', label: 'QB' },
-    { key: 'runningBack', label: 'RB' },
-    { key: 'wideReceiver', label: 'WR' },
-    { key: 'tightEnd', label: 'TE' },
-    { key: 'offensiveLine', label: 'OL' },
-    { key: 'defensiveLine', label: 'DL' },
-    { key: 'linebacker', label: 'LB' },
-    { key: 'defensiveBack', label: 'DB' },
-    { key: 'kicker', label: 'K' },
-    { key: 'punter', label: 'P' }
-  ];
-  
-  // Create position tabs
-  positions.forEach((position, index) => {
-    const tab = document.createElement('button');
-    tab.className = `position-tab ${index === 0 ? 'active' : ''}`;
-    tab.textContent = position.label;
-    tab.dataset.position = position.key;
+/**
+ * Setup position tabs for the role ratings modal
+ */
+function setupPositionTabs() {
+  if (!elements.position_tabs || !state.role_ratings.data) return;
+
+  // Clear existing tabs
+  elements.position_tabs.innerHTML = '';
+
+  // Create tabs for each position
+  for (const [positionKey, positionData] of Object.entries(state.role_ratings.data)) {
+    // Skip positions with no active roles
+    const hasActiveRoles = Object.values(positionData).some(role => role.isActive);
+    if (!hasActiveRoles) continue;
+
+    const tab = document.createElement('div');
+    tab.className = 'position-tab';
+    tab.textContent = getPositionDisplayName(positionKey);
+    tab.dataset.position = positionKey;
     
     tab.addEventListener('click', () => {
-      switchRoleRatingsPosition(position.key);
+      selectPosition(positionKey);
     });
-    
+
     elements.position_tabs.appendChild(tab);
-  });
-  
-  // Set initial position
-  state.role_ratings.current_position = positions[0].key;
-  
-  // Create content for current position
-  createRoleRatingsContent(state.role_ratings.current_position);
+  }
 }
 
-// Switch role ratings position
-function switchRoleRatingsPosition(positionKey) {
+/**
+ * Select a position and update the content area
+ */
+function selectPosition(positionKey) {
+  if (!state.role_ratings.data || !state.role_ratings.data[positionKey]) return;
+
   // Update active tab
-  const tabs = elements.position_tabs.querySelectorAll('.position-tab');
-  tabs.forEach(tab => {
+  const tabs = elements.position_tabs?.querySelectorAll('.position-tab');
+  tabs?.forEach(tab => {
     tab.classList.toggle('active', tab.dataset.position === positionKey);
   });
-  
-  // Update state
+
+  // Update current position
   state.role_ratings.current_position = positionKey;
-  
-  // Update content
-  createRoleRatingsContent(positionKey);
+
+  // Generate content for this position
+  generatePositionContent(positionKey);
 }
 
-// Create role ratings content for position
-function createRoleRatingsContent(positionKey) {
-  if (!elements.position_content) return;
-  
-  elements.position_content.innerHTML = '';
-  
-  // Get position data
-  const positionData = state.role_ratings.data[positionKey] || {};
-  
-  // Attribute definitions with labels
-  const attributes = [
-    { key: 'ath', label: 'Athletics' },
-    { key: 'spd', label: 'Speed' },
-    { key: 'dur', label: 'Durability' },
-    { key: 'we', label: 'Work Ethic' },
-    { key: 'sta', label: 'Stamina' },
-    { key: 'str', label: 'Strength' },
-    { key: 'blk', label: 'Blocking' },
-    { key: 'tkl', label: 'Tackling' },
-    { key: 'han', label: 'Hands' },
-    { key: 'gi', label: 'Game Intelligence' },
-    { key: 'elu', label: 'Elusiveness' },
-    { key: 'tec', label: 'Technique' }
-  ];
-  
-  // Create container
-  const container = document.createElement('div');
-  container.className = 'role-ratings-grid';
-  
-  // Create header
-  const header = document.createElement('div');
-  header.className = 'role-ratings-header';
-  header.innerHTML = `
-    <h4>Role Ratings for ${getPositionDisplayName(positionKey)}</h4>
-    <p>Adjust the weight values for each attribute. Total should equal 100.</p>
-  `;
-  container.appendChild(header);
-  
-  // Create attribute inputs
-  const inputsContainer = document.createElement('div');
-  inputsContainer.className = 'role-ratings-inputs';
-  
-  let totalWeight = 0;
-  
-  attributes.forEach(attribute => {
-    const value = positionData[attribute.key] || 0;
-    totalWeight += value;
-    
-    const inputGroup = document.createElement('div');
-    inputGroup.className = 'role-rating-input-group';
-    
-    inputGroup.innerHTML = `
-      <label for="rating-${positionKey}-${attribute.key}">${attribute.label}:</label>
-      <input 
-        type="number" 
-        id="rating-${positionKey}-${attribute.key}"
-        value="${value}"
-        min="0"
-        max="100"
-        step="1"
-        data-position="${positionKey}"
-        data-attribute="${attribute.key}"
-      />
-    `;
-    
-    // Add event listener for input changes
-    const input = inputGroup.querySelector('input');
-    input.addEventListener('input', handleRoleRatingInputChange);
-    
-    inputsContainer.appendChild(inputGroup);
-  });
-  
-  container.appendChild(inputsContainer);
-  
-  // Create total display
-  const totalDisplay = document.createElement('div');
-  totalDisplay.className = 'role-ratings-total';
-  totalDisplay.innerHTML = `
-    <strong>Total: <span id="role-total-${positionKey}">${totalWeight}</span> / 100</strong>
-  `;
-  container.appendChild(totalDisplay);
-  
-  // Add validation message area
-  const validationMsg = document.createElement('div');
-  validationMsg.id = `role-validation-${positionKey}`;
-  validationMsg.className = 'role-validation-message';
-  container.appendChild(validationMsg);
-  
-  elements.position_content.appendChild(container);
-  
-  // Update total display styling
-  updateRoleRatingsTotalDisplay(positionKey);
-}
+/**
+ * Generate content for a specific position
+ */
+function generatePositionContent(positionKey) {
+  if (!elements.position_content || !state.role_ratings.data[positionKey]) return;
 
-// Handle role rating input changes
-function handleRoleRatingInputChange(event) {
-  const input = event.target;
-  const positionKey = input.dataset.position;
-  const attributeKey = input.dataset.attribute;
-  const value = parseInt(input.value, 10) || 0;
-  
-  // Update state
-  if (!state.role_ratings.data[positionKey]) {
-    state.role_ratings.data[positionKey] = {};
-  }
-  
-  state.role_ratings.data[positionKey][attributeKey] = value;
-  state.role_ratings.has_changes = true;
-  
-  // Update total display
-  updateRoleRatingsTotalDisplay(positionKey);
-  
-  // Enable save button
-  if (elements.role_ratings_save) {
-    elements.role_ratings_save.disabled = false;
-  }
-}
-
-// Update role ratings total display
-function updateRoleRatingsTotalDisplay(positionKey) {
-  const totalElement = document.getElementById(`role-total-${positionKey}`);
-  const validationElement = document.getElementById(`role-validation-${positionKey}`);
-  
-  if (!totalElement || !state.role_ratings.data[positionKey]) return;
-  
-  // Calculate total
   const positionData = state.role_ratings.data[positionKey];
-  const total = Object.values(positionData).reduce((sum, value) => sum + (value || 0), 0);
+  const activeRoles = Object.entries(positionData).filter(([, roleData]) => roleData.isActive);
+
+  let html = `
+    <div class="position-header">
+      <h3>${getPositionDisplayName(positionKey)} Roles</h3>
+      <p>Configure attribute weights for each role. Values must total 100 for each role.</p>
+    </div>
+    <div class="roles-grid">
+  `;
+
+  // Create role cards
+  activeRoles.forEach(([roleKey, roleData]) => {
+    const roleId = `${positionKey}.${roleKey}`;
+    const total = calculateRoleTotal(roleData.attributes);
+    const isValid = Math.abs(total - 100) < 0.1;
+
+    html += `
+      <div class="role-card ${isValid ? 'valid' : 'invalid'}" data-role="${roleId}">
+        <div class="role-header">
+          <h4>${roleData.roleLabel}</h4>
+          <div class="role-total ${isValid ? 'valid' : 'invalid'}">
+            Total: <span class="total-value">${total.toFixed(1)}</span>
+          </div>
+        </div>
+        <div class="attribute-inputs">
+          ${generateAttributeInputs(roleId, roleData.attributes)}
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  elements.position_content.innerHTML = html;
+
+  // Add event listeners to the inputs
+  addAttributeInputListeners();
+}
+
+/**
+ * Generate HTML for attribute inputs
+ */
+function generateAttributeInputs(roleId, attributes) {
+  const attributeLabels = {
+    'ath': 'Ath',
+    'spd': 'Spd',
+    'dur': 'Dur',
+    'we': 'WE',
+    'sta': 'Sta',
+    'str': 'Str',
+    'blk': 'Blk',
+    'tkl': 'Tkl',
+    'han': 'Han',
+    'gi': 'GI',
+    'elu': 'Elu',
+    'tec': 'Tec'
+  };
+
+  let html = '';
   
-  // Update display
-  totalElement.textContent = total;
+  Object.entries(attributes).forEach(([attr, value]) => {
+    if (attr === 'total') return; // Skip total if present
+
+    const numValue = Number(value) || 0;
+    const validationClass = numValue > 80 ? 'high' : numValue > 40 ? 'medium' : 'low';
+    
+    html += `
+      <div class="attribute-input-group">
+        <label for="${roleId}-${attr}">${attributeLabels[attr] || attr.toUpperCase()}</label>
+        <input 
+          type="number" 
+          id="${roleId}-${attr}" 
+          class="attribute-input ${validationClass}" 
+          min="0" 
+          max="100" 
+          step="1" 
+          value="${numValue}"
+          data-role="${roleId}"
+          data-attribute="${attr}"
+        />
+      </div>
+    `;
+  });
+
+  return html;
+}
+
+/**
+ * Add event listeners to attribute inputs
+ */
+function addAttributeInputListeners() {
+  const inputs = elements.position_content?.querySelectorAll('.attribute-input');
   
-  // Update styling and validation
-  if (total === 100) {
-    totalElement.className = 'total-valid';
-    if (validationElement) {
-      validationElement.textContent = '';
-    }
-  } else if (total > 100) {
-    totalElement.className = 'total-over';
-    if (validationElement) {
-      validationElement.textContent = 'Total exceeds 100. Please reduce some values.';
-    }
-  } else {
-    totalElement.className = 'total-under';
-    if (validationElement) {
-      validationElement.textContent = 'Total is less than 100. Please increase some values.';
-    }
+  inputs?.forEach(input => {
+    input.addEventListener('input', handleAttributeChange);
+    input.addEventListener('blur', validateAttributeInput);
+  });
+}
+
+/**
+ * Handle attribute value changes
+ */
+function handleAttributeChange(event) {
+  const input = event.target;
+  const roleId = input.dataset.role;
+  const attribute = input.dataset.attribute;
+  const newValue = Number(input.value) || 0;
+
+  // Update the data
+  const [positionKey, roleKey] = roleId.split('.');
+  if (state.role_ratings.data[positionKey] && state.role_ratings.data[positionKey][roleKey]) {
+    state.role_ratings.data[positionKey][roleKey].attributes[attribute] = newValue;
+    state.role_ratings.has_changes = true;
+
+    // Update visual styling based on value
+    input.className = input.className.replace(/\b(high|medium|low)\b/, '');
+    const validationClass = newValue > 80 ? 'high' : newValue > 40 ? 'medium' : 'low';
+    input.classList.add(validationClass);
+
+    // Update role total and validation
+    updateRoleCardValidation(roleId);
   }
 }
 
-// Handle save role ratings
+/**
+ * Validate attribute input values
+ */
+function validateAttributeInput(event) {
+  const input = event.target;
+  let value = Number(input.value);
+  
+  // Clamp value between 0 and 100
+  if (value < 0) value = 0;
+  if (value > 100) value = 100;
+  
+  // Ensure whole numbers only
+  value = Math.round(value);
+  input.value = value;
+  
+  // Trigger change event to update data
+  input.dispatchEvent(new Event('input'));
+}
+
+/**
+ * Update role card validation styling and total
+ */
+function updateRoleCardValidation(roleId) {
+  const [positionKey, roleKey] = roleId.split('.');
+  const roleData = state.role_ratings.data[positionKey]?.[roleKey];
+  
+  if (!roleData) return;
+
+  const card = elements.position_content?.querySelector(`[data-role="${roleId}"]`);
+  const totalElement = card?.querySelector('.total-value');
+  
+  if (!card || !totalElement) return;
+
+  const total = calculateRoleTotal(roleData.attributes);
+  const isValid = Math.abs(total - 100) < 0.1;
+
+  // Update total display
+  totalElement.textContent = total.toFixed(1);
+
+  // Update validation classes
+  card.classList.toggle('valid', isValid);
+  card.classList.toggle('invalid', !isValid);
+  
+  const totalContainer = card.querySelector('.role-total');
+  totalContainer?.classList.toggle('valid', isValid);
+  totalContainer?.classList.toggle('invalid', !isValid);
+
+  // Update save button state
+  updateSaveButtonState();
+}
+
+/**
+ * Calculate total for role attributes
+ */
+function calculateRoleTotal(attributes) {
+  return Object.entries(attributes).reduce((sum, [attr, value]) => {
+    if (attr === 'total') return sum; // Skip total if present
+    const numVal = Number(value);
+    return sum + (isNaN(numVal) ? 0 : numVal);
+  }, 0);
+}
+
+/**
+ * Update save button state based on all role validations
+ */
+function updateSaveButtonState() {
+  if (!elements.role_ratings_save || !state.role_ratings.data) return;
+
+  let allValid = true;
+  
+  // Check all active roles
+  for (const [positionKey, positionData] of Object.entries(state.role_ratings.data)) {
+    for (const [roleKey, roleData] of Object.entries(positionData)) {
+      if (roleData.isActive) {
+        const total = calculateRoleTotal(roleData.attributes);
+        if (Math.abs(total - 100) > 0.1) {
+          allValid = false;
+          break;
+        }
+      }
+    }
+    if (!allValid) break;
+  }
+
+  elements.role_ratings_save.disabled = !allValid;
+  elements.role_ratings_save.classList.toggle('disabled', !allValid);
+}
+
+/**
+ * Handle save role ratings
+ */
 async function handleSaveRoleRatings() {
+  if (!state.role_ratings.has_changes) {
+    setStatusMessage('No changes to save', 'info');
+    return;
+  }
+
   try {
-    // Validate all positions
-    const validationErrors = validateAllRoleRatings();
+    setStatusMessage('Validating role ratings...');
+
+    // Validate all active roles have totals of 100
+    const validationErrors = [];
+    
+    // Track which positions have been modified for targeted recalculation
+    const changedPositions = new Set();
+    
+    // Check all roles, including the currently edited one
+    for (const [positionKey, positionData] of Object.entries(state.role_ratings.data)) {
+      for (const [roleKey, roleData] of Object.entries(positionData)) {
+        if (roleData.isActive && roleData.attributes) {
+          const total = Object.values(roleData.attributes).reduce((sum, val) => {
+            return sum + (Number(val) || 0);
+          }, 0);
+          
+          // Check if total is exactly 100 (with small margin for floating point precision)
+          if (Math.abs(total - 100) > 0.1) {
+            validationErrors.push(`${getPositionDisplayName(positionKey)} - ${roleData.roleLabel}: total is ${total.toFixed(1)}, should be 100`);
+          }
+          
+          // Track position changes for targeted recalculation
+          // Find the short position code (e.g., QB, RB) for the position
+          const shortPos = Object.keys(POSITION_MAP || {}).find(key => 
+            POSITION_MAP[key] === positionKey
+          );
+          
+          if (shortPos) {
+            changedPositions.add(shortPos);
+          }
+        }
+      }
+    }
+    
+    // If any validation errors exist, show them
     if (validationErrors.length > 0) {
-      alert(`Please fix the following issues:\n\n${validationErrors.join('\n')}`);
+      const message = 'The following roles have invalid totals:\n\n' + validationErrors.join('\n') + '\n\nPlease fix these before saving.';
+      alert(message);
       return;
     }
     
-    setStatusMessage('Saving role ratings...', 'info');
-    
-    const response = await popupComms.sendMessageToBackground({
+    // Deep clone the data to avoid reference issues
+    const ratingsToSave = JSON.parse(JSON.stringify(state.role_ratings.data));
+      setStatusMessage('Saving role ratings...');
+
+    const response = await sendMessageToBackground({
       action: 'saveRoleRatings',
-      roleRatings: state.role_ratings.data
+      ratings: ratingsToSave,
+      changedPositions: Array.from(changedPositions) // Convert Set to Array
     });
-    
-    if (response.error) {
-      throw new Error(response.error);
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to save role ratings');
     }
-    
+
     state.role_ratings.has_changes = false;
+
+    setStatusMessage(
+      `Role ratings saved successfully. Recalculated ${response.recalculated} of ${response.totalRecruits} recruits.`,
+      'success'
+    );
+
+    // Close modal
     closeRoleRatingsModal();
-    
-    setStatusMessage('Role ratings saved successfully', 'success');
-    
+
+    // Refresh recruits list if we're on that tab
+    if (document.querySelector('.tab-btn.active')?.id === 'tab-recruits') {
+      await loadRecruitsData();
+    }
+
   } catch (error) {
-    handleError(error, 'role ratings save');
+    console.error('Error saving role ratings:', error);
+    setStatusMessage('Error saving role ratings: ' + error.message, 'error');
   }
 }
 
-// Validate all role ratings
-function validateAllRoleRatings() {
-  const errors = [];
-  
-  Object.keys(state.role_ratings.data).forEach(positionKey => {
-    const positionData = state.role_ratings.data[positionKey];
-    const total = Object.values(positionData).reduce((sum, value) => sum + (value || 0), 0);
-    
-    if (total !== 100) {
-      const displayName = getPositionDisplayName(positionKey);
-      errors.push(`${displayName}: Total is ${total}, should be 100`);
-    }
-  });
-  
-  return errors;
-}
-
-// Handle reset current position
+/**
+ * Handle reset current position to defaults
+ */
 async function handleResetCurrentPosition() {
-  if (!state.role_ratings.current_position) return;
-  
-  const positionName = getPositionDisplayName(state.role_ratings.current_position);
-  const confirmed = confirm(`Reset ${positionName} role ratings to default values?`);
-  
-  if (!confirmed) return;
-  
+  if (!state.role_ratings.current_position) {
+    setStatusMessage('No position selected', 'error');
+    return;
+  }
+
+  if (!confirm('Are you sure you want to reset all roles in this position to default values?')) {
+    return;
+  }
+
   try {
-    setStatusMessage('Resetting position...', 'info');
-    
-    const response = await popupComms.sendMessageToBackground({
-      action: 'resetPositionRoleRatings',
-      position: state.role_ratings.current_position
-    });
-    
-    if (response.error) {
-      throw new Error(response.error);
+    setStatusMessage('Resetting position to defaults...');
+
+    // Get the original default data
+    const response = await fetch(chrome.runtime.getURL('data/role_ratings_defaults.json'));
+    if (!response.ok) {
+      throw new Error('Failed to load default role ratings');
     }
-    
-    // Update local data
-    state.role_ratings.data[state.role_ratings.current_position] = response.positionData;
+
+    const defaultData = await response.json();
+    const defaultPositionData = defaultData.roleRatings[state.role_ratings.current_position];
+
+    if (!defaultPositionData) {
+      throw new Error('Default position data not found');
+    }
+
+    // Update the position data with defaults
+    state.role_ratings.data[state.role_ratings.current_position] = JSON.parse(JSON.stringify(defaultPositionData));
     state.role_ratings.has_changes = true;
-    
-    // Refresh content
-    createRoleRatingsContent(state.role_ratings.current_position);
-    
-    setStatusMessage(`${positionName} ratings reset to defaults`, 'success');
-    
+
+    // Regenerate the position content
+    generatePositionContent(state.role_ratings.current_position);
+
+    setStatusMessage('Position reset to default values', 'success');
+
   } catch (error) {
-    handleError(error, 'position reset');
+    console.error('Error resetting position:', error);
+    setStatusMessage('Error resetting position: ' + error.message, 'error');
   }
 }
 
-// Handle recalculate all ratings
+/**
+ * Handle recalculate all ratings
+ */
 async function handleRecalculateAllRatings() {
-  const confirmed = confirm('Recalculate all recruit role ratings using current configuration?');
-  if (!confirmed) return;
-  
+  if (!confirm('This will recalculate role ratings for all recruits using current settings. This may take a moment. Continue?')) {
+    return;
+  }
+
   try {
-    setStatusMessage('Recalculating all role ratings...', 'info');
-      const response = await popupComms.sendMessageToBackground({
+    setStatusMessage('Recalculating all role ratings...');    const response = await sendMessageToBackground({ 
       action: 'recalculateRoleRatings'
     });
-    
-    if (response.error) {
-      throw new Error(response.error);
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to recalculate ratings');
     }
-    
-    // Refresh recruit data
-    await loadRecruitsData();
-    
-    setStatusMessage('All role ratings recalculated successfully', 'success');
-    
+
+    setStatusMessage(
+      `Successfully recalculated ratings for ${response.recalculated} of ${response.totalRecruits} recruits`,
+      'success'
+    );
+
+    // Refresh recruits list if we're on that tab
+    if (document.querySelector('.tab-btn.active')?.id === 'tab-recruits') {
+      await loadRecruitsData();
+    }
+
   } catch (error) {
-    handleError(error, 'role ratings recalculation');
+    console.error('Error recalculating ratings:', error);
+    setStatusMessage('Error recalculating ratings: ' + error.message, 'error');
   }
 }
 
@@ -2256,41 +2386,44 @@ function handleDebugRoleRatings() {
   alert('Debug information logged to console. Check browser developer tools.');
 }
 
-// Close role ratings modal
+/**
+ * Close role ratings modal with change confirmation
+ */
 function closeRoleRatingsModal() {
   if (state.role_ratings.has_changes) {
-    const confirmed = confirm('You have unsaved changes. Are you sure you want to close?');
-    if (!confirmed) return;
+    if (!confirm('You have unsaved changes. Are you sure you want to close without saving?')) {
+      return;
+    }
   }
-  
+
   if (elements.role_ratings_modal) {
     elements.role_ratings_modal.classList.add('hidden');
   }
-  
+
   // Reset state
-  state.role_ratings = {
-    data: null,
-    current_position: null,
-    active_roles: {},
-    has_changes: false
-  };
+  state.role_ratings.data = null;
+  state.role_ratings.current_position = null;
+  state.role_ratings.active_roles = {};
+  state.role_ratings.has_changes = false;
 }
 
-// Get position display name
+/**
+ * Get display name for position key
+ */
 function getPositionDisplayName(positionKey) {
   const displayNames = {
-    quarterback: 'Quarterback (QB)',
-    runningBack: 'Running Back (RB)',
-    wideReceiver: 'Wide Receiver (WR)',
-    tightEnd: 'Tight End (TE)',
-    offensiveLine: 'Offensive Line (OL)',
-    defensiveLine: 'Defensive Line (DL)',
-    linebacker: 'Linebacker (LB)',
-    defensiveBack: 'Defensive Back (DB)',
-    kicker: 'Kicker (K)',
-    punter: 'Punter (P)'
+    'quarterback': 'QB',
+    'runningBack': 'RB',
+    'wideReceiver': 'WR',
+    'tightEnd': 'TE',
+    'offensiveLine': 'OL',
+    'defensiveLine': 'DL',
+    'linebacker': 'LB',
+    'defensiveBack': 'DB',
+    'kicker': 'K',
+    'punter': 'P'
   };
-    return displayNames[positionKey] || positionKey;
+  return displayNames[positionKey] || positionKey;
 }
 
 // Apply column visibility to recruits table
@@ -3071,66 +3204,36 @@ function createRecruitRow(recruit) {
   const position = recruit.pos ? recruit.pos.toLowerCase() : '';
   // Column data mapping with attribute names for bold styling and enhanced features
   const columnData = [
-    { 
-      content: recruit.name || '', 
-      attribute: null, 
-      isLink: true,
+    { key: 'name', content: recruit.name || '', attribute: null, isLink: true,
       linkUrl: recruit.id ? `https://www.whatifsports.com/gd/RecruitProfile/Ratings.aspx?rid=${recruit.id}&section=Ratings` : null,
       tooltip: recruit.name ? `${recruit.name} - ${recruit.pos || 'No Position'}` : null,
       isWatched: recruit.watched === 1
     },
-    { 
-      content: recruit.pos || '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'pos', content: recruit.pos || '', attribute: null, isLink: false,
       tooltip: recruit.pos ? `Position: ${recruit.pos}` : null
     },
-    { 
-      content: recruit.watched === 1 ? '👁' : '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'watched', content: recruit.watched === 1 ? '👁' : '', attribute: null, isLink: false,
       tooltip: recruit.watched === 1 ? 'On Watchlist' : 'Not Watched',
       classes: recruit.watched === 1 ? ['watched-indicator'] : []
     },
-    { 
-      content: recruit.potential || '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'potential', content: recruit.potential || '', attribute: null, isLink: false,
       tooltip: recruit.potential ? `Potential: ${recruit.potential}` : null
     },
-    { 
-      content: recruit.priority || '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'priority', content: recruit.priority || '', attribute: null, isLink: false,
       tooltip: recruit.priority ? `Priority: ${recruit.priority}` : null
     },
-    { 
-      content: recruit.height || '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'height', content: recruit.height || '', attribute: null, isLink: false,
       tooltip: recruit.height ? `Height: ${recruit.height}` : null
     },
-    { 
-      content: recruit.weight || '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'weight', content: recruit.weight || '', attribute: null, isLink: false,
       tooltip: recruit.weight ? `Weight: ${recruit.weight} lbs` : null
     },
-    { 
-      content: recruit.rating || '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'rating', content: recruit.rating || '', attribute: null, isLink: false,
       tooltip: recruit.rating ? `Overall Rating: ${recruit.rating}` : null
     },
-    { 
-      content: recruit.rank || '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'rank', content: recruit.rank || '', attribute: null, isLink: false,
       tooltip: recruit.rank ? `National Rank: ${recruit.rank}` : null
-    },    { 
-      content: recruit.hometown || '', 
-      attribute: null, 
-      isLink: recruit.hometown && recruit.hometown !== 'N/A',
+    },    { key: 'hometown', content: recruit.hometown || '', attribute: null, isLink: recruit.hometown && recruit.hometown !== 'N/A',
       linkUrl: (recruit.hometown && recruit.hometown !== 'N/A') ? (() => {
         const teamWorld = elements.team_world?.textContent?.trim();
         const teamDivision = elements.team_division?.textContent?.trim();
@@ -3142,49 +3245,37 @@ function createRecruitRow(recruit) {
       })() : null,
       tooltip: recruit.hometown ? `Hometown: ${recruit.hometown}` : null
     },
-    { 
-      content: recruit.division || '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'division', content: recruit.division || '', attribute: null, isLink: false,
       tooltip: recruit.division ? `High School Division: ${recruit.division}` : null
     },
-    { 
-      content: recruit.miles || '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'miles', content: recruit.miles || '', attribute: null, isLink: false,
       tooltip: recruit.miles ? `Distance: ${recruit.miles} miles from campus` : null
     },
-    { 
-      content: recruit.signed || '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'signed', content: recruit.signed || '', attribute: null, isLink: false,
       tooltip: recruit.signed ? `Signed Status: ${recruit.signed}` : null,
       classes: recruit.signed === 'Y' || recruit.signed === 'Yes' ? ['signed-status'] : []
     },
-    { 
-      content: recruit.gpa || '', 
-      attribute: null, 
-      isLink: false,
+    { key: 'gpa', content: recruit.gpa || '', attribute: null, isLink: false,
       tooltip: recruit.gpa ? `GPA: ${recruit.gpa}` : null
     },
-    { content: recruit.ath || '', attribute: 'ath', tooltip: recruit.ath ? `Athleticism: ${recruit.ath}` : null },
-    { content: recruit.spd || '', attribute: 'spd', tooltip: recruit.spd ? `Speed: ${recruit.spd}` : null },
-    { content: recruit.dur || '', attribute: 'dur', tooltip: recruit.dur ? `Durability: ${recruit.dur}` : null },
-    { content: recruit.we || '', attribute: 'we', tooltip: recruit.we ? `Work Ethic: ${recruit.we}` : null },
-    { content: recruit.sta || '', attribute: 'sta', tooltip: recruit.sta ? `Stamina: ${recruit.sta}` : null },
-    { content: recruit.str || '', attribute: 'str', tooltip: recruit.str ? `Strength: ${recruit.str}` : null },
-    { content: recruit.blk || '', attribute: 'blk', tooltip: recruit.blk ? `Blocking: ${recruit.blk}` : null },
-    { content: recruit.tkl || '', attribute: 'tkl', tooltip: recruit.tkl ? `Tackling: ${recruit.tkl}` : null },
-    { content: recruit.han || '', attribute: 'han', tooltip: recruit.han ? `Hands: ${recruit.han}` : null },
-    { content: recruit.gi || '', attribute: 'gi', tooltip: recruit.gi ? `Game Intelligence: ${recruit.gi}` : null },
-    { content: recruit.elu || '', attribute: 'elu', tooltip: recruit.elu ? `Elusiveness: ${recruit.elu}` : null },
-    { content: recruit.tec || '', attribute: 'tec', tooltip: recruit.tec ? `Technique: ${recruit.tec}` : null },
-    { content: recruit.r1 || '', attribute: null, tooltip: recruit.r1 ? `Rating 1: ${recruit.r1}` : null },
-    { content: recruit.r2 || '', attribute: null, tooltip: recruit.r2 ? `Rating 2: ${recruit.r2}` : null },
-    { content: recruit.r3 || '', attribute: null, tooltip: recruit.r3 ? `Rating 3: ${recruit.r3}` : null },
-    { content: recruit.r4 || '', attribute: null, tooltip: recruit.r4 ? `Rating 4: ${recruit.r4}` : null },
-    { content: recruit.r5 || '', attribute: null, tooltip: recruit.r5 ? `Rating 5: ${recruit.r5}` : null },
-    { content: recruit.r6 || '', attribute: null, tooltip: recruit.r6 ? `Rating 6: ${recruit.r6}` : null },
+    { key: 'ath', content: recruit.ath || '', attribute: 'ath', tooltip: recruit.ath ? `Athleticism: ${recruit.ath}` : null },
+    { key: 'spd', content: recruit.spd || '', attribute: 'spd', tooltip: recruit.spd ? `Speed: ${recruit.spd}` : null },
+    { key: 'dur', content: recruit.dur || '', attribute: 'dur', tooltip: recruit.dur ? `Durability: ${recruit.dur}` : null },
+    { key: 'we', content: recruit.we || '', attribute: 'we', tooltip: recruit.we ? `Work Ethic: ${recruit.we}` : null },
+    { key: 'sta', content: recruit.sta || '', attribute: 'sta', tooltip: recruit.sta ? `Stamina: ${recruit.sta}` : null },
+    { key: 'str', content: recruit.str || '', attribute: 'str', tooltip: recruit.str ? `Strength: ${recruit.str}` : null },
+    { key: 'blk', content: recruit.blk || '', attribute: 'blk', tooltip: recruit.blk ? `Blocking: ${recruit.blk}` : null },
+    { key: 'tkl', content: recruit.tkl || '', attribute: 'tkl', tooltip: recruit.tkl ? `Tackling: ${recruit.tkl}` : null },
+    { key: 'han', content: recruit.han || '', attribute: 'han', tooltip: recruit.han ? `Hands: ${recruit.han}` : null },
+    { key: 'gi', content: recruit.gi || '', attribute: 'gi', tooltip: recruit.gi ? `Game Intelligence: ${recruit.gi}` : null },
+    { key: 'elu', content: recruit.elu || '', attribute: 'elu', tooltip: recruit.elu ? `Elusiveness: ${recruit.elu}` : null },
+    { key: 'tec', content: recruit.tec || '', attribute: 'tec', tooltip: recruit.tec ? `Technique: ${recruit.tec}` : null },
+    { key: 'r1', content: recruit.r1 || '', attribute: null, tooltip: recruit.r1 ? `Rating 1: ${recruit.r1}` : null },
+    { key: 'r2', content: recruit.r2 || '', attribute: null, tooltip: recruit.r2 ? `Rating 2: ${recruit.r2}` : null },
+    { key: 'r3', content: recruit.r3 || '', attribute: null, tooltip: recruit.r3 ? `Rating 3: ${recruit.r3}` : null },
+    { key: 'r4', content: recruit.r4 || '', attribute: null, tooltip: recruit.r4 ? `Rating 4: ${recruit.r4}` : null },
+    { key: 'r5', content: recruit.r5 || '', attribute: null, tooltip: recruit.r5 ? `Rating 5: ${recruit.r5}` : null },
+    { key: 'r6', content: recruit.r6 || '', attribute: null, tooltip: recruit.r6 ? `Rating 6: ${recruit.r6}` : null },
     { 
       content: recruit.considering || '', 
       attribute: null, 

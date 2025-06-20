@@ -3589,37 +3589,73 @@ function updateSortIndicators() {
 // Load recruits data from background script
 async function loadRecruitsData() {
   try {
+    console.log('=== DEBUGGING loadRecruitsData START ===');
     setStatusMessage('Loading recruits...', 'info');
     
+    // Debug: Check initial state
+    console.log('Initial state.recruits length:', state.recruits ? state.recruits.length : 'undefined');
+    
     // Load recruits and page size preference in parallel
+    console.log('Sending getRecruits message to background...');
     const [recruitsResponse] = await Promise.all([
       popupComms.sendMessageToBackground({ action: 'getRecruits' }),
       loadPageSizePreference()
     ]);
     
+    console.log('Received response from background:', recruitsResponse);
+    
     if (recruitsResponse.error) {
+      console.error('Background returned error:', recruitsResponse.error);
       throw new Error(recruitsResponse.error);
     }
     
+    // Debug: Log raw response data
+    console.log('Raw recruits response:', {
+      hasRecruits: !!recruitsResponse.recruits,
+      recruitsType: typeof recruitsResponse.recruits,
+      recruitsLength: recruitsResponse.recruits ? recruitsResponse.recruits.length : 'N/A',
+      isArray: Array.isArray(recruitsResponse.recruits)
+    });
+    
     state.recruits = recruitsResponse.recruits || [];
-    console.log(`Loaded ${state.recruits.length} recruits from storage`);
+    console.log(`✓ Set state.recruits to array with ${state.recruits.length} items`);
+    
+    // Debug: Log first few recruits for verification
+    if (state.recruits.length > 0) {
+      console.log('Sample recruits (first 3):', state.recruits.slice(0, 3).map(r => ({
+        id: r.id,
+        name: r.name,
+        pos: r.pos,
+        watched: r.watched
+      })));
+    } else {
+      console.log('ℹ No recruits data available - this is normal for first-time usage or when no season has been initialized');
+    }
     
     // Debug: Log watched recruits count
     const watchedCount = state.recruits.filter(recruit => recruit.watched === 1).length;
     console.log(`Found ${watchedCount} watched recruits`);
     
     // Populate filter options
+    console.log('Populating filter options...');
     populateFilterOptions();
     
     // Apply filters and update display
+    console.log('Applying filters...');
     applyFilters();
     
+    // Debug: Log filtered results
+    console.log(`After filters applied: ${state.filtered_recruits ? state.filtered_recruits.length : 'undefined'} filtered recruits`);
+    
     // Setup table sorting after data is loaded
+    console.log('Setting up table sorting...');
     setupTableSorting();
     
     state.last_data_refresh = Date.now();
+    console.log('=== DEBUGGING loadRecruitsData END ===');
     
   } catch (error) {
+    console.error('=== ERROR in loadRecruitsData ===', error);
     handleError(error, 'recruits data loading');
     
     // Reset to safe defaults
@@ -3817,7 +3853,22 @@ function populateDistanceFilter() {
 // Apply filters to recruit data with performance optimization
 function applyFilters() {
   try {
+    console.log('=== DEBUGGING applyFilters START ===');
+    console.log('Input state.recruits:', {
+      exists: !!state.recruits,
+      length: state.recruits ? state.recruits.length : 'N/A',
+      isArray: Array.isArray(state.recruits)
+    });
+    
     if (!state.recruits) {
+      console.warn('⚠ state.recruits is null/undefined, setting filtered_recruits to empty');
+      state.filtered_recruits = [];
+      updateRecruitsList();
+      return;
+    }
+    
+    if (state.recruits.length === 0) {
+      console.log('⚠ state.recruits is empty array, setting filtered_recruits to empty');
       state.filtered_recruits = [];
       updateRecruitsList();
       return;
@@ -3826,10 +3877,12 @@ function applyFilters() {
     // Generate hash of current filters to check if we can use cached results
     const filtersHash = generateDataHash(state.filters);
     if (state.performance.cache.filtered_results_hash === filtersHash) {
+      console.log('Using cached filter results');
       // Filters haven't changed, no need to re-filter
       return;
     }
     
+    console.log('Current filters:', state.filters);
     const startTime = performance.now();
     
     state.filtered_recruits = state.recruits.filter(recruit => {
@@ -3838,7 +3891,8 @@ function applyFilters() {
         console.warn('Null recruit found in array, skipping');
         return false;
       }
-        // Position filter - handle both regular positions and custom groups
+      
+      // Position filter - handle both regular positions and custom groups
       if (state.filters.position) {
         let positionMatch = false;
         
@@ -3864,7 +3918,9 @@ function applyFilters() {
       // Division filter
       if (state.filters.division && recruit.division !== state.filters.division) {
         return false;
-      }      // Priority filter - convert filter value to number for comparison
+      }
+      
+      // Priority filter - convert filter value to number for comparison
       if (state.filters.priority) {
         const filterPriority = parseInt(state.filters.priority);
         const recruitPriority = parseInt(recruit.priority);

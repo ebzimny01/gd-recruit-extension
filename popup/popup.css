@@ -252,61 +252,77 @@ body {
   color: var(--primary-color);
 }
 
-/* Filter controls - compact design for popup */
+/* Compact Filter Controls Design */
 .filter-controls {
   background: var(--background-color);
   border-radius: var(--border-radius-md);
   padding: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
   border: 1px solid var(--border-color);
 }
 
-.filter-section {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+/* Main Filters Row - Horizontal Layout */
+.filter-row-main {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-sm);
+  align-items: end;
 }
 
-.filter-section:last-child {
-  margin-bottom: 0;
-}
-
-.filter-item {
+.filter-row-main .filter-item {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 2px;
+  min-width: 120px;
+  flex: 1;
 }
 
-.filter-item label {
-  font-size: var(--font-size-xs);
+.filter-row-main .filter-item label {
+  font-size: 0.7rem;
   font-weight: 500;
   color: var(--text-secondary);
+  margin-bottom: 1px;
 }
 
-.filter-item select {
-  padding: var(--spacing-xs);
+.filter-row-main .filter-item select {
+  padding: 3px 6px;
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-sm);
-  font-size: var(--font-size-xs);
+  font-size: 0.75rem;
   background-color: var(--surface-color);
+  height: 28px;
 }
 
-.checkbox-filter {
-  flex-direction: row;
+/* Checkbox Filters Row - Compact Horizontal Layout */
+.filter-row-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
   align-items: center;
-  gap: var(--spacing-xs);
 }
 
-.checkbox-filter label {
+.filter-item-checkbox {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+}
+
+.filter-item-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--text-primary);
+}
+
+.filter-item-checkbox input[type="checkbox"] {
+  margin: 0;
 }
 
 .checkbox-label-text {
-  font-size: var(--font-size-xs);
+  font-size: 0.75rem;
   user-select: none;
 }
 
@@ -527,14 +543,31 @@ body {
   background-color: rgba(102, 126, 234, 0.05);
 }
 
-/* Pagination */
+/* Pagination - both top and bottom */
 .pagination {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: var(--spacing-sm);
   background: var(--background-color);
+  border: 1px solid var(--border-color);
+}
+
+/* Bottom pagination styling */
+.pagination:not(.pagination-top) {
   border-top: 1px solid var(--border-color);
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+/* Top pagination styling */
+.pagination-top {
+  border-bottom: 1px solid var(--border-color);
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  margin-bottom: var(--spacing-xs);
 }
 
 .pagination button {
@@ -545,6 +578,12 @@ body {
   border-radius: var(--border-radius-sm);
   cursor: pointer;
   font-size: var(--font-size-xs);
+  transition: all 0.2s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: var(--secondary-color);
+  transform: translateY(-1px);
 }
 
 .pagination button:disabled {
@@ -1727,29 +1766,58 @@ textarea:focus-visible {
   }
 }
 
-/* Attribute Filters Section Styles */
+/* Collapsible Attribute Filters Section Styles */
 .attribute-filters-section {
-  margin-top: var(--spacing-md);
+  margin-top: var(--spacing-sm);
   background: var(--background-color);
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius-md);
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm);
 }
 
 .attribute-filters-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-md);
-  padding-bottom: var(--spacing-sm);
-  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--spacing-sm);
 }
 
-.attribute-filters-header h4 {
-  font-size: var(--font-size-base);
-  font-weight: 600;
+/* Collapsible Toggle Button */
+.attribute-filters-toggle {
+  background: none;
+  border: none;
+  padding: var(--spacing-xs) 0;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
   color: var(--text-primary);
-  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.attribute-filters-toggle:hover {
+  color: var(--primary-color);
+}
+
+.toggle-icon {
+  font-size: 0.7rem;
+  transition: transform 0.3s ease;
+}
+
+.toggle-text {
+  user-select: none;
+}
+
+/* Collapsed state */
+.attribute-filters-grid.collapsed {
+  display: none;
+}
+
+/* Expanded state - rotate icon */
+.attribute-filters-toggle:not(.collapsed) .toggle-icon {
+  transform: rotate(180deg);
 }
 
 .attribute-filters-grid {

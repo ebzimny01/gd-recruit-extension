@@ -117,7 +117,7 @@ const COLUMNS = [
   { key: 'considering', label: 'Considering Schools', sortable: true }
 ];
 
-// DOM elements cache - organized by functional area
+  // DOM elements cache - organized by functional area
 const elements = {
   // Tab navigation - convert NodeLists to Arrays for better error handling
   tab_buttons: Array.from(document.querySelectorAll('.tab-btn') || []),
@@ -145,9 +145,15 @@ const elements = {
   filter_distance: document.getElementById('filter-distance'),
   filter_hide_signed: document.getElementById('filter-hide-signed'),
   recruits_list: document.getElementById('recruits-list'),
+  
+  // Dual pagination elements
   prev_page_btn: document.getElementById('prev-page'),
   next_page_btn: document.getElementById('next-page'),
   page_info: document.getElementById('page-info'),
+  prev_page_btn_top: document.getElementById('prev-page-top'),
+  next_page_btn_top: document.getElementById('next-page-top'),
+  page_info_top: document.getElementById('page-info-top'),
+  
   page_size_select: document.getElementById('page-size-select'),
 
   // Column visibility elements
@@ -1630,18 +1636,18 @@ function clearAttributeFilters() {
 
 // Update filter summary with count of active filters
 function updateFilterSummary() {
-  const header = document.querySelector('.attribute-filters-header h4');
-  if (!header) return;
+  const toggleText = document.querySelector('.toggle-text');
+  if (!toggleText) return;
 
   const activeFilterCount = Object.values(state.filters.attribute_filters)
     .filter(value => value && value.trim() !== '').length;
 
-  // Update header text with count
+  // Update toggle text with count
   const baseText = 'Attribute Filters (>= values)';
   if (activeFilterCount > 0) {
-    header.innerHTML = `${baseText} <span class="filter-summary-badge">${activeFilterCount}</span>`;
+    toggleText.innerHTML = `${baseText} <span class="filter-summary-badge">${activeFilterCount}</span>`;
   } else {
-    header.textContent = baseText;
+    toggleText.textContent = baseText;
   }
 }
 
@@ -1674,16 +1680,28 @@ function matchesAttributeFilters(recruit) {
 
 // Setup pagination event listeners
 function setupPaginationListeners() {
-  // Previous page button
+  // Bottom pagination controls
   if (elements.prev_page_btn) {
     elements.prev_page_btn.addEventListener('click', () => {
       changePage(-1);
     });
   }
   
-  // Next page button
   if (elements.next_page_btn) {
     elements.next_page_btn.addEventListener('click', () => {
+      changePage(1);
+    });
+  }
+  
+  // Top pagination controls
+  if (elements.prev_page_btn_top) {
+    elements.prev_page_btn_top.addEventListener('click', () => {
+      changePage(-1);
+    });
+  }
+  
+  if (elements.next_page_btn_top) {
+    elements.next_page_btn_top.addEventListener('click', () => {
       changePage(1);
     });
   }
@@ -1692,6 +1710,9 @@ function setupPaginationListeners() {
   if (elements.page_size_select) {
     elements.page_size_select.addEventListener('change', handlePageSizeChange);
   }
+  
+  // Setup collapsible attribute filters
+  setupAttributeFiltersToggle();
 }
 
 // Handle page navigation
@@ -3864,7 +3885,7 @@ function applyFilters() {
       }
       
       // Hide signed filter
-      if (state.filters.hide_signed && recruit.signed === 'Yes') {
+      if (state.filters.hide_signed && (recruit.signed === 'Yes' || recruit.signed === 'Y' || recruit.signed === 1)) {
         return false;
       }
 
@@ -4402,14 +4423,44 @@ function createRecruitRow(recruit, teamInfo) {
   }
 }
 
-// Update pagination display
+// Setup collapsible attribute filters toggle
+function setupAttributeFiltersToggle() {
+  const toggleButton = document.getElementById('toggle-attribute-filters');
+  const filtersGrid = document.getElementById('attribute-filters-container');
+  
+  if (!toggleButton || !filtersGrid) {
+    console.warn('Attribute filters toggle elements not found');
+    return;
+  }
+  
+  // Initialize to collapsed state
+  filtersGrid.classList.add('collapsed');
+  toggleButton.classList.add('collapsed');
+  
+  toggleButton.addEventListener('click', () => {
+    const isCollapsed = filtersGrid.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+      // Expand
+      filtersGrid.classList.remove('collapsed');
+      toggleButton.classList.remove('collapsed');
+      toggleButton.setAttribute('aria-expanded', 'true');
+    } else {
+      // Collapse
+      filtersGrid.classList.add('collapsed');
+      toggleButton.classList.add('collapsed');
+      toggleButton.setAttribute('aria-expanded', 'false');
+    }
+  });
+  
+  // Set initial ARIA state
+  toggleButton.setAttribute('aria-expanded', 'false');
+  toggleButton.setAttribute('aria-controls', 'attribute-filters-container');
+}
+
+// Update pagination display for both top and bottom controls
 function updatePaginationDisplay() {
   try {
-    if (!elements.page_info) {
-      console.warn('Page info element not found');
-      return;
-    }
-    
     // Ensure filtered_recruits exists
     if (!state.filtered_recruits) {
       console.warn('No filtered recruits data for pagination');
@@ -4423,42 +4474,60 @@ function updatePaginationDisplay() {
     // Check if filters are active
     const filtersActive = totalFiltered !== totalAll;
     
+    let displayText = '';
+    
     if (state.show_all_results) {
       // Show total filtered count when showing all results
-      let displayText = `Showing all ${totalFiltered} results`;
+      displayText = `Showing all ${totalFiltered} results`;
       if (filtersActive) {
         displayText += ` (filtered from ${totalAll} total)`;
       }
-      elements.page_info.textContent = displayText;
     } else {
       // Calculate start and end indices for current page
       const startIndex = (state.current_page - 1) * state.items_per_page + 1;
       const endIndex = Math.min(state.current_page * state.items_per_page, totalFiltered);
       
       if (totalFiltered === 0) {
-        let displayText = 'No results found';
+        displayText = 'No results found';
         if (filtersActive) {
           displayText += ` (${totalAll} total available)`;
         }
-        elements.page_info.textContent = displayText;
       } else {
         // Show detailed pagination info with filter indication
-        let displayText = `Showing ${startIndex}-${endIndex} of ${totalFiltered}`;
+        displayText = `Showing ${startIndex}-${endIndex} of ${totalFiltered}`;
         if (filtersActive) {
           displayText += ` (filtered from ${totalAll})`;
         }
         displayText += ` | Page ${state.current_page} of ${totalPages}`;
-        elements.page_info.textContent = displayText;
       }
     }
     
-    // Update button states
-    if (elements.prev_page_btn) {
-      elements.prev_page_btn.disabled = state.current_page <= 1 || state.show_all_results;
+    // Update both top and bottom pagination info displays
+    if (elements.page_info) {
+      elements.page_info.textContent = displayText;
+    }
+    if (elements.page_info_top) {
+      elements.page_info_top.textContent = displayText;
     }
     
+    // Update button states for both top and bottom controls
+    const isFirstPage = state.current_page <= 1 || state.show_all_results;
+    const isLastPage = state.current_page >= totalPages || state.show_all_results;
+    
+    // Bottom pagination buttons
+    if (elements.prev_page_btn) {
+      elements.prev_page_btn.disabled = isFirstPage;
+    }
     if (elements.next_page_btn) {
-      elements.next_page_btn.disabled = state.current_page >= totalPages || state.show_all_results;
+      elements.next_page_btn.disabled = isLastPage;
+    }
+    
+    // Top pagination buttons
+    if (elements.prev_page_btn_top) {
+      elements.prev_page_btn_top.disabled = isFirstPage;
+    }
+    if (elements.next_page_btn_top) {
+      elements.next_page_btn_top.disabled = isLastPage;
     }
     
   } catch (error) {

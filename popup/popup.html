@@ -68,86 +68,64 @@
         <!-- Recruits Tab -->
         <section id="recruits-section" class="tab-content">
           <div class="filter-controls">
-            <div class="filter-section">
+            <!-- Main Filters Row -->
+            <div class="filter-row-main">
               <div class="filter-item">
                 <label for="filter-position">Position:</label>
-                <select
-                  id="filter-position"
-                  title="Filter by position"
-                ></select>
+                <select id="filter-position" title="Filter by position"></select>
               </div>
               <div class="filter-item">
                 <label for="filter-potential">Potential:</label>
-                <select
-                  id="filter-potential"
-                  title="Filter by potential"
-                ></select>
+                <select id="filter-potential" title="Filter by potential"></select>
+              </div>
+              <div class="filter-item">
+                <label for="filter-priority">Priority:</label>
+                <select id="filter-priority" title="Filter by priority"></select>
               </div>
               <div class="filter-item">
                 <label for="filter-division">Division:</label>
-                <select
-                  id="filter-division"
-                  title="Filter by division"
-                ></select>
-              </div>
-              <div class="filter-item checkbox-filter">
-                <label for="filter-watched">
-                  <input
-                    type="checkbox"
-                    id="filter-watched"
-                    title="Show only watched recruits"
-                  />
-                  <span class="checkbox-label-text">Watched Only</span>
-                </label>
-              </div>
-            </div>
-
-            <div class="filter-section">
-              <div class="filter-item">
-                <label for="filter-priority">Priority:</label>
-                <select
-                  id="filter-priority"
-                  title="Filter by priority"
-                ></select>
+                <select id="filter-division" title="Filter by division"></select>
               </div>
               <div class="filter-item">
                 <label for="filter-distance">Distance:</label>
-                <select
-                  id="filter-distance"
-                  title="Filter by distance"
-                ></select>
+                <select id="filter-distance" title="Filter by distance"></select>
               </div>
-              <div class="filter-item checkbox-filter">
+            </div>
+
+            <!-- Checkbox Filters Row -->
+            <div class="filter-row-checkboxes">
+              <div class="filter-item-checkbox">
+                <label for="filter-watched">
+                  <input type="checkbox" id="filter-watched" title="Show only watched recruits" />
+                  <span class="checkbox-label-text">Watched Only</span>
+                </label>
+              </div>
+              <div class="filter-item-checkbox">
                 <label for="filter-hide-signed">
-                  <input
-                    type="checkbox"
-                    id="filter-hide-signed"
-                    title="Hide signed recruits"
-                  />
+                  <input type="checkbox" id="filter-hide-signed" title="Hide signed recruits" />
                   <span class="checkbox-label-text">Hide Signed</span>
                 </label>
               </div>
-              <div class="filter-item checkbox-filter">
+              <div class="filter-item-checkbox">
                 <label for="filter-undecided">
-                  <input
-                    type="checkbox"
-                    id="filter-undecided"
-                    title="Show only undecided recruits"
-                  />
+                  <input type="checkbox" id="filter-undecided" title="Show only undecided recruits" />
                   <span class="checkbox-label-text">Undecided Only</span>
                 </label>
               </div>
             </div>
 
-            <!-- Attribute Filters Section -->
+            <!-- Collapsible Attribute Filters Section -->
             <div class="attribute-filters-section">
               <div class="attribute-filters-header">
-                <h4>Attribute Filters (>= values)</h4>
+                <button type="button" id="toggle-attribute-filters" class="attribute-filters-toggle">
+                  <span class="toggle-icon">▼</span>
+                  <span class="toggle-text">Attribute Filters (>= values)</span>
+                </button>
                 <button type="button" id="clear-attribute-filters" class="clear-filters-btn">
                   Clear All
                 </button>
               </div>
-              <div id="attribute-filters-container" class="attribute-filters-grid">
+              <div id="attribute-filters-container" class="attribute-filters-grid collapsed">
                 <!-- Dynamically generated filter inputs -->
               </div>
             </div>
@@ -164,7 +142,6 @@
                 <option value="25">25</option>
                 <option value="50">50</option>
                 <option value="100">100</option>
-                <option value="all">All</option>
               </select>
             </div>
             <div class="table-controls">
@@ -172,6 +149,15 @@
                 Show/Hide Columns
               </button>
             </div>
+          </div>
+          
+          <!-- Top Pagination Controls -->
+          <div class="pagination pagination-top">
+            <button id="prev-page-top">Previous</button>
+            <div class="pagination-info">
+              <span id="page-info-top">Page 1 of 1</span>
+            </div>
+            <button id="next-page-top">Next</button>
           </div>
           
           <div class="recruits-container">

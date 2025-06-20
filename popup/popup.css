@@ -340,6 +340,29 @@ body {
   font-size: var(--font-size-xs);
 }
 
+.table-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.table-controls .setting-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.table-controls .setting-btn:hover {
+  background: var(--secondary-color);
+  transform: translateY(-1px);
+}
+
 /* Table container with horizontal scroll */
 .recruits-container {
   flex: 1;
@@ -376,6 +399,80 @@ body {
   vertical-align: top; /* Align text to top */
   position: relative;
   display: table-cell;
+  cursor: move; /* Indicate draggable */
+  transition: all 0.2s ease;
+}
+
+#recruits-table th.dragging {
+  opacity: 0.5;
+  background-color: rgba(102, 126, 234, 0.2);
+  transform: scale(1.02);
+  z-index: 1000;
+  cursor: grabbing;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#recruits-table th.drag-over {
+  background-color: rgba(102, 126, 234, 0.3);
+  border-left: 3px solid var(--primary-color);
+  border-right: 3px solid var(--primary-color);
+  animation: dragPulse 0.5s ease-in-out infinite alternate;
+}
+
+#recruits-table th:not(.sortable):hover {
+  background-color: rgba(102, 126, 234, 0.1);
+  cursor: move;
+}
+
+/* Drag animation */
+@keyframes dragPulse {
+  from { background-color: rgba(102, 126, 234, 0.3); }
+  to { background-color: rgba(102, 126, 234, 0.5); }
+}
+
+/* Enhanced drag indicator for all headers */
+#recruits-table th[draggable="true"] {
+  position: relative;
+}
+
+#recruits-table th[draggable="true"]:hover::after {
+  content: '↔';
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  color: var(--primary-color);
+  font-size: 0.9em;
+  font-weight: bold;
+  z-index: 10;
+}
+
+/* Visual feedback during drag operations */
+#recruits-table th[data-is-dragging="true"] {
+  opacity: 0.6;
+  transform: rotate(2deg);
+  cursor: grabbing;
+}
+
+/* Visual indicator for draggable headers */
+#recruits-table th::after {
+  content: '⋮⋮';
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 0.8em;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+#recruits-table th:hover::after {
+  opacity: 0.7;
+}
+
+#recruits-table th.sortable::after {
+  display: none; /* Hide for sortable columns that have sort indicators */
 }
 
 #recruits-table th.sortable {
@@ -1946,5 +2043,273 @@ textarea:focus-visible {
   .sort-asc,
   .sort-desc {
     animation: none;
+  }
+}
+
+/* Column Order Modal Styles */
+.column-order-modal-content {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.column-order-list {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  background-color: var(--background-color);
+  padding: var(--spacing-sm);
+}
+
+/* Column order item with drag and drop functionality */
+.column-order-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+  background: var(--surface-color);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  cursor: move;
+  transition: all 0.2s ease;
+  user-select: none;
+  position: relative;
+}
+
+.column-order-item:last-child {
+  margin-bottom: 0;
+}
+
+.column-order-item:hover {
+  border-color: var(--primary-color);
+  background-color: #f8f9fa;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-light);
+}
+
+.column-order-item.drag-over {
+  border-color: var(--primary-color);
+  background-color: rgba(102, 126, 234, 0.1);
+  transform: scale(1.02);
+  box-shadow: var(--shadow-medium);
+}
+
+/* Drag handle styling */
+.drag-handle {
+  font-size: var(--font-size-lg);
+  color: var(--text-muted);
+  cursor: grab;
+  padding: var(--spacing-xs);
+  border-radius: var(--border-radius-sm);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  user-select: none;
+  line-height: 1;
+}
+
+.drag-handle:hover {
+  color: var(--primary-color);
+  background-color: rgba(102, 126, 234, 0.1);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  color: var(--secondary-color);
+}
+
+/* Column label styling */
+.column-label {
+  flex: 1;
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Visibility indicator styling */
+.visibility-indicator {
+  flex-shrink: 0;
+  font-size: var(--font-size-base);
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.visibility-indicator[title*="visible"] {
+  background-color: #d4edda;
+  border-color: #28a745;
+  color: #155724;
+}
+
+.visibility-indicator[title*="hidden"] {
+  background-color: #f8d7da;
+  border-color: #dc3545;
+  color: #721c24;
+}
+
+/* Dragging state styles */
+.column-order-item[draggable="true"]:active {
+  opacity: 0.5;
+  transform: rotate(2deg);
+  cursor: grabbing;
+}
+
+/* Drop zone indicator */
+.column-order-list.drop-zone {
+  border-color: var(--primary-color);
+  background-color: rgba(102, 126, 234, 0.05);
+}
+
+/* Enhanced modal styling for column order */
+.column-order-modal-content .modal-header {
+  background: var(--primary-gradient);
+  color: white;
+}
+
+.column-order-modal-content .modal-body {
+  padding: var(--spacing-lg);
+}
+
+.column-order-instructions {
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.column-order-instructions h4 {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.column-order-instructions ul {
+  margin: var(--spacing-sm) 0 0 var(--spacing-lg);
+  padding: 0;
+}
+
+.column-order-instructions li {
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Responsive adjustments for column order modal */
+@media (max-width: 768px) {
+  .column-order-modal-content {
+    max-width: 95vw;
+    margin: var(--spacing-md);
+  }
+  
+  .column-order-item {
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+  
+  .drag-handle {
+    font-size: var(--font-size-xl);
+    padding: var(--spacing-sm);
+  }
+  
+  .visibility-indicator {
+    width: 28px;
+    height: 28px;
+    font-size: var(--font-size-lg);
+  }
+}
+
+/* Accessibility improvements for column order */
+.column-order-item:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.drag-handle:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  background-color: rgba(102, 126, 234, 0.2);
+}
+
+/* High contrast support for column order */
+@media (prefers-contrast: high) {
+  .column-order-item {
+    border: 3px solid #000000;
+  }
+  
+  .column-order-item.drag-over {
+    border-color: #0000ff;
+    background-color: #ffff00;
+  }
+  
+  .visibility-indicator[title*="visible"] {
+    background-color: #00ff00;
+    color: #000000;
+  }
+  
+  .visibility-indicator[title*="hidden"] {
+    background-color: #ff0000;
+    color: #ffffff;
+  }
+}
+
+/* Animation for smooth reordering */
+@keyframes reorderSlide {
+  from {
+    transform: translateY(-20px);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.column-order-item.reordered {
+  animation: reorderSlide 0.3s ease;
+}
+
+/* Disabled state for non-draggable items */
+.column-order-item[draggable="false"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.column-order-item[draggable="false"] .drag-handle {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Touch device support */
+@media (hover: none) and (pointer: coarse) {
+  .column-order-item {
+    padding: var(--spacing-lg);
+    min-height: 60px;
+  }
+  
+  .drag-handle {
+    font-size: var(--font-size-xxl);
+    padding: var(--spacing-md);
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .visibility-indicator {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: var(--font-size-xl);
   }
 }

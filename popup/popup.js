@@ -30,6 +30,7 @@ const PAGE_SIZE_OPTIONS = {
 const DEFAULT_PAGE_SIZE = PAGE_SIZE_OPTIONS.SMALL;
 const PAGE_SIZE_STORAGE_KEY = 'preferredPageSize';
 const COLUMN_VISIBILITY_STORAGE_KEY = 'columnVisibility';
+const COLUMN_ORDER_STORAGE_KEY = 'columnOrder';
 
 // Custom position order for dropdown - modify this array to change the order
 const POSITION_DROPDOWN_ORDER = [
@@ -156,6 +157,15 @@ const elements = {
   column_visibility_save: document.getElementById('column-visibility-save'),
   column_visibility_reset: document.getElementById('column-visibility-reset'),
   column_visibility_cancel: document.getElementById('column-visibility-cancel'),
+
+  // Column order elements
+  btn_column_order: document.getElementById('btn-column-order'),
+  column_order_modal: document.getElementById('column-order-modal'),
+  column_order_modal_close: document.getElementById('column-order-modal-close'),
+  column_order_list: document.getElementById('column-order-list'),
+  column_order_save: document.getElementById('column-order-save'),
+  column_order_reset: document.getElementById('column-order-reset'),
+  column_order_cancel: document.getElementById('column-order-cancel'),
 
   // Settings tab elements
   btn_export_data: document.getElementById('btn-export-data'),
@@ -286,6 +296,9 @@ let state = {
     r6: true,
     considering: true
   },
+  
+  // Column order state - stores custom column ordering
+  column_order: null, // Will be initialized with default order or loaded from storage
     // Popup specific state
   is_popup_focused: true,
   last_data_refresh: null,
@@ -803,6 +816,15 @@ async function loadSavedPreferences() {
     const savedColumns = await chrome.storage.local.get(COLUMN_VISIBILITY_STORAGE_KEY);
     if (savedColumns[COLUMN_VISIBILITY_STORAGE_KEY]) {
       Object.assign(state.column_visibility, savedColumns[COLUMN_VISIBILITY_STORAGE_KEY]);
+    }
+    
+    // Load column order preferences
+    const savedOrder = await chrome.storage.local.get(COLUMN_ORDER_STORAGE_KEY);
+    if (savedOrder[COLUMN_ORDER_STORAGE_KEY] && Array.isArray(savedOrder[COLUMN_ORDER_STORAGE_KEY])) {
+      state.column_order = savedOrder[COLUMN_ORDER_STORAGE_KEY];
+    } else {
+      // Initialize with default order (keys from COLUMNS array)
+      state.column_order = COLUMNS.map(col => col.key);
     }
     
   } catch (error) {
@@ -1759,12 +1781,26 @@ function setupSettingsListeners() {
   if (elements.btn_column_visibility) {
     elements.btn_column_visibility.addEventListener('click', openColumnVisibilityModal);
   }
+  
+  // Column order
+  if (elements.btn_column_order) {
+    elements.btn_column_order.addEventListener('click', openColumnOrderModal);
+  }
+  
+  // Reset column order button in settings
+  const resetColumnOrderBtn = document.getElementById('btn-reset-column-order');
+  if (resetColumnOrderBtn) {
+    resetColumnOrderBtn.addEventListener('click', handleResetColumnOrder);
+  }
 }
 
 // Setup modal event listeners
 function setupModalListeners() {
   // Column visibility modal
   setupColumnVisibilityModalListeners();
+  
+  // Column order modal
+  setupColumnOrderModalListeners();
   
   // Role ratings modal
   setupRoleRatingsModalListeners();
@@ -2152,6 +2188,312 @@ async function handleResetColumnVisibility() {
     
   } catch (error) {
     handleError(error, 'column visibility reset');
+  }
+}
+
+// Setup column order modal listeners
+function setupColumnOrderModalListeners() {
+  if (elements.column_order_save) {
+    elements.column_order_save.addEventListener('click', handleSaveColumnOrder);
+  }
+  
+  if (elements.column_order_reset) {
+    elements.column_order_reset.addEventListener('click', handleResetColumnOrder);
+  }
+  
+  if (elements.column_order_cancel) {
+    elements.column_order_cancel.addEventListener('click', closeColumnOrderModal);
+  }
+  
+  // Close button
+  if (elements.column_order_modal_close) {
+    elements.column_order_modal_close.addEventListener('click', closeColumnOrderModal);
+  }
+  
+  // Close on backdrop click
+  if (elements.column_order_modal) {
+    elements.column_order_modal.addEventListener('click', (event) => {
+      if (event.target === elements.column_order_modal) {
+        closeColumnOrderModal();
+      }
+    });
+  }
+}
+
+// Open column order modal
+function openColumnOrderModal() {
+  if (!validateElement(elements.column_order_modal, 'column-order-modal')) return;
+  
+  populateColumnOrderList();
+  elements.column_order_modal.classList.remove('hidden');
+}
+
+// Close column order modal
+function closeColumnOrderModal() {
+  if (elements.column_order_modal) {
+    elements.column_order_modal.classList.add('hidden');
+  }
+}
+
+// Populate column order list with drag and drop functionality
+function populateColumnOrderList() {
+  if (!elements.column_order_list) return;
+  
+  elements.column_order_list.innerHTML = '';
+  
+  // Create sortable list based on current column order
+  const orderedColumns = state.column_order.map(columnKey => {
+    return COLUMNS.find(col => col.key === columnKey);
+  }).filter(Boolean); // Remove any null/undefined entries
+  
+  orderedColumns.forEach((column, index) => {
+    const item = document.createElement('div');
+    item.className = 'column-order-item';
+    item.draggable = true;
+    item.dataset.columnKey = column.key;
+    item.dataset.originalIndex = index;
+    
+    // Add grab handle
+    const handle = document.createElement('div');
+    handle.className = 'drag-handle';
+    handle.innerHTML = '⋮⋮';
+    handle.title = 'Drag to reorder';
+    
+    // Add column label
+    const label = document.createElement('span');
+    label.className = 'column-label';
+    label.textContent = column.label;
+    
+    // Add visibility indicator
+    const visibilityIndicator = document.createElement('span');
+    visibilityIndicator.className = 'visibility-indicator';
+    const isVisible = state.column_visibility[column.key] !== false;
+    visibilityIndicator.textContent = isVisible ? '👁' : '🚫';
+    visibilityIndicator.title = isVisible ? 'Column is visible' : 'Column is hidden';
+    
+    item.appendChild(handle);
+    item.appendChild(label);
+    item.appendChild(visibilityIndicator);
+    
+    // Add drag event listeners
+    item.addEventListener('dragstart', handleDragStart);
+    item.addEventListener('dragover', handleDragOver);
+    item.addEventListener('drop', handleDrop);
+    item.addEventListener('dragend', handleDragEnd);
+    
+    elements.column_order_list.appendChild(item);
+  });
+}
+
+// Drag and drop event handlers
+let draggedElement = null;
+
+function handleDragStart(event) {
+  draggedElement = event.target;
+  event.target.style.opacity = '0.5';
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/html', event.target.outerHTML);
+}
+
+function handleDragOver(event) {
+  if (event.preventDefault) {
+    event.preventDefault();
+  }
+  
+  event.dataTransfer.dropEffect = 'move';
+  
+  // Add visual feedback
+  const targetItem = event.target.closest('.column-order-item');
+  if (targetItem && targetItem !== draggedElement) {
+    targetItem.classList.add('drag-over');
+  }
+  
+  return false;
+}
+
+function handleDrop(event) {
+  if (event.stopPropagation) {
+    event.stopPropagation();
+  }
+  
+  const targetItem = event.target.closest('.column-order-item');
+  
+  if (draggedElement !== targetItem && targetItem) {
+    // Get the container
+    const container = elements.column_order_list;
+    const allItems = Array.from(container.children);
+    
+    // Get indices
+    const draggedIndex = allItems.indexOf(draggedElement);
+    const targetIndex = allItems.indexOf(targetItem);
+    
+    // Reorder the DOM elements
+    if (draggedIndex < targetIndex) {
+      container.insertBefore(draggedElement, targetItem.nextSibling);
+    } else {
+      container.insertBefore(draggedElement, targetItem);
+    }
+    
+    // Update the column order state
+    updateColumnOrderFromDOM();
+  }
+  
+  // Clean up visual feedback
+  targetItem?.classList.remove('drag-over');
+  
+  return false;
+}
+
+function handleDragEnd(event) {
+  event.target.style.opacity = '';
+  draggedElement = null;
+  
+  // Clean up any remaining drag-over classes
+  const items = elements.column_order_list.querySelectorAll('.column-order-item');
+  items.forEach(item => {
+    item.classList.remove('drag-over');
+  });
+}
+
+// Update column order state from DOM order
+function updateColumnOrderFromDOM() {
+  const items = elements.column_order_list.querySelectorAll('.column-order-item');
+  const newOrder = Array.from(items).map(item => item.dataset.columnKey);
+  state.column_order = newOrder;
+}
+
+// Handle save column order
+async function handleSaveColumnOrder() {
+  try {
+    // Save to storage
+    await chrome.storage.local.set({
+      [COLUMN_ORDER_STORAGE_KEY]: state.column_order
+    });
+    
+    // Apply the new order by rebuilding the table header and updating display
+    applyColumnOrder();
+    closeColumnOrderModal();
+    
+    setStatusMessage('Column order updated', 'success');
+    
+  } catch (error) {
+    handleError(error, 'column order save');
+  }
+}
+
+// Handle reset column order
+async function handleResetColumnOrder() {
+  try {
+    // Confirm reset action
+    if (!confirm('Are you sure you want to reset the column order to default? This will undo any custom column ordering.')) {
+      return;
+    }
+    
+    setStatusMessage('Resetting column order...', 'info');
+    
+    // Reset to default order (keys from COLUMNS array)
+    state.column_order = COLUMNS.map(col => col.key);
+    
+    // Save to storage
+    await chrome.storage.local.set({
+      [COLUMN_ORDER_STORAGE_KEY]: state.column_order
+    });
+    
+    // Apply the changes to the table
+    rebuildTableWithNewOrder();
+    
+    // If column order modal is open, repopulate it
+    if (!elements.column_order_modal?.classList.contains('hidden')) {
+      populateColumnOrderList();
+    }
+    
+    setStatusMessage('Column order reset to default', 'success');
+    
+  } catch (error) {
+    handleError(error, 'column order reset');
+  }
+}
+
+// Apply column order to recruits table
+function applyColumnOrder() {
+  try {
+    const table = document.getElementById('recruits-table');
+    if (!table) {
+      console.warn('Recruits table not found for column order');
+      return;
+    }
+    
+    const headerRow = table.querySelector('thead tr');
+    const dataRows = table.querySelectorAll('tbody tr');
+    
+    if (!headerRow) {
+      console.warn('Table header row not found');
+      return;
+    }
+    
+    // Create new header based on column order
+    const newHeaderRow = document.createElement('tr');
+    state.column_order.forEach(columnKey => {
+      const column = COLUMNS.find(col => col.key === columnKey);
+      if (column) {
+        const th = document.createElement('th');
+        th.textContent = column.label;
+        
+        // Copy any existing attributes and classes from the original header
+        const originalTh = Array.from(headerRow.children).find((cell, index) => {
+          return index < COLUMNS.length && COLUMNS[index].key === columnKey;
+        });
+        
+        if (originalTh) {
+          // Copy classes and attributes
+          th.className = originalTh.className;
+          Array.from(originalTh.attributes).forEach(attr => {
+            if (attr.name !== 'class') {
+              th.setAttribute(attr.name, attr.value);
+            }
+          });
+        }
+        
+        newHeaderRow.appendChild(th);
+      }
+    });
+    
+    // Replace the header row
+    headerRow.parentNode.replaceChild(newHeaderRow, headerRow);
+    
+    // Reorder data cells in each row
+    dataRows.forEach(row => {
+      const cells = Array.from(row.children);
+      const newRow = document.createElement('tr');
+      
+      // Copy row attributes
+      Array.from(row.attributes).forEach(attr => {
+        newRow.setAttribute(attr.name, attr.value);
+      });
+      newRow.className = row.className;
+      
+      // Add cells in the new order
+      state.column_order.forEach(columnKey => {
+        const columnIndex = COLUMNS.findIndex(col => col.key === columnKey);
+        if (columnIndex !== -1 && columnIndex < cells.length) {
+          const cell = cells[columnIndex].cloneNode(true);
+          newRow.appendChild(cell);
+        }
+      });
+      
+      // Replace the row
+      row.parentNode.replaceChild(newRow, row);
+    });
+    
+    // Reapply column visibility after reordering
+    applyColumnVisibility();
+    
+    // Reapply table sorting after reordering
+    setupTableSorting();
+    
+  } catch (error) {
+    console.error('Error in applyColumnOrder:', error);
+    handleError(error, 'applying column order');
   }
 }
 
@@ -2839,11 +3181,6 @@ function applyColumnVisibility() {
       console.warn('Table header row not found');
       return;
     }
-      // Ensure COLUMNS array exists
-    if (!COLUMNS || !Array.isArray(COLUMNS)) {
-      console.warn('COLUMNS array not found or invalid');
-      return;
-    }
     
     // Ensure column visibility state exists
     if (!state.column_visibility) {
@@ -2851,33 +3188,35 @@ function applyColumnVisibility() {
       return;
     }
     
-    // Apply to header
+    // Apply to header - use column order and data attributes to determine visibility
     const headerCells = headerRow.querySelectorAll('th');
-    headerCells.forEach((cell, index) => {
+    headerCells.forEach((cell, displayIndex) => {
       try {
-        if (index < COLUMNS.length) {
-          const column = COLUMNS[index];
-          const isVisible = state.column_visibility[column.key] !== false;
+        // Get the column key from the data attribute (set during header creation)
+        const columnKey = cell.getAttribute('data-column-key');
+        if (columnKey) {
+          const isVisible = state.column_visibility[columnKey] !== false;
           cell.style.display = isVisible ? '' : 'none';
         }
       } catch (cellError) {
-        console.warn(`Error applying visibility to header cell ${index}:`, cellError);
+        console.warn(`Error applying visibility to header cell ${displayIndex}:`, cellError);
       }
     });
     
-    // Apply to data rows
+    // Apply to data rows - use column order to determine which column each cell represents
     dataRows.forEach((row, rowIndex) => {
       try {
         const cells = row.querySelectorAll('td');
-        cells.forEach((cell, index) => {
+        cells.forEach((cell, displayIndex) => {
           try {
-            if (index < COLUMNS.length) {
-              const column = COLUMNS[index];
-              const isVisible = state.column_visibility[column.key] !== false;
+            // Map display index to column key using the current column order
+            if (displayIndex < state.column_order.length) {
+              const columnKey = state.column_order[displayIndex];
+              const isVisible = state.column_visibility[columnKey] !== false;
               cell.style.display = isVisible ? '' : 'none';
             }
           } catch (cellError) {
-            console.warn(`Error applying visibility to cell ${rowIndex},${index}:`, cellError);
+            console.warn(`Error applying visibility to cell ${rowIndex},${displayIndex}:`, cellError);
           }
         });
       } catch (rowError) {
@@ -2980,7 +3319,7 @@ function refreshRecruitsDisplay() {
   }
 }
 
-// Enhanced table sorting functionality with accessibility and validation
+// Enhanced table sorting functionality with accessibility and validation plus drag-and-drop
 function setupTableSorting() {
   const table = document.getElementById('recruits-table');
   if (!table) {
@@ -3004,28 +3343,50 @@ function setupTableSorting() {
   // Re-query after cloning to get fresh references
   const freshHeaderCells = table.querySelectorAll('thead th');
   
-  freshHeaderCells.forEach((header, index) => {
-    if (index < COLUMNS.length && COLUMNS[index].sortable) {
+  freshHeaderCells.forEach((header, displayIndex) => {
+    // Get the column key for this header position
+    const columnKey = displayIndex < state.column_order.length ? 
+                     state.column_order[displayIndex] : 
+                     (displayIndex < COLUMNS.length ? COLUMNS[displayIndex].key : `col-${displayIndex}`);
+    
+    // Find the column definition
+    const columnDef = COLUMNS.find(col => col.key === columnKey);
+    
+    // Make all headers draggable
+    header.draggable = true;
+    header.setAttribute('data-column-index', displayIndex);
+    header.setAttribute('data-column-key', columnKey);
+    
+    // Add drag and drop event listeners
+    header.addEventListener('dragstart', handleHeaderDragStart);
+    header.addEventListener('dragover', handleHeaderDragOver);
+    header.addEventListener('drop', handleHeaderDrop);
+    header.addEventListener('dragend', handleHeaderDragEnd);
+    header.addEventListener('dragenter', handleHeaderDragEnter);
+    header.addEventListener('dragleave', handleHeaderDragLeave);
+    
+    if (columnDef && columnDef.sortable) {
       // Enhanced accessibility attributes
       header.setAttribute('tabindex', '0');
       header.setAttribute('role', 'columnheader');
       header.setAttribute('aria-sort', 'none');
       header.setAttribute('data-sortable', 'true');
-      header.setAttribute('data-column-key', COLUMNS[index].key);
       
-      // Visual styling
-      header.style.cursor = 'pointer';
+      // Visual styling for sortable columns
       header.classList.add('sortable');
-      header.title = `Click to sort by ${COLUMNS[index].label}. Currently not sorted.`;
+      header.title = `Click to sort by ${columnDef.label}, or drag to reorder. Currently not sorted.`;
       
       // Single event handler with preventDefault to stop event bubbling
       const handleSort = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        
-        console.log(`Sort triggered for column: ${COLUMNS[index].key}`);
-        sortTable(COLUMNS[index].key);
+        // Only handle sorting if it's not a drag operation
+        if (event.type === 'click' && !header.dataset.isDragging) {
+          event.preventDefault();
+          event.stopPropagation();
+          event.stopImmediatePropagation();
+          
+          console.log(`Sort triggered for column: ${columnKey}`);
+          sortTable(columnKey);
+        }
       };
       
       // Mouse click handler
@@ -3038,8 +3399,8 @@ function setupTableSorting() {
           event.stopPropagation();
           event.stopImmediatePropagation();
           
-          console.log(`Keyboard sort triggered for column: ${COLUMNS[index].key}`);
-          sortTable(COLUMNS[index].key);
+          console.log(`Keyboard sort triggered for column: ${columnKey}`);
+          sortTable(columnKey);
         }
       }, { passive: false });
       
@@ -3056,14 +3417,14 @@ function setupTableSorting() {
         }
       });
     } else {
-      // Mark non-sortable columns
+      // Mark non-sortable columns but still draggable
       header.setAttribute('aria-sort', 'none');
       header.setAttribute('data-sortable', 'false');
-      header.title = `${COLUMNS[index]?.label || 'Column'} (not sortable)`;
+      header.title = `${columnDef?.label || 'Column'} - drag to reorder`;
     }
   });
   
-  console.log(`Table sorting setup completed for ${freshHeaderCells.length} columns`);
+  console.log(`Table sorting and drag-drop setup completed for ${freshHeaderCells.length} columns`);
 }
 
 // Sort table by column with debouncing to prevent double-clicking issues
@@ -3170,25 +3531,32 @@ function updateSortIndicators() {
   if (!table) return;
   
   const headerCells = table.querySelectorAll('thead th');
-  headerCells.forEach((header, index) => {
+  headerCells.forEach((header, displayIndex) => {
     // Remove existing sort indicators
     header.classList.remove('sort-asc', 'sort-desc');
+    
+    // Get column key from the header's data attribute or from column order
+    const columnKey = header.getAttribute('data-column-key') || 
+                     (displayIndex < state.column_order.length ? state.column_order[displayIndex] : null);
+    
+    // Find column definition for this key
+    const columnDef = COLUMNS.find(col => col.key === columnKey);
     
     // Reset ARIA attributes
     if (header.getAttribute('data-sortable') === 'true') {
       header.setAttribute('aria-sort', 'none');
-      header.title = `Click to sort by ${COLUMNS[index]?.label || 'column'}. Currently not sorted.`;
+      header.title = `Click to sort by ${columnDef?.label || 'column'}. Currently not sorted.`;
     }
     
     // Apply sort indicators and ARIA attributes for current sorted column
-    if (index < COLUMNS.length && COLUMNS[index].key === state.sorting.column) {
+    if (columnKey === state.sorting.column) {
       const direction = state.sorting.direction;
       header.classList.add(`sort-${direction}`);
       header.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
       
       const directionText = direction === 'asc' ? 'ascending' : 'descending';
       const nextDirection = direction === 'asc' ? 'descending' : 'ascending';
-      header.title = `Sorted by ${COLUMNS[index].label} (${directionText}). Click to sort ${nextDirection}.`;
+      header.title = `Sorted by ${columnDef?.label || columnKey} (${directionText}). Click to sort ${nextDirection}.`;
     }
   });
   
@@ -3558,6 +3926,51 @@ function matchesDistanceFilter(miles, distanceFilter) {
   }
 }
 
+// Ensure table header matches the current column order
+function ensureTableHeaderMatchesColumnOrder() {
+  try {
+    const table = document.getElementById('recruits-table');
+    if (!table) {
+      console.warn('Table not found for header verification');
+      return;
+    }
+    
+    const headerRow = table.querySelector('thead tr');
+    if (!headerRow) {
+      console.warn('Header row not found for verification');
+      return;
+    }
+    
+    const headerCells = headerRow.querySelectorAll('th');
+    
+    // Check if the number of headers matches the column order
+    if (headerCells.length !== state.column_order.length) {
+      console.log('Header count mismatch, rebuilding header');
+      rebuildTableHeader();
+      return;
+    }
+    
+    // Check if the order matches
+    let orderMatches = true;
+    headerCells.forEach((header, index) => {
+      const expectedColumnKey = state.column_order[index];
+      const actualColumnKey = header.getAttribute('data-column-key');
+      
+      if (actualColumnKey !== expectedColumnKey) {
+        orderMatches = false;
+      }
+    });
+    
+    if (!orderMatches) {
+      console.log('Header order mismatch, rebuilding header');
+      rebuildTableHeader();
+    }
+    
+  } catch (error) {
+    console.error('Error ensuring table header matches column order:', error);
+  }
+}
+
 // Update recruits list display with virtual scrolling for performance
 function updateRecruitsList() {
   console.log('=== updateRecruitsList START ===');
@@ -3567,6 +3980,9 @@ function updateRecruitsList() {
       return;
     }
     console.log('Found recruits_list element');
+    
+    // Ensure the table header is built correctly before updating data
+    ensureTableHeaderMatchesColumnOrder();
     
     // Ensure filtered_recruits exists
     if (!state.filtered_recruits) {
@@ -3761,109 +4177,114 @@ function createRecruitRow(recruit, teamInfo) {
     
     // Get position for bold attribute checking
     const position = recruit.pos ? recruit.pos.toLowerCase() : '';
-  // Column data mapping with attribute names for bold styling and enhanced features
-  const columnData = [
-    { key: 'name', content: recruit.name || '', attribute: null, isLink: true,
-      linkUrl: recruit.id ? `https://www.whatifsports.com/gd/RecruitProfile/Ratings.aspx?rid=${recruit.id}&section=Ratings` : null,
-      tooltip: recruit.name ? `${recruit.name} - ${recruit.pos || 'No Position'}` : null,
-      isWatched: recruit.watched === 1
-    },
-    { key: 'pos', content: recruit.pos || '', attribute: null, isLink: false,
-      tooltip: recruit.pos ? `Position: ${recruit.pos}` : null
-    },
-    { key: 'watched', content: recruit.watched === 1 ? '👁' : '', attribute: null, isLink: false,
-      tooltip: recruit.watched === 1 ? 'On Watchlist' : 'Not Watched',
-      classes: recruit.watched === 1 ? ['watched-indicator'] : []
-    },
-    { key: 'potential', content: recruit.potential || '', attribute: null, isLink: false,
-      tooltip: recruit.potential ? `Potential: ${recruit.potential}` : null
-    },
-    { key: 'priority', content: recruit.priority || '', attribute: null, isLink: false,
-      tooltip: recruit.priority ? `Priority: ${recruit.priority}` : null
-    },
-    { key: 'height', content: recruit.height || '', attribute: null, isLink: false,
-      tooltip: recruit.height ? `Height: ${recruit.height}` : null
-    },
-    { key: 'weight', content: recruit.weight || '', attribute: null, isLink: false,
-      tooltip: recruit.weight ? `Weight: ${recruit.weight} lbs` : null
-    },
-    { key: 'rating', content: recruit.rating || '', attribute: null, isLink: false,
-      tooltip: recruit.rating ? `Overall Rating: ${recruit.rating}` : null
-    },
-    { key: 'rank', content: recruit.rank || '', attribute: null, isLink: false,
-      tooltip: recruit.rank ? `National Rank: ${recruit.rank}` : null
-    },    { key: 'hometown', content: recruit.hometown || '', attribute: null, isLink: recruit.hometown && recruit.hometown !== 'N/A',
-      linkUrl: (recruit.hometown && recruit.hometown !== 'N/A') ? (() => {
-        const teamWorld = elements.team_world?.textContent?.trim();
-        const teamDivision = elements.team_division?.textContent?.trim();
-        if (teamWorld && teamDivision) {
-          const formattedHometown = formatHometownForUrl(recruit.hometown);
-          return `https://www.thenextguess.com/gdanalyst/${teamWorld}/${teamDivision}/mapLocation?town=${encodeURIComponent(formattedHometown)}`;
-        }
-        return null;
-      })() : null,
-      tooltip: recruit.hometown ? `Hometown: ${recruit.hometown}` : null
-    },
-    { key: 'division', content: recruit.division || '', attribute: null, isLink: false,
-      tooltip: recruit.division ? `High School Division: ${recruit.division}` : null
-    },
-    { key: 'miles', content: recruit.miles || '', attribute: null, isLink: false,
-      tooltip: recruit.miles ? `Distance: ${recruit.miles} miles from campus` : null
-    },
-    { key: 'signed', content: recruit.signed || '', attribute: null, isLink: false,
-      tooltip: recruit.signed ? `Signed Status: ${recruit.signed}` : null,
-      classes: recruit.signed === 'Y' || recruit.signed === 'Yes' ? ['signed-status'] : []
-    },
-    { key: 'gpa', content: recruit.gpa || '', attribute: null, isLink: false,
-      tooltip: recruit.gpa ? `GPA: ${recruit.gpa}` : null
-    },
-    { key: 'ath', content: recruit.ath || '', attribute: 'ath', tooltip: recruit.ath ? `Athleticism: ${recruit.ath}` : null },
-    { key: 'spd', content: recruit.spd || '', attribute: 'spd', tooltip: recruit.spd ? `Speed: ${recruit.spd}` : null },
-    { key: 'dur', content: recruit.dur || '', attribute: 'dur', tooltip: recruit.dur ? `Durability: ${recruit.dur}` : null },
-    { key: 'we', content: recruit.we || '', attribute: 'we', tooltip: recruit.we ? `Work Ethic: ${recruit.we}` : null },
-    { key: 'sta', content: recruit.sta || '', attribute: 'sta', tooltip: recruit.sta ? `Stamina: ${recruit.sta}` : null },
-    { key: 'str', content: recruit.str || '', attribute: 'str', tooltip: recruit.str ? `Strength: ${recruit.str}` : null },
-    { key: 'blk', content: recruit.blk || '', attribute: 'blk', tooltip: recruit.blk ? `Blocking: ${recruit.blk}` : null },
-    { key: 'tkl', content: recruit.tkl || '', attribute: 'tkl', tooltip: recruit.tkl ? `Tackling: ${recruit.tkl}` : null },
-    { key: 'han', content: recruit.han || '', attribute: 'han', tooltip: recruit.han ? `Hands: ${recruit.han}` : null },
-    { key: 'gi', content: recruit.gi || '', attribute: 'gi', tooltip: recruit.gi ? `Game Intelligence: ${recruit.gi}` : null },
-    { key: 'elu', content: recruit.elu || '', attribute: 'elu', tooltip: recruit.elu ? `Elusiveness: ${recruit.elu}` : null },
-    { key: 'tec', content: recruit.tec || '', attribute: 'tec', tooltip: recruit.tec ? `Technique: ${recruit.tec}` : null },
-    { key: 'r1', content: recruit.r1 || '', attribute: null, tooltip: recruit.r1 ? `Rating 1: ${recruit.r1}` : null },
-    { key: 'r2', content: recruit.r2 || '', attribute: null, tooltip: recruit.r2 ? `Rating 2: ${recruit.r2}` : null },
-    { key: 'r3', content: recruit.r3 || '', attribute: null, tooltip: recruit.r3 ? `Rating 3: ${recruit.r3}` : null },
-    { key: 'r4', content: recruit.r4 || '', attribute: null, tooltip: recruit.r4 ? `Rating 4: ${recruit.r4}` : null },
-    { key: 'r5', content: recruit.r5 || '', attribute: null, tooltip: recruit.r5 ? `Rating 5: ${recruit.r5}` : null },
-    { key: 'r6', content: recruit.r6 || '', attribute: null, tooltip: recruit.r6 ? `Rating 6: ${recruit.r6}` : null },
-    { 
-      key: 'considering',
-      content: recruit.considering || '', 
-      attribute: null, 
-      isLink: false,
-      tooltip: recruit.considering ? `Considering Schools: ${recruit.considering}` : null,
-      classes: (() => {
-        const baseClasses = recruit.considering ? ['considering-schools'] : [];
-        
-        // Add conditional formatting based on current school status
-        if (teamInfo && teamInfo.teamId && recruit.considering) {
-          const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, teamInfo.teamId);
-          switch (consideringStatus) {
-            case 'only':
-              baseClasses.push('considering-only-school');
-              break;
-            case 'included':
-              baseClasses.push('considering-among-schools');
-              break;
-            case 'not_included':
-              // No special formatting for not included
-              break;
+
+    // Create a map of all possible column data
+    const allColumnData = {
+      'name': { content: recruit.name || '', attribute: null, isLink: true,
+        linkUrl: recruit.id ? `https://www.whatifsports.com/gd/RecruitProfile/Ratings.aspx?rid=${recruit.id}&section=Ratings` : null,
+        tooltip: recruit.name ? `${recruit.name} - ${recruit.pos || 'No Position'}` : null,
+        isWatched: recruit.watched === 1
+      },
+      'pos': { content: recruit.pos || '', attribute: null, isLink: false,
+        tooltip: recruit.pos ? `Position: ${recruit.pos}` : null
+      },
+      'watched': { content: recruit.watched === 1 ? '👁' : '', attribute: null, isLink: false,
+        tooltip: recruit.watched === 1 ? 'On Watchlist' : 'Not Watched',
+        classes: recruit.watched === 1 ? ['watched-indicator'] : []
+      },
+      'potential': { content: recruit.potential || '', attribute: null, isLink: false,
+        tooltip: recruit.potential ? `Potential: ${recruit.potential}` : null
+      },
+      'priority': { content: recruit.priority || '', attribute: null, isLink: false,
+        tooltip: recruit.priority ? `Priority: ${recruit.priority}` : null
+      },
+      'height': { content: recruit.height || '', attribute: null, isLink: false,
+        tooltip: recruit.height ? `Height: ${recruit.height}` : null
+      },
+      'weight': { content: recruit.weight || '', attribute: null, isLink: false,
+        tooltip: recruit.weight ? `Weight: ${recruit.weight} lbs` : null
+      },
+      'rating': { content: recruit.rating || '', attribute: null, isLink: false,
+        tooltip: recruit.rating ? `Overall Rating: ${recruit.rating}` : null
+      },
+      'rank': { content: recruit.rank || '', attribute: null, isLink: false,
+        tooltip: recruit.rank ? `National Rank: ${recruit.rank}` : null
+      },
+      'hometown': { content: recruit.hometown || '', attribute: null, isLink: recruit.hometown && recruit.hometown !== 'N/A',
+        linkUrl: (recruit.hometown && recruit.hometown !== 'N/A') ? (() => {
+          const teamWorld = elements.team_world?.textContent?.trim();
+          const teamDivision = elements.team_division?.textContent?.trim();
+          if (teamWorld && teamDivision) {
+            const formattedHometown = formatHometownForUrl(recruit.hometown);
+            return `https://www.thenextguess.com/gdanalyst/${teamWorld}/${teamDivision}/mapLocation?town=${encodeURIComponent(formattedHometown)}`;
           }
-        }
-        
-        return baseClasses;
-      })()
-    }
-  ];  columnData.forEach(({ content, attribute, tooltip, classes = [], isLink, linkUrl, isWatched }, index) => {
+          return null;
+        })() : null,
+        tooltip: recruit.hometown ? `Hometown: ${recruit.hometown}` : null
+      },
+      'division': { content: recruit.division || '', attribute: null, isLink: false,
+        tooltip: recruit.division ? `High School Division: ${recruit.division}` : null
+      },
+      'miles': { content: recruit.miles || '', attribute: null, isLink: false,
+        tooltip: recruit.miles ? `Distance: ${recruit.miles} miles from campus` : null
+      },
+      'signed': { content: recruit.signed || '', attribute: null, isLink: false,
+        tooltip: recruit.signed ? `Signed Status: ${recruit.signed}` : null,
+        classes: recruit.signed === 'Y' || recruit.signed === 'Yes' ? ['signed-status'] : []
+      },
+      'gpa': { content: recruit.gpa || '', attribute: null, isLink: false,
+        tooltip: recruit.gpa ? `GPA: ${recruit.gpa}` : null
+      },
+      'ath': { content: recruit.ath || '', attribute: 'ath', tooltip: recruit.ath ? `Athleticism: ${recruit.ath}` : null },
+      'spd': { content: recruit.spd || '', attribute: 'spd', tooltip: recruit.spd ? `Speed: ${recruit.spd}` : null },
+      'dur': { content: recruit.dur || '', attribute: 'dur', tooltip: recruit.dur ? `Durability: ${recruit.dur}` : null },
+      'we': { content: recruit.we || '', attribute: 'we', tooltip: recruit.we ? `Work Ethic: ${recruit.we}` : null },
+      'sta': { content: recruit.sta || '', attribute: 'sta', tooltip: recruit.sta ? `Stamina: ${recruit.sta}` : null },
+      'str': { content: recruit.str || '', attribute: 'str', tooltip: recruit.str ? `Strength: ${recruit.str}` : null },
+      'blk': { content: recruit.blk || '', attribute: 'blk', tooltip: recruit.blk ? `Blocking: ${recruit.blk}` : null },
+      'tkl': { content: recruit.tkl || '', attribute: 'tkl', tooltip: recruit.tkl ? `Tackling: ${recruit.tkl}` : null },
+      'han': { content: recruit.han || '', attribute: 'han', tooltip: recruit.han ? `Hands: ${recruit.han}` : null },
+      'gi': { content: recruit.gi || '', attribute: 'gi', tooltip: recruit.gi ? `Game Intelligence: ${recruit.gi}` : null },
+      'elu': { content: recruit.elu || '', attribute: 'elu', tooltip: recruit.elu ? `Elusiveness: ${recruit.elu}` : null },
+      'tec': { content: recruit.tec || '', attribute: 'tec', tooltip: recruit.tec ? `Technique: ${recruit.tec}` : null },
+      'r1': { content: recruit.r1 || '', attribute: null, tooltip: recruit.r1 ? `Rating 1: ${recruit.r1}` : null },
+      'r2': { content: recruit.r2 || '', attribute: null, tooltip: recruit.r2 ? `Rating 2: ${recruit.r2}` : null },
+      'r3': { content: recruit.r3 || '', attribute: null, tooltip: recruit.r3 ? `Rating 3: ${recruit.r3}` : null },
+      'r4': { content: recruit.r4 || '', attribute: null, tooltip: recruit.r4 ? `Rating 4: ${recruit.r4}` : null },
+      'r5': { content: recruit.r5 || '', attribute: null, tooltip: recruit.r5 ? `Rating 5: ${recruit.r5}` : null },
+      'r6': { content: recruit.r6 || '', attribute: null, tooltip: recruit.r6 ? `Rating 6: ${recruit.r6}` : null },
+      'considering': {
+        content: recruit.considering || '', 
+        attribute: null, 
+        isLink: false,
+        tooltip: recruit.considering ? `Considering Schools: ${recruit.considering}` : null,
+        classes: (() => {
+          const baseClasses = recruit.considering ? ['considering-schools'] : [];
+          
+          // Add conditional formatting based on current school status
+          if (teamInfo && teamInfo.teamId && recruit.considering) {
+            const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, teamInfo.teamId);
+            switch (consideringStatus) {
+              case 'only':
+                baseClasses.push('considering-only-school');
+                break;
+              case 'included':
+                baseClasses.push('considering-among-schools');
+                break;
+              case 'not_included':
+                // No special formatting for not included
+                break;
+            }
+          }
+          
+          return baseClasses;
+        })()
+      }
+    };
+
+    // Use the column order to create cells in the correct sequence
+    state.column_order.forEach((columnKey, index) => {
+      const { content, attribute, tooltip, classes = [], isLink, linkUrl, isWatched } = allColumnData[columnKey] || { content: '', classes: [] };
     const cell = document.createElement('td');
     
     // Create link or plain text content
@@ -4389,6 +4810,275 @@ function showBoldAttributesModal() {
     window.addEventListener('click', handleOutsideClick);
     document.addEventListener('keydown', handleEscape);
   });
+}
+
+// Table header drag-and-drop event handlers
+let draggedHeader = null;
+let draggedColumnIndex = -1;
+
+function handleHeaderDragStart(event) {
+  draggedHeader = event.target;
+  draggedColumnIndex = parseInt(event.target.getAttribute('data-column-index'), 10);
+  
+  // Set visual feedback
+  event.target.classList.add('dragging');
+  event.target.dataset.isDragging = 'true';
+  
+  // Set drag data
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', draggedColumnIndex.toString());
+  
+  console.log(`Started dragging column ${draggedColumnIndex}: ${event.target.textContent}`);
+}
+
+function handleHeaderDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  return false;
+}
+
+function handleHeaderDragEnter(event) {
+  event.preventDefault();
+  const targetHeader = event.target.closest('th');
+  if (targetHeader && targetHeader !== draggedHeader) {
+    targetHeader.classList.add('drag-over');
+  }
+}
+
+function handleHeaderDragLeave(event) {
+  const targetHeader = event.target.closest('th');
+  if (targetHeader) {
+    targetHeader.classList.remove('drag-over');
+  }
+}
+
+function handleHeaderDrop(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  const targetHeader = event.target.closest('th');
+  if (!targetHeader || targetHeader === draggedHeader) {
+    return false;
+  }
+  
+  const targetColumnIndex = parseInt(targetHeader.getAttribute('data-column-index'), 10);
+  
+  console.log(`Dropping column ${draggedColumnIndex} onto column ${targetColumnIndex}`);
+  
+  // Perform the column reorder
+  reorderTableColumns(draggedColumnIndex, targetColumnIndex);
+  
+  // Clean up visual feedback
+  targetHeader.classList.remove('drag-over');
+  
+  return false;
+}
+
+function handleHeaderDragEnd(event) {
+  // Clean up drag state
+  event.target.classList.remove('dragging');
+  event.target.dataset.isDragging = 'false';
+  
+  // Clean up any remaining drag-over classes
+  const table = document.getElementById('recruits-table');
+  if (table) {
+    const headers = table.querySelectorAll('thead th');
+    headers.forEach(header => {
+      header.classList.remove('drag-over');
+    });
+  }
+  
+  draggedHeader = null;
+  draggedColumnIndex = -1;
+  
+  console.log('Drag operation completed');
+}
+
+function reorderTableColumns(fromIndex, toIndex) {
+  try {
+    if (fromIndex === toIndex) {
+      console.log('Same column, no reordering needed');
+      return;
+    }
+    
+    console.log(`Reordering columns: moving DOM index ${fromIndex} to ${toIndex}`);
+    
+    // Get the actual column keys being moved based on current column order
+    const fromColumnKey = state.column_order[fromIndex];
+    const toColumnKey = state.column_order[toIndex];
+    
+    console.log(`Moving column "${fromColumnKey}" to position of "${toColumnKey}"`);
+    
+    // Create new order by moving the column
+    const newOrder = [...state.column_order];
+    const movedColumn = newOrder.splice(fromIndex, 1)[0];
+    newOrder.splice(toIndex, 0, movedColumn);
+    
+    state.column_order = newOrder;
+    
+    console.log('New column order:', state.column_order);
+    
+    // Save to storage
+    chrome.storage.local.set({
+      [COLUMN_ORDER_STORAGE_KEY]: state.column_order
+    }).then(() => {
+      console.log('Column order saved to storage');
+    }).catch(error => {
+      console.error('Error saving column order:', error);
+    });
+    
+    // Rebuild the entire table with new order
+    rebuildTableWithNewOrder();
+    
+    setStatusMessage('Column order updated', 'success');
+    
+  } catch (error) {
+    console.error('Error reordering columns:', error);
+    handleError(error, 'column reordering');
+  }
+}
+
+// Rebuild the entire table with new column order
+function rebuildTableWithNewOrder() {
+  try {
+    console.log('Rebuilding table with new column order:', state.column_order);
+    
+    // Rebuild the table header first
+    rebuildTableHeader();
+    
+    // Then refresh the recruits list which will rebuild everything in the correct order
+    updateRecruitsList();
+    
+    // Reapply column visibility
+    applyColumnVisibility();
+    
+    // Setup table sorting with new order
+    setupTableSorting();
+    
+    console.log('Table rebuild completed successfully');
+    
+  } catch (error) {
+    console.error('Error rebuilding table:', error);
+    handleError(error, 'rebuilding table with new order');
+  }
+}
+
+// Rebuild table header in the correct column order
+function rebuildTableHeader() {
+  try {
+    const table = document.getElementById('recruits-table');
+    if (!table) {
+      console.warn('Table not found for header rebuild');
+      return;
+    }
+    
+    const thead = table.querySelector('thead');
+    if (!thead) {
+      console.warn('Table head not found for header rebuild');
+      return;
+    }
+    
+    // Create new header row based on column order
+    const newHeaderRow = document.createElement('tr');
+    
+    state.column_order.forEach((columnKey, index) => {
+      const column = COLUMNS.find(col => col.key === columnKey);
+      if (column) {
+        const th = document.createElement('th');
+        th.textContent = column.label;
+        th.setAttribute('data-column-index', index);
+        th.setAttribute('data-column-key', columnKey);
+        
+        // Make sortable if applicable
+        if (column.sortable) {
+          th.setAttribute('data-sortable', 'true');
+          th.classList.add('sortable');
+        } else {
+          th.setAttribute('data-sortable', 'false');
+        }
+        
+        newHeaderRow.appendChild(th);
+      }
+    });
+    
+    // Replace the existing header
+    thead.innerHTML = '';
+    thead.appendChild(newHeaderRow);
+    
+    console.log('Table header rebuilt with new column order');
+    
+  } catch (error) {
+    console.error('Error rebuilding table header:', error);
+  }
+}
+
+function applyColumnOrderToTable() {
+  try {
+    const table = document.getElementById('recruits-table');
+    if (!table) {
+      console.warn('Table not found for column reordering');
+      return;
+    }
+    
+    const headerRow = table.querySelector('thead tr');
+    const dataRows = table.querySelectorAll('tbody tr');
+    
+    if (!headerRow) {
+      console.warn('Header row not found');
+      return;
+    }
+    
+    // Reorder header cells
+    const headerCells = Array.from(headerRow.children);
+    const newHeaderRow = document.createElement('tr');
+    
+    state.column_order.forEach((columnKey, newIndex) => {
+      const originalIndex = COLUMNS.findIndex(col => col.key === columnKey);
+      if (originalIndex !== -1 && originalIndex < headerCells.length) {
+        const cell = headerCells[originalIndex].cloneNode(true);
+        // Update the data-column-index to reflect new position
+        cell.setAttribute('data-column-index', newIndex);
+        newHeaderRow.appendChild(cell);
+      }
+    });
+    
+    // Replace header row
+    headerRow.parentNode.replaceChild(newHeaderRow, headerRow);
+    
+    // Reorder data cells in each row
+    dataRows.forEach(row => {
+      const dataCells = Array.from(row.children);
+      const newRow = document.createElement('tr');
+      
+      // Copy row attributes
+      Array.from(row.attributes).forEach(attr => {
+        newRow.setAttribute(attr.name, attr.value);
+      });
+      newRow.className = row.className;
+      
+      // Add cells in new order
+      state.column_order.forEach(columnKey => {
+        const originalIndex = COLUMNS.findIndex(col => col.key === columnKey);
+        if (originalIndex !== -1 && originalIndex < dataCells.length) {
+          const cell = dataCells[originalIndex].cloneNode(true);
+          newRow.appendChild(cell);
+        }
+      });
+      
+      // Replace the row
+      row.parentNode.replaceChild(newRow, row);
+    });
+    
+    // Reapply column visibility and sorting after reordering
+    applyColumnVisibility();
+    setupTableSorting();
+    
+    console.log('Column order applied to table successfully');
+    
+  } catch (error) {
+    console.error('Error applying column order to table:', error);
+    handleError(error, 'applying column order to table');
+  }
 }
 
 // Initialize when DOM is ready

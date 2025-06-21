@@ -1,7 +1,6 @@
 // Background script for GD Recruit Assistant
 // This script handles data processing and communication between content scripts and popup
 
-import { recruitStorage } from './lib/storage.js';
 import { multiTeamStorage } from './lib/multi-team-storage.js';
 import { 
   calculateRoleRating, 
@@ -14,60 +13,77 @@ import {
 
 // Configuration constants
 const SEASON_RECRUITING_URL_KEY = 'seasonRecruitingUrl';
+
+// Team-specific configuration keys - used for routing to appropriate storage
 const TEAM_SPECIFIC_CONFIG_KEYS = ['currentSeason', 'lastUpdated', 'seasonRecruitingUrl', 'teamId', 'teamInfo', 'watchListCount'];
 
-// Helper function to save configuration with proper routing
+// Helper function to save configuration with multi-team storage
 async function saveConfigSmart(key, value) {
+  await multiTeamStorage.init();
+  
   if (TEAM_SPECIFIC_CONFIG_KEYS.includes(key)) {
     // Use multi-team storage for team-specific data
     try {
-      await multiTeamStorage.init();
-      if (multiTeamStorage.getCurrentTeamStorage()) {
-        await multiTeamStorage.saveConfig(key, value);
-        console.log(`Saved team-specific config via smart router: ${key}`);
-        return true;
-      } else {
-        // Fallback to legacy storage if no active team
-        await recruitStorage.saveConfig(key, value);
-        console.log(`Saved to legacy storage (no active team) via smart router: ${key}`);
-        return true;
+      // Ensure we have team context before saving team-specific data
+      if (!multiTeamStorage.getCurrentTeamStorage()) {
+        console.log('No active team context, attempting to establish from cookies before saving config');
+        const teamInfo = await getTeamInfoFromCookies();
+        if (teamInfo?.teamId) {
+          console.log(`Establishing team context ${teamInfo.teamId} for config save: ${key}`);
+          await multiTeamStorage.setActiveTeam(teamInfo.teamId, teamInfo);
+        } else {
+          throw new Error(`Cannot save team-specific config '${key}' - no team context available`);
+        }
       }
+      
+      await multiTeamStorage.saveConfig(key, value);
+      console.log(`✅ Saved team-specific config to team ${multiTeamStorage.getCurrentTeamId()}: ${key}`);
+      return true;
+      
     } catch (error) {
-      console.error('Error saving team-specific config via smart router:', error);
+      console.error(`❌ Error saving team-specific config '${key}':`, error);
       throw error;
     }
   } else {
-    // Use legacy storage for global configurations
-    await recruitStorage.saveConfig(key, value);
-    console.log(`Saved global config via smart router: ${key}`);
+    // Use multi-team storage for global configurations
+    await multiTeamStorage.saveGlobalConfig(key, value);
+    console.log(`✅ Saved global config: ${key}`);
     return true;
   }
 }
 
-// Helper function to get configuration with proper routing
+// Helper function to get configuration with multi-team storage
 async function getConfigSmart(key) {
+  await multiTeamStorage.init();
+  
   if (TEAM_SPECIFIC_CONFIG_KEYS.includes(key)) {
     // Use multi-team storage for team-specific data
     try {
-      await multiTeamStorage.init();
-      if (multiTeamStorage.getCurrentTeamStorage()) {
-        const value = await multiTeamStorage.getConfig(key);
-        console.log(`Retrieved team-specific config via smart router: ${key} = ${value}`);
-        return value;
-      } else {
-        // Fallback to legacy storage if no active team
-        const value = await recruitStorage.getConfig(key);
-        console.log(`Retrieved from legacy storage (no active team) via smart router: ${key} = ${value}`);
-        return value;
+      // Ensure we have team context before getting team-specific data
+      if (!multiTeamStorage.getCurrentTeamStorage()) {
+        console.log('No active team context, attempting to establish from cookies before getting config');
+        const teamInfo = await getTeamInfoFromCookies();
+        if (teamInfo?.teamId) {
+          console.log(`Establishing team context ${teamInfo.teamId} for config get: ${key}`);
+          await multiTeamStorage.setActiveTeam(teamInfo.teamId, teamInfo);
+        } else {
+          console.warn(`Cannot get team-specific config '${key}' - no team context available`);
+          return null;
+        }
       }
+      
+      const value = await multiTeamStorage.getConfig(key);
+      console.log(`✅ Retrieved team-specific config from team ${multiTeamStorage.getCurrentTeamId()}: ${key} = ${value}`);
+      return value;
+      
     } catch (error) {
-      console.error('Error getting team-specific config via smart router:', error);
-      throw error;
+      console.error(`❌ Error getting team-specific config '${key}':`, error);
+      return null;
     }
   } else {
-    // Use legacy storage for global configurations
-    const value = await recruitStorage.getConfig(key);
-    console.log(`Retrieved global config via smart router: ${key} = ${value}`);
+    // Use multi-team storage for global configurations
+    const value = await multiTeamStorage.getGlobalConfig(key);
+    console.log(`✅ Retrieved global config: ${key} = ${value}`);
     return value;
   }
 }
@@ -141,9 +157,15 @@ chrome.runtime.onInstalled.addListener(async () => {
     console.error('Error initializing default role ratings:', error);
     // Continue with other initialization even if this fails
   }
-  // Set initial stats
-  recruitStorage.saveConfig('lastUpdated', new Date().toISOString());
-  recruitStorage.saveConfig('watchlistCount', 0);
+  // Set initial stats using multi-team storage
+  try {
+    await multiTeamStorage.init();
+    await multiTeamStorage.saveGlobalConfig('lastUpdated', new Date().toISOString());
+    await multiTeamStorage.saveGlobalConfig('watchlistCount', 0);
+    console.log('Initial stats saved to multi-team storage');
+  } catch (error) {
+    console.error('Error saving initial stats:', error);
+  }
 
   // Extension uses popup window instead of side panel
   console.log('Extension initialized - popup ready');
@@ -188,9 +210,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case 'saveRecruits':
       console.log('Saving recruits to storage');
       // Save scraped recruits to database
-      saveRecruits(message.data).then(result => {
-        // Update last updated timestamp
-        recruitStorage.saveConfig('lastUpdated', new Date().toISOString());
+      saveRecruits(message.data).then(async result => {
+        // Update last updated timestamp using smart router
+        try {
+          await saveConfigSmart('lastUpdated', new Date().toISOString());
+        } catch (error) {
+          console.warn('Error updating lastUpdated timestamp:', error);
+        }
         sendResponse({ success: true, count: message.data.length });
       }).catch(error => {
         console.error('Error saving recruits:', error);
@@ -427,7 +453,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }).then(({ urlWithParams, teamInfo }) => {
         // Store the fields to update if this is a refresh
         if (isRefreshOnly && fieldsToUpdate.length > 0) {
-          recruitStorage.saveConfig('refreshFieldsToUpdate', JSON.stringify(fieldsToUpdate))
+          saveConfigSmart('refreshFieldsToUpdate', JSON.stringify(fieldsToUpdate))
             .catch(error => console.error('Error storing fields to update:', error));
         }          // Store the new tab ID when created for future reference
         // Create tab in background (inactive) to make scraping less intrusive
@@ -487,11 +513,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Update the recruits in the database
       updateRefreshedRecruits(message.recruits).then(async result => {
         // Clean up the temporary config
-        recruitStorage.saveConfig('refreshFieldsToUpdate', null)
+        saveConfigSmart('refreshFieldsToUpdate', null)
           .catch(error => console.error('Error clearing fields to update:', error));
         
         // Update the last updated timestamp
-        recruitStorage.saveConfig('lastUpdated', new Date().toISOString());
+        saveConfigSmart('lastUpdated', new Date().toISOString());
         
         // Recalculate and update the watchlist count to ensure it's accurate
         const stats = await getStats(); // This will recalculate watchlist count
@@ -550,8 +576,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Save the scraped recruits
   saveRecruits(message.recruits).then(async result => {
-    // Update last updated timestamp
-    await recruitStorage.saveConfig('lastUpdated', new Date().toISOString());
+    // Update last updated timestamp using smart router
+    try {
+      await saveConfigSmart('lastUpdated', new Date().toISOString());
+      console.log('✅ Updated lastUpdated timestamp via smart router');
+    } catch (error) {
+      console.warn('⚠️ Error updating lastUpdated timestamp:', error);
+    }
 
     // Update team counts after bulk operation (performance optimized)
     try {
@@ -716,35 +747,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log(`Saving config: ${message.key} = ${message.value}`);
       
       if (TEAM_SPECIFIC_CONFIG_KEYS.includes(message.key)) {
-        // Use multi-team storage for team-specific data
+        // Use smart router for team-specific data - NEVER fall back to legacy
         (async () => {
           try {
-            await multiTeamStorage.init();
-            if (multiTeamStorage.getCurrentTeamStorage()) {
-              await multiTeamStorage.saveConfig(message.key, message.value);
-              console.log(`Saved team-specific config: ${message.key}`);
-              sendResponse({ success: true });
-            } else {
-              // Fallback to legacy storage if no active team
-              await recruitStorage.saveConfig(message.key, message.value);
-              console.log(`Saved to legacy storage (no active team): ${message.key}`);
-              sendResponse({ success: true });
-            }
+            await saveConfigSmart(message.key, message.value);
+            sendResponse({ success: true });
           } catch (error) {
-            console.error('Error saving team-specific config:', error);
+            console.error('Error saving team-specific config via smart router:', error);
             sendResponse({ success: false, error: error.message });
           }
         })();
       } else {
-        // Use legacy storage for global configurations
-        recruitStorage.saveConfig(message.key, message.value)
-          .then(() => {
+        // Use multi-team storage for global configurations
+        (async () => {
+          try {
+            await multiTeamStorage.saveGlobalConfig(message.key, message.value);
             sendResponse({ success: true });
-          })
-          .catch(error => {
-            console.error('Error saving config:', error);
+          } catch (error) {
+            console.error('Error saving global config:', error);
             sendResponse({ success: false, error: error.message });
-          });
+          }
+        })();
       }
       return true; // Indicate asynchronous response    
     
@@ -753,35 +776,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log(`Getting config: ${message.key}`);
       
       if (TEAM_SPECIFIC_CONFIG_KEYS.includes(message.key)) {
-        // Use multi-team storage for team-specific data
+        // Use smart router for team-specific data - NEVER fall back to legacy
         (async () => {
           try {
-            await multiTeamStorage.init();
-            if (multiTeamStorage.getCurrentTeamStorage()) {
-              const value = await multiTeamStorage.getConfig(message.key);
-              console.log(`Retrieved team-specific config: ${message.key} = ${value}`);
-              sendResponse({ success: true, value });
-            } else {
-              // Fallback to legacy storage if no active team
-              const value = await recruitStorage.getConfig(message.key);
-              console.log(`Retrieved from legacy storage (no active team): ${message.key} = ${value}`);
-              sendResponse({ success: true, value });
-            }
+            const value = await getConfigSmart(message.key);
+            sendResponse({ success: true, value });
           } catch (error) {
-            console.error('Error getting team-specific config:', error);
+            console.error('Error getting team-specific config via smart router:', error);
             sendResponse({ success: false, error: error.message });
           }
         })();
       } else {
-        // Use legacy storage for global configurations
-        recruitStorage.getConfig(message.key)
-          .then(value => {
+        // Use multi-team storage for global configurations
+        (async () => {
+          try {
+            const value = await multiTeamStorage.getGlobalConfig(message.key);
             sendResponse({ success: true, value });
-          })
-          .catch(error => {
-            console.error('Error getting config:', error);
+          } catch (error) {
+            console.error('Error getting global config:', error);
             sendResponse({ success: false, error: error.message });
-          });
+          }
+        })();
       }
       return true; // Indicate asynchronous response
     case 'getRoleRatings':
@@ -921,10 +936,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log('Checking role ratings status');
       (async () => {
         try {
-          // Load settings from storage to check status
-          const customRatings = await recruitStorage.getConfig('customRoleRatings');
-          const defaultRatings = await recruitStorage.getConfig('defaultRoleRatings');
-          const currentSeason = await recruitStorage.getConfig('currentSeason');
+          // Load settings from global storage to check status
+          const customRatings = await multiTeamStorage.getGlobalConfig('customRoleRatings');
+          const defaultRatings = await multiTeamStorage.getGlobalConfig('defaultRoleRatings');
+          const currentSeason = await getConfigSmart('currentSeason');
           
           // Parse data for validation if available
           let customRatingsValid = false;
@@ -977,9 +992,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.log('Comparing role ratings');
       (async () => {
         try {
-          // Get custom and default ratings
-          const customRatings = await recruitStorage.getConfig('customRoleRatings');
-          const defaultRatings = await recruitStorage.getConfig('defaultRoleRatings');
+          // Get custom and default ratings from global storage
+          const customRatings = await multiTeamStorage.getGlobalConfig('customRoleRatings');
+          const defaultRatings = await multiTeamStorage.getGlobalConfig('defaultRoleRatings');
           
           if (!customRatings) {
             sendResponse({ success: false, error: 'Custom ratings not found' });
@@ -1116,7 +1131,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           
           // Get stored cookie value to compare
-          const storedCookieValue = await recruitStorage.getConfig('wispersistedCookie');
+          const storedCookieValue = await multiTeamStorage.getGlobalConfig('wispersistedCookie');
           
           // Check if cookie has changed
           if (cookie.value !== storedCookieValue) {
@@ -1124,7 +1139,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             console.log('Cookie changed from:', storedCookieValue, 'to:', cookie.value);
             
             // Update stored cookie
-            await recruitStorage.saveConfig('wispersistedCookie', cookie.value);
+            await multiTeamStorage.saveGlobalConfig('wispersistedCookie', cookie.value);
             
             // Extract team ID and get team info
             const teamId = extractTeamIdFromCookie(cookie.value);
@@ -1309,91 +1324,13 @@ async function saveRecruits(recruits) {
   };
 }
 
-// Legacy recruit saving function for fallback when no team context is available
-async function saveRecruitsLegacy(recruits) {
-  console.log(`Falling back to legacy storage for ${recruits.length} recruits`);
-
-  // Check if recruits is valid
-  if (!Array.isArray(recruits)) {
-    console.error('Invalid recruits data: not an array', recruits);
-    throw new Error('Invalid recruits data: not an array');
-  }
-
-  if (recruits.length === 0) {
-    console.warn('No recruits to save');
-    return { count: 0 };
-  }
-
-  // Clear existing recruits first
-  try {
-    console.log('Clearing existing recruits from legacy storage before saving new ones');
-    await recruitStorage.clearAllRecruits();
-  } catch (error) {
-    console.error('Error clearing existing recruits from legacy storage:', error);
-    // Continue anyway to attempt saving new recruits
-  }
-
-  // Save recruits one by one and collect results
-  const results = {
-    success: 0,
-    failed: 0,
-    total: recruits.length
-  };
-
-  for (let i = 0; i < recruits.length; i++) {
-    const recruit = recruits[i];
-
-    // Validate recruit object
-    if (!recruit || typeof recruit !== 'object') {
-      console.error(`Invalid recruit at index ${i}:`, recruit);
-      results.failed++;
-      continue;
-    }
-
-    // Make sure ID is a number
-    if (typeof recruit.id !== 'number' || isNaN(recruit.id) || recruit.id === 0) {
-      console.error(`Invalid recruit ID for index ${i}:`, recruit.id);
-      // Add a valid fallback ID to prevent storage issues
-      recruit.id = i + Date.now();
-      console.log(`Assigned fallback ID ${recruit.id} to recruit`, recruit.name);
-    }
-
-    try {
-      // Calculate role ratings for the recruit
-      const roleRatings = await calculateRoleRating(recruit);
-      
-      // Add role ratings to recruit
-      Object.assign(recruit, roleRatings);
-      
-      await recruitStorage.saveRecruit(recruit);
-      console.log(`Successfully saved recruit ${recruit.id} with role ratings to legacy storage`);
-      results.success++;
-    } catch (error) {
-      console.error(`Error saving recruit ${recruit.id} to legacy storage:`, error);
-      results.failed++;
-    }
-
-    // Log progress periodically
-    if (i % 50 === 0 || i === recruits.length - 1) {
-      console.log(`Legacy storage progress: ${i + 1}/${recruits.length} recruits processed`);
-    }
-  }
-
-  console.log('Legacy save operation completed with results:', results);
-
-  return {
-    count: results.success,
-    failed: results.failed,
-    total: results.total
-  };
-}
 
 // Update considering status for all recruits
 async function updateConsideringStatus() {
   console.log('Updating considering status for recruits');
 
   // Get all recruits
-  const recruits = await recruitStorage.getAllRecruits();
+  const recruits = await multiTeamStorage.getAllRecruits();
   let updatedCount = 0;
 
   // Find active tab to inject script
@@ -1414,7 +1351,7 @@ async function updateConsideringStatus() {
     // Simulating update
     const recruit = recruits[i];
     recruit.considering = 'Updated ' + new Date().toLocaleTimeString();
-    await recruitStorage.saveRecruit(recruit);
+    await multiTeamStorage.saveRecruit(recruit);
     updatedCount++;
   }
 
@@ -1431,16 +1368,16 @@ async function getStats() {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       // Check database connection health before proceeding
-      const isHealthy = await recruitStorage.isConnectionHealthy();
+      const isHealthy = await multiTeamStorage.isConnectionHealthy();
       if (!isHealthy && attempt === 0) {
         console.warn('Database connection unhealthy, attempting to reconnect...');
         // Connection will be re-established automatically by the storage layer
       }
 
-      const lastUpdated = await recruitStorage.getConfig('lastUpdated');
+      const lastUpdated = await multiTeamStorage.getGlobalConfig('lastUpdated');
       
       // Get current season, making sure to handle both null and undefined
-      let currentSeason = await recruitStorage.getConfig('currentSeason');
+      let currentSeason = await getConfigSmart('currentSeason');
       console.log('Retrieved current season from storage:', currentSeason);
       
       // Get team information including school name
@@ -1481,14 +1418,14 @@ async function getStats() {
       }
 
       // Get total recruit count and calculate watchlist count
-      const recruits = await recruitStorage.getAllRecruits();
+      const recruits = await multiTeamStorage.getAllRecruits();
       const recruitCount = recruits.length;
       
       // Calculate watchlist count directly from recruits data
       const watchlistCount = recruits.filter(recruit => recruit.watched === 1).length;
       
       // Update the stored watchlist count for consistency
-      await recruitStorage.saveConfig('watchlistCount', watchlistCount);
+      await multiTeamStorage.saveGlobalConfig('watchlistCount', watchlistCount);
 
       return {
         lastUpdated,
@@ -1583,14 +1520,14 @@ async function injectContentScript(scriptPath, tabId) {
 async function exportAllData() {
   console.log('Exporting all data');
 
-  const recruits = await recruitStorage.getAllRecruits();
+  const recruits = await multiTeamStorage.getAllRecruits();
 
   // Get all configuration
   const keys = ['lastUpdated', 'watchlistCount'];
   const configData = {};
 
   for (const key of keys) {
-    configData[key] = await recruitStorage.getConfig(key);
+    configData[key] = await multiTeamStorage.getGlobalConfig(key);
   }
 
   return {
@@ -1613,13 +1550,13 @@ async function importData(data) {
 
   // Import recruits
   for (const recruit of data.recruits) {
-    await recruitStorage.saveRecruit(recruit);
+    await multiTeamStorage.saveRecruit(recruit);
   }
 
   // Import config if available
   if (data.config) {
     for (const [key, value] of Object.entries(data.config)) {
-      await recruitStorage.saveConfig(key, value);
+      await multiTeamStorage.saveGlobalConfig(key, value);
     }
   }
 
@@ -1633,7 +1570,7 @@ async function clearAllData() {
   try {
     // Clear recruits data first with retries
     console.log('Starting recruit data clear operation...');
-    const clearResult = await recruitStorage.clearAllRecruits();
+    const clearResult = await multiTeamStorage.clearAllRecruits();
     console.log('Clear recruits result:', clearResult);
 
     if (!clearResult.success) {
@@ -1651,7 +1588,7 @@ async function clearAllData() {
     const configResults = [];
     for (const operation of configOperations) {
       try {
-        await recruitStorage.saveConfig(operation.key, operation.value);
+        await multiTeamStorage.saveGlobalConfig(operation.key, operation.value);
         console.log(`Successfully cleared ${operation.description}`);
         configResults.push({ success: true, operation: operation.description });
       } catch (configError) {
@@ -1722,7 +1659,7 @@ async function calculateRatingsForRecruits(recruits) {
     }
 
     // Save updated recruit
-    await recruitStorage.saveRecruit(recruit);
+    await multiTeamStorage.saveRecruit(recruit);
   }
 
   return { success: true };
@@ -1742,7 +1679,7 @@ async function updateRefreshedRecruits(updatedRecruits) {
   let updated = 0;
   
   // Get all existing recruits for reference
-  const existingRecruits = await recruitStorage.getAllRecruits();
+  const existingRecruits = await multiTeamStorage.getAllRecruits();
   const idMap = {};
   
   // Create a map of existing recruits by ID
@@ -1773,7 +1710,7 @@ async function updateRefreshedRecruits(updatedRecruits) {
       }
       
       // Save the updated recruit (the merge of existing and updated data was already done in the scraper)
-      await recruitStorage.saveRecruit(recruit);
+      await multiTeamStorage.saveRecruit(recruit);
       updated++;
       
       // Log progress for every 50 recruits
@@ -1853,8 +1790,8 @@ async function loadGdrData() {
 // Get team info from cookies
 async function getTeamInfoFromCookies() {
   try {
-    // First try to get from storage
-    const storedCookieValue = await recruitStorage.getConfig('wispersistedCookie');
+    // First try to get from storage (NEVER use smart routing here to avoid loops)
+    const storedCookieValue = await multiTeamStorage.getGlobalConfig('wispersistedCookie');
     
     if (storedCookieValue) {
       console.log('Using stored wispersisted cookie value');
@@ -1880,8 +1817,8 @@ async function getTeamInfoFromCookies() {
           conference: teamInfo.conference
         };
         
-        // Save team info to storage
-        await saveConfigSmart('teamInfo', JSON.stringify(teamData));
+        // IMPORTANT: Use direct storage save to avoid circular dependency
+        await multiTeamStorage.saveGlobalConfig('teamInfo', JSON.stringify(teamData));
         
         return teamData;
       }
@@ -1917,8 +1854,8 @@ async function getTeamInfoFromCookies() {
       conference: teamInfo.conference
     };
     
-    // Save team info to storage
-    await recruitStorage.saveConfig('teamInfo', JSON.stringify(teamData));
+    // IMPORTANT: Use direct storage save to avoid circular dependency
+    await multiTeamStorage.saveGlobalConfig('teamInfo', JSON.stringify(teamData));
     
     return teamData;
   } catch (error) {
@@ -2063,7 +2000,7 @@ async function checkDatabaseStatus() {
   try {
     // Use the existing storage module exclusively to avoid connection conflicts
     console.log('Checking connection health...');
-    const isHealthy = await recruitStorage.isConnectionHealthy();
+    const isHealthy = await multiTeamStorage.isConnectionHealthy();
     
     if (!isHealthy) {
       dbInfo.lastError = 'Database connection is not healthy';
@@ -2071,7 +2008,7 @@ async function checkDatabaseStatus() {
     }
 
     console.log('Getting recruit count...');
-    const recruits = await recruitStorage.getAllRecruits();
+    const recruits = await multiTeamStorage.getAllRecruits();
     dbInfo.recruitCount = recruits ? recruits.length : 0;
     dbInfo.lastError = null;
     
@@ -2165,7 +2102,7 @@ class TeamCookieMonitor {
     
     // Initialize with stored cookie value
     try {
-      const storedCookieValue = await recruitStorage.getConfig('wispersistedCookie');
+      const storedCookieValue = await multiTeamStorage.getGlobalConfig('wispersistedCookie');
       this.lastKnownCookieValue = storedCookieValue;
       
       // If we have a stored cookie, try to extract team ID and set active team
@@ -2238,9 +2175,9 @@ class TeamCookieMonitor {
         console.log('wispersisted cookie was removed or cleared');
         
         // Clear stored team information
-        await recruitStorage.saveConfig('wispersistedCookie', null);
-        await recruitStorage.saveConfig('teamInfo', null);
-        await recruitStorage.saveConfig('teamId', null);
+        await multiTeamStorage.saveGlobalConfig('wispersistedCookie', null);
+        await multiTeamStorage.saveGlobalConfig('teamInfo', null);
+        await multiTeamStorage.saveGlobalConfig('teamId', null);
         
         // Reset current team context
         this.currentTeamId = null;
@@ -2251,7 +2188,7 @@ class TeamCookieMonitor {
       }
       
       // Store the new cookie value
-      await recruitStorage.saveConfig('wispersistedCookie', newCookieValue);
+      await multiTeamStorage.saveGlobalConfig('wispersistedCookie', newCookieValue);
       console.log('Saved new cookie value to storage');
       
       // Extract team ID from the new cookie
@@ -2339,8 +2276,8 @@ class TeamCookieMonitor {
       };
       
       // Save team info to legacy storage for compatibility
-      await recruitStorage.saveConfig('teamInfo', JSON.stringify(teamData));
-      await recruitStorage.saveConfig('teamId', teamId);
+      await multiTeamStorage.saveGlobalConfig('teamInfo', JSON.stringify(teamData));
+      await multiTeamStorage.saveGlobalConfig('teamId', teamId);
       
       return teamData;
     } catch (error) {
@@ -2462,7 +2399,7 @@ function checkIfGDOfficePage(tab) {
         console.log('Found wispersisted cookie:', cookie);
         
         // Store the cookie in your database
-        recruitStorage.saveConfig('wispersistedCookie', cookie.value)
+        multiTeamStorage.saveGlobalConfig('wispersistedCookie', cookie.value)
           .then(() => console.log('Saved wispersisted cookie to storage'))
           .catch(err => console.error('Error saving cookie to storage:', err));
         
@@ -2514,7 +2451,7 @@ function extractTeamIdFromCookie(cookieValue) {
       console.log(`Extracted team ID from cookie: ${teamId}`);
       
       // Store team ID in config
-      recruitStorage.saveConfig('teamId', teamId)
+      multiTeamStorage.saveGlobalConfig('teamId', teamId)
         .then(() => console.log('Saved team ID to storage'))
         .catch(err => console.error('Error saving team ID to storage:', err));
       
@@ -2524,39 +2461,6 @@ function extractTeamIdFromCookie(cookieValue) {
   
   console.log('Team ID not found in cookie value');
   return null;
-}
-
-// IMPORTANT: Modify your existing getTeamInfoFromCookies function instead of replacing it
-// Add this at the beginning of your existing function:
-// Modify your existing getTeamInfoFromCookies function to use the stored cookie
-async function _modifyExistingGetTeamInfoFromCookies() {
-  /* 
-  IMPORTANT: DO NOT COPY THIS FUNCTION DIRECTLY.
-  Instead, modify your existing getTeamInfoFromCookies function
-  to include this cookie retrieval code at the beginning:
-  */
-  
-  try {
-    // First try to get from storage
-    const storedCookieValue = await recruitStorage.getConfig('wispersistedCookie');
-    
-    if (storedCookieValue) {
-      console.log('Using stored wispersisted cookie value');
-      const teamId = extractTeamIdFromCookie(storedCookieValue);
-      
-      if (teamId) {
-        // Continue with your existing code to look up team info
-        // ...
-      }
-    }
-    
-    // If no stored cookie value, continue with your existing code
-    // ...
-    
-  } catch (error) {
-    console.error('Error getting team info from cookies:', error);
-    return null;
-  }
 }
 
 // Add this new function to check for cookies directly
@@ -2570,7 +2474,7 @@ async function checkForWispersistedCookie() {
       console.log('Found wispersisted cookie:', cookie);
       
       // Store the cookie in your database
-      await recruitStorage.saveConfig('wispersistedCookie', cookie.value);
+      await multiTeamStorage.saveGlobalConfig('wispersistedCookie', cookie.value);
       console.log('Saved wispersisted cookie to storage');
       
       // Extract team ID from cookie if needed
@@ -2594,7 +2498,7 @@ async function checkForWispersistedCookie() {
 // Get stored team information from storage
 async function getStoredTeamInfo() {
   try {
-    const storedTeamInfo = await recruitStorage.getConfig('teamInfo');
+    const storedTeamInfo = await multiTeamStorage.getGlobalConfig('teamInfo');
     if (storedTeamInfo) {
       return JSON.parse(storedTeamInfo);
     }
@@ -2608,7 +2512,7 @@ async function getStoredTeamInfo() {
 // Function to log watchlist status for debugging purposes
 async function logWatchlistStatus(label = "Current") {
   try {
-    const recruits = await recruitStorage.getAllRecruits();
+    const recruits = await multiTeamStorage.getAllRecruits();
     const watchlistRecruits = recruits.filter(recruit => recruit.watched === 1);
     console.log(`${label} Watchlist Status: ${watchlistRecruits.length} recruits`);
     

@@ -568,6 +568,9 @@ async function initializePopup() {
 async function initializeMultiTeamSupport() {
   console.log('=== initializeMultiTeamSupport START ===');
   
+  const MAX_RETRY_TIME = 5000; // 5 seconds max
+  const startTime = Date.now();
+  
   try {
     console.log('Initializing multi-team storage support...');
     
@@ -579,9 +582,19 @@ async function initializeMultiTeamSupport() {
     
     console.log('multiTeamStorage module is available, calling init()...');
     
-    // Initialize the multi-team storage system
-    await multiTeamStorage.init();
+    // Add timeout wrapper for initialization
+    const initPromise = multiTeamStorage.init();
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Multi-team storage init timeout')), MAX_RETRY_TIME);
+    });
+    
+    await Promise.race([initPromise, timeoutPromise]);
     console.log('multiTeamStorage.init() completed successfully');
+    
+    // Check elapsed time
+    if (Date.now() - startTime > MAX_RETRY_TIME) {
+      throw new Error('Initialization took too long, aborting to prevent loops');
+    }
     
     // Check if multi-team mode is enabled
     console.log('Checking if multi-team mode is enabled...');
@@ -653,6 +666,8 @@ async function initializeMultiTeamSupport() {
     // Don't fail initialization if multi-team support fails
     state.multiTeamEnabled = false;
     state.allTeams = [];
+    state.currentTeamId = null;
+    state.currentTeamInfo = null;
     console.log('Set fallback state - multiTeamEnabled: false, allTeams: []');
   }
   

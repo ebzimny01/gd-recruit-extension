@@ -1523,9 +1523,11 @@ function updateDashboardDisplay(stats) {
     elements.team_world.textContent = stats.teamInfo?.world || 'Unknown';
   }
   
-  // Update recruit counts
+  // Update recruit counts - use stats data first, then fall back to state
   if (elements.recruit_count) {
-    elements.recruit_count.textContent = state.recruits.length || 0;
+    const recruitCount = stats.recruitCount || state.recruits.length || 0;
+    elements.recruit_count.textContent = recruitCount;
+    console.log('Updated dashboard recruit count:', recruitCount, 'from stats:', stats.recruitCount, 'from state:', state.recruits.length);
   }
   
   if (elements.watchlist_count) {
@@ -4272,13 +4274,32 @@ function applyFilters() {
     // Generate hash of current filters to check if we can use cached results
     const filtersHash = generateDataHash(state.filters);
     if (state.performance.cache.filtered_results_hash === filtersHash) {
-      console.log('Using cached filter results');
-      // Filters haven't changed, no need to re-filter
-      return;
+      console.log('🔧 DEBUGGING: Filter cache hit detected - bypassing for debugging');
+      console.log('  - Cached hash:', state.performance.cache.filtered_results_hash);
+      console.log('  - Current hash:', filtersHash);
+      console.log('  - Current filtered_recruits length:', state.filtered_recruits.length);
+      // TEMPORARILY DISABLE CACHING FOR DEBUGGING
+      // return;
     }
     
-    console.log('Current filters:', state.filters);
+    console.log('🔍 DEBUGGING: Current filters state:', JSON.stringify(state.filters, null, 2));
+    console.log('🔍 DEBUGGING: Sample recruits (first 3):');
+    state.recruits.slice(0, 3).forEach((recruit, index) => {
+      console.log(`  Recruit ${index + 1}:`, {
+        name: recruit.name,
+        pos: recruit.pos,
+        watched: recruit.watched,
+        potential: recruit.potential,
+        priority: recruit.priority,
+        signed: recruit.signed,
+        considering: recruit.considering
+      });
+    });
+    
     const startTime = performance.now();
+    
+    let filterPassCount = 0;
+    let filterFailReasons = {};
     
     state.filtered_recruits = state.recruits.filter(recruit => {
       // Ensure recruit object exists
@@ -4301,17 +4322,20 @@ function applyFilters() {
         }
         
         if (!positionMatch) {
+          filterFailReasons.position = (filterFailReasons.position || 0) + 1;
           return false;
         }
       }
       
       // Potential filter
       if (state.filters.potential && recruit.potential !== state.filters.potential) {
+        filterFailReasons.potential = (filterFailReasons.potential || 0) + 1;
         return false;
       }
       
       // Division filter
       if (state.filters.division && recruit.division !== state.filters.division) {
+        filterFailReasons.division = (filterFailReasons.division || 0) + 1;
         return false;
       }
       
@@ -4321,37 +4345,100 @@ function applyFilters() {
         const recruitPriority = parseInt(recruit.priority);
         
         if (recruitPriority !== filterPriority) {
-          console.log(`Filtering out recruit ${recruit.name}: priority ${recruitPriority} !== ${filterPriority}`);
+          filterFailReasons.priority = (filterFailReasons.priority || 0) + 1;
+          if (filterFailReasons.priority <= 5) {
+            console.log(`🔍 Priority filter mismatch: recruit ${recruit.name} has priority ${recruitPriority}, filter expects ${filterPriority}`);
+          }
           return false;
         }
       }
-        // Distance filter
+      
+      // Distance filter
       if (state.filters.distance && !matchesDistanceFilter(recruit.miles, state.filters.distance)) {
+        filterFailReasons.distance = (filterFailReasons.distance || 0) + 1;
         return false;
       }
       
       // Watched filter
       if (state.filters.watched === 'true' && recruit.watched !== 1) {
+        filterFailReasons.watched = (filterFailReasons.watched || 0) + 1;
         return false;
       }
       
       // Hide signed filter
       if (state.filters.hide_signed && (recruit.signed === 'Yes' || recruit.signed === 'Y' || recruit.signed === 1)) {
+        filterFailReasons.hide_signed = (filterFailReasons.hide_signed || 0) + 1;
         return false;
       }
 
       // Undecided filter
       if (state.filters.undecided && recruit.considering !== 'undecided') {
+        filterFailReasons.undecided = (filterFailReasons.undecided || 0) + 1;
         return false;
       }
 
       // Attribute filters
       if (!matchesAttributeFilters(recruit)) {
+        filterFailReasons.attribute_filters = (filterFailReasons.attribute_filters || 0) + 1;
         return false;
       }
       
+      filterPassCount++;
       return true;
     });
+    
+    console.log('🔍 DEBUGGING: Filter results:');
+    console.log(`  - Recruits passed filters: ${filterPassCount}`);
+    console.log(`  - Recruits failed filters by reason:`, filterFailReasons);
+    console.log(`  - Total filtered recruits: ${state.filtered_recruits.length}`);
+    
+    // 🚨 CRITICAL DEBUG: If we have 0 results but recruits exist, show the most likely culprit
+    if (state.filtered_recruits.length === 0 && state.recruits.length > 0) {
+      console.log('🚨 CRITICAL: All recruits filtered out! Most likely causes:');
+      const topFailureReasons = Object.entries(filterFailReasons)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3);
+      topFailureReasons.forEach(([reason, count]) => {
+        console.log(`  - ${reason}: ${count} recruits failed this filter`);
+      });
+      
+      // Check for filter state persistence issues
+      console.log('🔍 Checking for persistent filter state issues:');
+      console.log('  - Current filters:', state.filters);
+      
+      // Reset all filters to see if that helps identify the issue
+      console.log('🔧 ATTEMPTING FILTER RESET to isolate issue...');
+      const originalFilters = { ...state.filters };
+      
+      // Reset filters temporarily
+      state.filters = {
+        name: '',
+        position: '',
+        watched: '',
+        potential: '',
+        division: '',
+        priority: '',
+        distance: '',
+        hide_signed: false,
+        undecided: false,
+        attribute_filters: {
+          gpa: '',
+          ath: '', spd: '', dur: '', we: '', sta: '', str: '',
+          blk: '', tkl: '', han: '', gi: '', elu: '', tec: '',
+          r1: '', r2: '', r3: '', r4: '', r5: '', r6: ''
+        }
+      };
+      
+      // Test with reset filters
+      const testFilteredRecruits = state.recruits.filter(recruit => {
+        return recruit !== null && recruit !== undefined;
+      });
+      
+      console.log(`🔧 With reset filters: ${testFilteredRecruits.length} recruits would pass`);
+      
+      // Restore original filters
+      state.filters = originalFilters;
+    }
     
     // Cache the results
     state.performance.cache.filtered_results_hash = filtersHash;

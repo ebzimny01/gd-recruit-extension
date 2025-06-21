@@ -1047,6 +1047,54 @@ function handlePopupResize(dimensions) {
   }
 }
 
+// Clear all filters to reset the view
+function clearAllFilters() {
+  console.log('🧹 Clearing all filters for team switch');
+  
+  // Reset main filter state
+  state.filters = {
+    name: '',
+    position: '',
+    watched: '',
+    potential: '',
+    division: '',
+    priority: '',
+    distance: '',
+    hide_signed: false,
+    undecided: false,
+    attribute_filters: {
+      gpa: '',
+      ath: '', spd: '', dur: '', we: '', sta: '', str: '',
+      blk: '', tkl: '', han: '', gi: '', elu: '', tec: '',
+      r1: '', r2: '', r3: '', r4: '', r5: '', r6: ''
+    }
+  };
+  
+  // Reset UI elements to match cleared filters
+  if (elements.filter_position) elements.filter_position.value = '';
+  if (elements.filter_watched) elements.filter_watched.checked = false;
+  if (elements.filter_potential) elements.filter_potential.value = '';
+  if (elements.filter_division) elements.filter_division.value = '';
+  if (elements.filter_priority) elements.filter_priority.value = '';
+  if (elements.filter_distance) elements.filter_distance.value = '';
+  if (elements.filter_hide_signed) elements.filter_hide_signed.checked = false;
+  if (elements.filter_undecided) elements.filter_undecided.checked = false;
+  
+  // Clear attribute filter inputs
+  ATTRIBUTE_COLUMNS.forEach(column => {
+    const input = document.getElementById(`filter-${column.key}`);
+    if (input) {
+      input.value = '';
+      input.classList.remove('filter-active');
+    }
+  });
+  
+  // Update filter summary
+  updateFilterSummary();
+  
+  console.log('✅ All filters cleared successfully');
+}
+
 // Check for team changes when popup gains focus
 async function checkForTeamChanges() {
   console.log('=== checkForTeamChanges START ===');
@@ -1104,6 +1152,10 @@ async function checkForTeamChanges() {
       console.log('Updated state with new team info');
       console.log('New state.currentTeamId:', state.currentTeamId);
       console.log('New state.currentTeamInfo:', state.currentTeamInfo);
+      
+      // Clear all filters when switching teams
+      console.log('Clearing filters for team switch...');
+      clearAllFilters();
       
       // Clear current data to force refresh
       const oldRecruitsCount = state.recruits.length;
@@ -1686,6 +1738,10 @@ async function handleTeamSelectorChange(event) {
     // Update local state
     state.currentTeamInfo = selectedTeam;
     state.currentTeamId = selectedTeamId;
+    
+    // Clear all filters when manually switching teams via selector
+    console.log('Manual team switch - clearing filters...');
+    clearAllFilters();
     
     // Clear current data to force refresh
     state.recruits = [];

@@ -5,6 +5,7 @@ import { multiTeamStorage } from './lib/multi-team-storage.js';
 import { 
   calculateRoleRating, 
   recalculateRoleRatings, 
+  recalculateRoleRatingsForTeam,
   saveRoleRatings, 
   getCurrentRoleRatings, 
   resetRoleRatingsToDefaults,
@@ -826,27 +827,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     case 'saveRoleRatings':
-      // Save custom role ratings and recalculate
-      console.log('Saving custom role ratings');
+      // Save custom role ratings and recalculate across all teams
+      console.log('Saving custom role ratings with cross-team support');
       saveRoleRatings(message.ratings)
         .then(async () => {
-          // Determine which positions were changed
           const changedPositions = message.changedPositions || null;
           
-          // Recalculate role ratings for affected recruits
-          const recalcResult = await recalculateRoleRatings(changedPositions);
+          console.log('Role ratings saved, starting cross-team recalculation...');
+          
+          // Use cross-team recalculation for immediate consistency
+          const recalcResult = await recalculateRoleRatingsAllTeams(changedPositions);
           
           // Broadcast the update
           broadcastDataUpdate('roleRatingsSaved', {
             recalculated: recalcResult.updatedCount,
             totalRecruits: recalcResult.totalRecruits,
+            teamsProcessed: recalcResult.teamsProcessed,
             changedPositions: changedPositions
           });
           
           sendResponse({ 
             success: true, 
             recalculated: recalcResult.updatedCount,
-            totalRecruits: recalcResult.totalRecruits 
+            totalRecruits: recalcResult.totalRecruits,
+            teamsProcessed: recalcResult.teamsProcessed
           });
         })
         .catch(error => {
@@ -856,28 +860,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     case 'resetRoleRatings':
-      // Reset role ratings to defaults
-      console.log('Resetting role ratings to defaults');
+      // Reset role ratings to defaults with cross-team recalculation
+      console.log('Resetting role ratings to defaults with cross-team support');
       resetRoleRatingsToDefaults()
         .then(async () => {
-          // Recalculate all role ratings
-          const recalcResult = await recalculateRoleRatings();
+          console.log('Role ratings reset, starting cross-team recalculation...');
+          
+          // Recalculate all role ratings across all teams
+          const recalcResult = await recalculateRoleRatingsAllTeams();
           
           // Broadcast the update
           broadcastDataUpdate('roleRatingsReset', {
             recalculated: recalcResult.updatedCount,
-            totalRecruits: recalcResult.totalRecruits
+            totalRecruits: recalcResult.totalRecruits,
+            teamsProcessed: recalcResult.teamsProcessed
           });
           
           sendResponse({ 
             success: true, 
             recalculated: recalcResult.updatedCount,
-            totalRecruits: recalcResult.totalRecruits 
+            totalRecruits: recalcResult.totalRecruits,
+            teamsProcessed: recalcResult.teamsProcessed
           });
         })
         .catch(error => {
           console.error('Error resetting role ratings:', error);
-          sendResponse({ success: false, error: error.message });        });
+          sendResponse({ success: false, error: error.message });
+        });
       return true;
 
     case 'resetPositionRoleRatings':
@@ -909,21 +918,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
 
     case 'recalculateRoleRatings':
-      // Manually trigger recalculation
-      console.log('Manually recalculating role ratings');
-      recalculateRoleRatings(message.positions)
+      // Manually trigger recalculation with cross-team support
+      console.log('Manually recalculating role ratings with cross-team support');
+      recalculateRoleRatingsAllTeams(message.positions)
         .then(result => {
           // Broadcast the update
           broadcastDataUpdate('roleRatingsRecalculated', {
             recalculated: result.updatedCount,
             totalRecruits: result.totalRecruits,
+            teamsProcessed: result.teamsProcessed,
             positions: message.positions
           });
           
           sendResponse({ 
             success: true, 
             recalculated: result.updatedCount,
-            totalRecruits: result.totalRecruits 
+            totalRecruits: result.totalRecruits,
+            teamsProcessed: result.teamsProcessed
           });
         })
         .catch(error => {
@@ -2074,6 +2085,141 @@ function broadcastDataUpdate(updateType, data = {}) {
   chrome.runtime.sendMessage(message).catch(() => {
     // Silently handle cases where no listeners are active
   });
+}
+
+// Cross-team role ratings recalculation function
+async function recalculateRoleRatingsAllTeams(changedPositions = null) {
+  console.log('Starting cross-team role ratings recalculation');
+  console.log('Changed positions:', changedPositions);
+  
+  try {
+    // Initialize multi-team storage
+    await multiTeamStorage.init();
+    
+    // Get all registered teams
+    const allTeams = await multiTeamStorage.getAllTeams();
+    console.log(`Found ${allTeams.length} registered teams for cross-team recalculation`);
+    
+    if (allTeams.length <= 1) {
+      // Single team or no teams - use existing logic
+      console.log('Single team detected, using standard recalculation');
+      return await recalculateRoleRatings(changedPositions);
+    }
+    
+    // Store original team context to restore later
+    const originalTeamId = multiTeamStorage.getCurrentTeamId();
+    
+    // Multi-team processing
+    let totalUpdated = 0;
+    let totalRecruits = 0;
+    let totalProcessed = 0;
+    const teamResults = [];
+    
+    // Send initial progress message
+    chrome.runtime.sendMessage({
+      action: 'crossTeamProgress',
+      phase: 'starting',
+      totalTeams: allTeams.length,
+      changedPositions: changedPositions
+    }).catch(() => {
+      // Ignore if no listeners
+    });
+    
+    for (let i = 0; i < allTeams.length; i++) {
+      const team = allTeams[i];
+      
+      try {
+        // Send progress update for current team
+        chrome.runtime.sendMessage({
+          action: 'crossTeamProgress',
+          currentTeam: team.schoolName || team.teamId,
+          teamIndex: i + 1,
+          totalTeams: allTeams.length,
+          phase: 'processing'
+        }).catch(() => {
+          // Ignore if no listeners
+        });
+        
+        console.log(`Processing team ${i + 1}/${allTeams.length}: ${team.schoolName || team.teamId}`);
+        
+        // Recalculate for this specific team
+        const teamResult = await recalculateRoleRatingsForTeam(team.teamId, team, changedPositions);
+        
+        totalUpdated += teamResult.updatedCount;
+        totalRecruits += teamResult.totalRecruits;
+        totalProcessed += teamResult.recruitsProcessed || teamResult.updatedCount;
+        
+        teamResults.push({
+          teamId: team.teamId,
+          schoolName: team.schoolName,
+          updated: teamResult.updatedCount,
+          total: teamResult.totalRecruits,
+          processed: teamResult.recruitsProcessed || teamResult.updatedCount
+        });
+        
+        console.log(`Team ${team.schoolName}: Updated ${teamResult.updatedCount} of ${teamResult.recruitsProcessed || teamResult.totalRecruits} recruits`);
+        
+      } catch (error) {
+        console.error(`Error processing team ${team.schoolName || team.teamId}:`, error);
+        
+        teamResults.push({
+          teamId: team.teamId,
+          schoolName: team.schoolName,
+          error: error.message,
+          updated: 0,
+          total: 0,
+          processed: 0
+        });
+      }
+    }
+    
+    // Restore original team context
+    if (originalTeamId) {
+      try {
+        await multiTeamStorage.setActiveTeam(originalTeamId);
+        console.log(`Restored original team context: ${originalTeamId}`);
+      } catch (error) {
+        console.error('Error restoring original team context:', error);
+      }
+    }
+    
+    // Send completion message
+    chrome.runtime.sendMessage({
+      action: 'crossTeamProgress',
+      phase: 'complete',
+      totalUpdated,
+      totalRecruits,
+      totalProcessed,
+      teamsProcessed: allTeams.length,
+      teamResults
+    }).catch(() => {
+      // Ignore if no listeners
+    });
+    
+    console.log(`Cross-team recalculation complete: Updated ${totalUpdated} recruits across ${allTeams.length} teams`);
+    
+    return { 
+      updatedCount: totalUpdated, 
+      totalRecruits: totalRecruits,
+      totalProcessed: totalProcessed,
+      teamsProcessed: allTeams.length,
+      teamResults: teamResults
+    };
+    
+  } catch (error) {
+    console.error('Error in cross-team role ratings recalculation:', error);
+    
+    // Send error message
+    chrome.runtime.sendMessage({
+      action: 'crossTeamProgress',
+      phase: 'error',
+      error: error.message
+    }).catch(() => {
+      // Ignore if no listeners
+    });
+    
+    throw error;
+  }
 }
 
 // Add these lines after your existing imports at the top

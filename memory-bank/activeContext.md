@@ -37,7 +37,7 @@
 - Added automatic teamInfo creation from registry data
 
 ### Multi-Team Support Implementation Complete ✅ (2025-06-20 - 2025-06-21)
-**Major Achievement**: Full multi-team architecture implementation with automatic team switching
+**Major Achievement**: Full multi-team architecture implementation with automatic team switching and cross-team role ratings recalculation
 **Components Delivered**:
 - Multi-team storage system with master database coordination
 - Cookie-based team detection with real-time monitoring
@@ -45,12 +45,15 @@
 - Data isolation between teams with global configuration sharing
 - Background.js complete migration to multiTeamStorage system
 - Automatic team context switching when navigating between teams
+- **Cross-team role ratings recalculation** ensuring consistency across all teams
 
 **Architecture Details**:
 - **Master Database** (`gdRecruitDB_master`): Team registry, global configurations
 - **Team Databases** (`gdRecruitDB_[teamId]`): Team-specific recruit data, season info, counts
 - **Cookie Monitoring**: TeamCookieMonitor class for real-time team change detection
 - **Storage Abstraction**: Clean API layer for consistent multi-team operations
+- **Cross-Team Calculator**: `recalculateRoleRatingsForTeam()` function for team-specific recalculation
+- **Cross-Team Orchestration**: `recalculateRoleRatingsAllTeams()` function for coordinating cross-team operations
 
 ### Popup Interface Implementation Complete ✅ (2025-06-19)
 **Major Achievement**: Full popup interface implementation completed with all features working
@@ -225,6 +228,17 @@ The `sidebar/` folder contains older implementation code that serves as referenc
     - ✅ Data architecture fixes with proper MASTER/Team DB separation
     - ✅ TeamInfo null issue resolution with automatic population
     - ✅ Comprehensive debugging system with extensive logging
+    - ✅ **Cross-team role ratings recalculation** ensuring consistency across all teams when role ratings are modified
+
+4. ✅ **Cross-Team Role Ratings Recalculation** (COMPLETED 2025-06-21):
+    - ✅ Enhanced multi-team storage with `getAllTeams()` method for cross-team operations
+    - ✅ Added `recalculateRoleRatingsForTeam()` function for team-specific recalculation with proper context switching
+    - ✅ Created `recalculateRoleRatingsAllTeams()` function for orchestrating cross-team operations
+    - ✅ Updated all role rating handlers (`saveRoleRatings`, `resetRoleRatings`, `recalculateRoleRatings`) to use cross-team recalculation
+    - ✅ Enhanced progress reporting with real-time updates during cross-team operations
+    - ✅ Proper context management ensuring original team context is restored after operations
+    - ✅ Broadcasting system for UI updates with cross-team operation results
+    - ✅ Intelligent fallback to single-team mode when only one team is registered
 
 2. ✅ **Recruit Table Implementation** (COMPLETED):
     - ✅ Enhanced table sorting functionality with proper ascending/descending order

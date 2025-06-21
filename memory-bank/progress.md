@@ -332,4 +332,23 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
 - **Added detailed logging** for debugging team switch filter operations
 - **Status**: Filter clearing fully implemented and integrated with both automatic and manual team switching
 
+### 2025-06-21 - Cross-Team Role Ratings Recalculation Complete
+- **Implemented cross-team role ratings recalculation** for automatic consistency across all teams when role ratings are modified
+- **Enhanced multi-team storage** with `getAllTeams()` method to retrieve all registered teams for processing
+- **Added recalculateRoleRatingsForTeam()** function in calculator.js for team-specific recalculation with proper context switching
+- **Created recalculateRoleRatingsAllTeams()** function in background.js for orchestrating cross-team operations
+- **Updated all role rating handlers** to use cross-team recalculation:
+  - `saveRoleRatings`: Now recalculates across all teams when custom ratings are saved
+  - `resetRoleRatings`: Now recalculates across all teams when ratings are reset to defaults
+  - `recalculateRoleRatings`: Manual recalculation now processes all teams
+- **Enhanced progress reporting** with real-time updates during cross-team operations including:
+  - Initial progress message with total teams count
+  - Per-team progress updates showing current team being processed
+  - Completion summary with total recruits updated across all teams
+  - Error handling with detailed team-specific error reporting
+- **Proper context management** ensuring original team context is restored after cross-team operations
+- **Broadcasting system** for UI updates with cross-team operation results including teams processed count
+- **Intelligent fallback** to single-team mode when only one team is registered
+- **Status**: Cross-team role ratings recalculation fully implemented, ensuring role rating consistency across all managed teams
+
 The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams.

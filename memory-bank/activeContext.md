@@ -2,28 +2,55 @@
 
 ## Current Work Focus
 
-### Popup Interface Implementation (Completed) ✅
+### Multi-Team Storage Architecture Implementation (Completed) ✅
 **Status**: Complete  
-**Objective**: Full popup interface implementation as replacement for sidebar approach
+**Objective**: Full multi-team support with proper data architecture and automatic team switching
 
 **Completed**:
-- ✅ Created memory-bank directory structure
-- ✅ Project Brief (projectbrief.md) - Core project definition and requirements
-- ✅ Product Context (productContext.md) - User problems, solutions, and experience goals
-- ✅ System Patterns (systemPatterns.md) - Architecture patterns and design decisions
-- ✅ Tech Context (techContext.md) - Technology stack and implementation details
+- ✅ Multi-team storage architecture with master database and team-specific databases
+- ✅ Cookie-based team detection using wispersisted cookie monitoring
+- ✅ Background.js migration to multiTeamStorage system
+- ✅ Team registry system with metadata preservation
+- ✅ Data architecture fixes ensuring proper separation of concerns
+- ✅ TeamInfo null issue resolution with automatic population from registry data
+- ✅ Comprehensive debugging system with extensive logging
 
-**In Progress**:
-- 🔄 Active Context (activeContext.md) - Current work status and decisions
-- ⏳ Progress tracking (progress.md) - What works and what needs to be built
-
-**Next Steps**:
-1. Complete progress.md to document current project status
-2. Explore key source files to understand current implementation state
-3. Identify any gaps or areas needing attention
-4. Document recent changes and evolution
+**Recent Achievement**: Successfully resolved critical data architecture issues where division and world information was being lost during team switching. The system now properly preserves and displays team metadata across all team operations.
 
 ## Recent Key Discoveries
+
+### MultiTeamStorage Data Architecture Fixes Complete ✅ (2025-06-21)
+**Major Achievement**: Fixed critical data separation and teamInfo null issues
+**Problem Resolved**: Division and world information was showing as "Unknown" or null after team switching
+**Root Cause**: Data was being mixed between MASTER DB and team databases, and teamInfo was not being properly populated
+
+**Solution Implemented**:
+- **Clean Data Architecture**: MASTER DB now only contains team registry and global configs, team DBs contain all operational data
+- **TeamInfo Population**: Automatically creates teamInfo object from registry data when none exists in team metadata
+- **Data Preservation**: Proper merging logic preserves existing team data during updates
+- **Comprehensive Debugging**: Added extensive 🔍 DEBUG logging throughout data flow
+
+**Files Modified**:
+- `lib/multi-team-storage.js` - Complete data architecture redesign with debugging
+- Enhanced `getTeamStats()` method to properly populate teamInfo
+- Fixed `_ensureTeamRegistered()` to preserve existing team data
+- Added automatic teamInfo creation from registry data
+
+### Multi-Team Support Implementation Complete ✅ (2025-06-20 - 2025-06-21)
+**Major Achievement**: Full multi-team architecture implementation with automatic team switching
+**Components Delivered**:
+- Multi-team storage system with master database coordination
+- Cookie-based team detection with real-time monitoring
+- Team registry system tracking all teams with metadata
+- Data isolation between teams with global configuration sharing
+- Background.js complete migration to multiTeamStorage system
+- Automatic team context switching when navigating between teams
+
+**Architecture Details**:
+- **Master Database** (`gdRecruitDB_master`): Team registry, global configurations
+- **Team Databases** (`gdRecruitDB_[teamId]`): Team-specific recruit data, season info, counts
+- **Cookie Monitoring**: TeamCookieMonitor class for real-time team change detection
+- **Storage Abstraction**: Clean API layer for consistent multi-team operations
 
 ### Popup Interface Implementation Complete ✅ (2025-06-19)
 **Major Achievement**: Full popup interface implementation completed with all features working
@@ -35,35 +62,22 @@
 - Performance optimizations with virtual scrolling and debounced operations
 - Full accessibility compliance (WCAG 2.1 AA) with keyboard navigation and screen reader support
 
-**Final Bug Fixes Completed**:
-- ✅ Fixed attribute filter count display regression
-- ✅ Fixed "Hide Signed" filter to handle all signed status formats ('Yes', 'Y', 1)
-- ✅ Corrected attribute filter toggle element selectors
-
-**Files Modified**:
-- `popup/popup.html` - Complete three-tab interface structure
-- `popup/popup.js` - Full application logic with all features implemented
-- `popup/popup.css` - Comprehensive styling with responsive design
-- All modal and filtering functionality fully operational
-
-### Table Sorting Implementation Completed ✅
-**Issue Resolved**: Fixed critical table sorting bug where ascending order would immediately flip to descending
-**Root Cause**: Duplicate event listeners were being attached to header elements without cleanup
-**Solution Implemented**:
-- Event listener cleanup using node cloning technique
-- Debouncing protection with 300ms timer
-- Event bubbling prevention with stopPropagation()
-- Enhanced visual design with 3rem header height
-- Sort indicators positioned at bottom of headers using ::before pseudo-elements
-- Comprehensive accessibility support with keyboard navigation and ARIA attributes
+### Table Column Alignment Implementation ✅ (2025-06-20)
+**Enhancement**: Professional table appearance with logical column-specific text alignment
+- **Left-aligned**: Text-based columns (name, hometown, gpa, considering schools)
+- **Center-aligned**: Categorical data and attributes (position, watched, potential, all attribute columns)
+- **Right-aligned**: Numeric rankings and measurements (priority, rank, miles)
 
 ### Project Architecture Understanding
 From examining the manifest.json and README.md, this project has evolved significantly:
 
-**Migration Context**: The project has migrated from a sidebar-based interface to a full-screen tab interface, representing a major architectural change in v0.2.0.
+**Migration Context**: The project has evolved through major architectural changes:
+- **v0.1.0 → v0.2.0**: Sidebar to full-screen tab interface migration
+- **v0.2.0 → v0.3.0**: Single-team to multi-team architecture migration
 
 **Core Features Implemented**:
 - Advanced data scraping from Gridiron Dynasty recruiting pages
+- Multi-team support with automatic team switching
 - Comprehensive filtering and sorting capabilities
 - Customizable role ratings and bold attributes
 - Import/export functionality with full data preservation
@@ -72,33 +86,43 @@ From examining the manifest.json and README.md, this project has evolved signifi
 
 ### Current Implementation State
 **Extension Structure**: Well-organized Manifest V3 extension with:
-- Service worker background processing
+- Service worker background processing with multi-team support
 - Content scripts for page detection and scraping
 - Full-screen popup interface with tabbed navigation
-- Modular library architecture
-- Comprehensive error handling
+- Multi-team storage architecture with data isolation
+- Comprehensive error handling and debugging
 
 **Key Files Currently Open in IDE**:
+- `lib/multi-team-storage.js` - Multi-team storage architecture and data management
+- `background.js` - Service worker with team detection and switching
 - `popup/popup.js` - Main application logic
-- `content/scraper.js` - Data extraction logic
-- `lib/storage.js` - Data persistence layer
 - `popup/error-handler.js` - Error management
 - `popup/communications.js` - Inter-component messaging
 
 ## Active Decisions and Considerations
 
 ### Architecture Decisions Made
-1. **Interface Migration**: Moved from sidebar to full-screen tab for better UX
-2. **Manifest V3**: Adopted modern Chrome extension standards
-3. **Local-Only Storage**: Privacy-first approach with no external data transmission
-4. **Modular Design**: Clear separation of concerns across components
-5. **Accessibility First**: WCAG 2.1 AA compliance from the ground up
+1. **Multi-Team Architecture**: Complete separation of team data with master database coordination
+2. **Cookie-Based Team Detection**: Automatic team switching using wispersisted cookie monitoring
+3. **Data Isolation**: Team-specific recruit data with global configuration sharing
+4. **Interface Migration**: Moved from sidebar to full-screen tab for better UX
+5. **Manifest V3**: Adopted modern Chrome extension standards
+6. **Local-Only Storage**: Privacy-first approach with no external data transmission
+7. **Accessibility First**: WCAG 2.1 AA compliance from the ground up
+
+### Data Architecture Decisions
+1. **Master Database**: Contains only team registry and global configurations
+2. **Team Databases**: Contain all operational data (recruits, counts, timestamps)
+3. **TeamInfo Population**: Automatic creation from registry data when needed
+4. **Data Preservation**: Careful merging logic to preserve existing team information
+5. **Debugging Integration**: Comprehensive logging for troubleshooting data flow
 
 ### Performance Considerations
 - **Virtual Scrolling**: Implemented for handling large datasets efficiently
 - **Debounced Operations**: Reduce unnecessary filter/sort operations
 - **Result Caching**: Cache expensive filter results
 - **Batch DOM Operations**: Optimize UI rendering performance
+- **Team Switching**: <1 second context switching between teams
 
 ### Security Considerations
 - **Minimal Permissions**: Only essential browser permissions requested
@@ -114,6 +138,7 @@ From examining the manifest.json and README.md, this project has evolved signifi
 3. **Comprehensive Comments**: JSDoc-style documentation throughout
 4. **Error Handling**: Robust try-catch patterns with user-friendly messages
 5. **DRY Principles**: Reusable modules and shared utilities
+6. **Debug Logging**: Extensive 🔍 DEBUG logging for troubleshooting
 
 ### Browser Extension Best Practices
 - **Manifest V3 Compliance**: Modern extension architecture
@@ -121,18 +146,35 @@ From examining the manifest.json and README.md, this project has evolved signifi
 - **Performance Optimization**: Efficient data handling and UI rendering
 - **User Privacy**: Local-only data storage and processing
 - **Accessibility**: Full keyboard navigation and screen reader support
+- **Multi-Team Support**: Seamless team context switching
 
 ### Development Workflow
-- **Modular Architecture**: Clear component separation
+- **Modular Architecture**: Clear component separation with multi-team considerations
 - **Progressive Enhancement**: Graceful degradation for features
 - **Error Resilience**: Comprehensive error handling and recovery
-- **Testing Focus**: Manual testing across browsers and scenarios
+- **Data Integrity**: Careful preservation of team information during operations
+- **Testing Focus**: Manual testing across browsers and multi-team scenarios
 - **Documentation First**: Thorough documentation for maintainability
 
 ## Project Evolution Insights
 
+### Version 0.3.0 Major Changes
+The current version represents the latest significant evolution with multi-team support:
+
+**Multi-Team Architecture**:
+- Complete storage system redesign for multiple teams
+- Cookie-based automatic team detection and switching
+- Data isolation between teams with global configuration sharing
+- Team registry system with metadata preservation
+
+**Data Architecture Improvements**:
+- Clean separation between master database and team databases
+- Proper teamInfo population from registry data
+- Enhanced debugging with comprehensive logging
+- Data preservation during team switching operations
+
 ### Version 0.2.0 Major Changes
-Based on the README changelog, the current version represents a significant evolution:
+Based on the README changelog, version 0.2.0 represented a significant evolution:
 
 **Interface Transformation**:
 - Migration from sidebar to full-screen tab interface
@@ -153,7 +195,8 @@ The `sidebar/` folder contains older implementation code that serves as referenc
 
 ### Extension Functionality
 - **Data Scraping**: Extracts recruit information from GD recruiting pages
-- **Data Management**: Local storage with import/export capabilities
+- **Multi-Team Management**: Automatic team detection and context switching
+- **Data Management**: Local storage with import/export capabilities and team isolation
 - **Advanced Filtering**: Multi-criteria filtering with real-time updates
 - **Customization**: User-configurable role ratings and attribute highlighting
 - **Accessibility**: Full keyboard navigation and screen reader support
@@ -161,6 +204,7 @@ The `sidebar/` folder contains older implementation code that serves as referenc
 ### Performance Characteristics
 - **Target Load Time**: <2 seconds for 1000+ recruits
 - **Filter Response**: <500ms for real-time filtering
+- **Team Switching**: <1 second context switching between teams
 - **Memory Efficiency**: Virtual scrolling for large datasets
 - **UI Responsiveness**: Debounced operations prevent blocking
 
@@ -172,47 +216,53 @@ The `sidebar/` folder contains older implementation code that serves as referenc
 
 ## Next Development Priorities
 
+### Completed Major Features ✅
+1. ✅ **Multi-Team Support Implementation** (COMPLETED):
+    - ✅ Multi-team storage architecture with master database and team-specific databases
+    - ✅ Cookie-based team detection using wispersisted cookie monitoring
+    - ✅ Background.js migration to multiTeamStorage system
+    - ✅ Team registry system with metadata preservation
+    - ✅ Data architecture fixes with proper MASTER/Team DB separation
+    - ✅ TeamInfo null issue resolution with automatic population
+    - ✅ Comprehensive debugging system with extensive logging
+
+2. ✅ **Recruit Table Implementation** (COMPLETED):
+    - ✅ Enhanced table sorting functionality with proper ascending/descending order
+    - ✅ Drag-and-drop column reordering with visual feedback and storage persistence
+    - ✅ Column visibility management with user preferences
+    - ✅ Advanced filtering system with 22 attribute filters
+    - ✅ Professional column alignment (left/center/right based on data type)
+    - ✅ Comprehensive accessibility support with keyboard navigation
+
+3. ✅ **Popup Interface Implementation** (COMPLETED):
+    - ✅ Three-tab architecture with complete functionality
+    - ✅ Advanced filtering and sorting capabilities
+    - ✅ Modal system for all configurations
+    - ✅ Performance optimizations and accessibility compliance
+
 ### Immediate Focus Areas
-1. ✅ **Recruit Table Columns** (COMPLETED):
-    a. ✅ Enhanced table sorting functionality with proper ascending/descending order - Fixed double-click bug causing immediate direction reversal
-    b. ✅ Improved visual design with increased header height, top-aligned text, and bottom-positioned sort indicators (▲▼)
-    c. ✅ Added comprehensive accessibility support with keyboard navigation and ARIA attributes
-    d. ✅ Implemented debouncing to prevent rapid successive sort calls and event listener cleanup
-    e. ✅ Added special height parsing for formats like "6'2" and proper data type handling
-    f. ✅ Add ability for the user to customize the display order of the visible columns in the table and store the customizations locally (COMPLETED)
-       - ✅ Implemented drag-and-drop column reordering with visual feedback
-       - ✅ Added reset column order functionality with confirmation dialog
-       - ✅ Column order preferences saved to browser storage
-       - ✅ Complete table rebuild after reordering maintains data integrity
-2. ✅ **Recruit Table Filtering** (COMPLETED):
-    a. ✅ Added option for user to filter by each individual attribute with 22 numeric filters (GPA, Ath, Spd, Dur, WE, Sta, Str, Blk, Tkl, Han, GI, Elu, Tec, R1-R6)
-    b. ✅ Implemented search filter functionality for the Consider Schools column
-    c. ✅ Added Undecided filter using simple checkbox for recruits with "undecided" considering status
-3. ✅ **Recruit Table CX Enhancements** (COMPLETED):
-    a. ✅ Redesigned the filter drop-downs and checkboxes to take up less space
-    b. ✅ Removed the "All" option from the Results Per Page drop-down
-    c. ✅ Added pagination content and previous/next buttons at both the bottom and the top of the table
-5. **Add Multi-team Support**: Scale the browser extension to handle a user who has multiple teams/schools associated with their user profile and switches between. The browser extension should switch context according to the current active team/school.
-    a. Create storage DB for each school/team.
-    b. Need to store the season number with each team DB.
-    c. Need to store Last Updated date with each team DB.
-    d. Need to store each watchlist count with each team DB.
-    e. Need to store each recruit count with each team DB.
-    f. Role Rating Config should be global.
-    g. Attribute Styling should be global.
-    h. Column visibilty should be global.
-    i. The user will switch teams using the whatifsports.com Gridiron Dynasty website and the browser extension will listen and react. The user will not directly switch teams using the browser extension itself. The browser extension will monitor the whatifsports.com wispersisted cookie for changes and use it to identify the current active team.
-6. **Code Review**: Examine current implementation for optimization opportunities
-7. **Error Handling**: Ensure robust error recovery throughout the application
-8. **Performance Validation**: Verify performance targets are being met
-9. **Accessibility Audit**: Confirm WCAG 2.1 AA compliance implementation
-10. **Cross-Browser Testing**: Validate functionality across target browsers
+1. **Quality Assurance**:
+   - Comprehensive multi-team scenario testing
+   - Performance validation with large datasets across multiple teams
+   - Error scenario testing for complex team switching cases
+   - Accessibility audit and validation
+
+2. **Code Optimization**:
+   - Review and optimize existing multi-team implementations
+   - Remove legacy sidebar code (`sidebar/` folder)
+   - Ensure coding standards compliance
+   - Performance profiling and optimization
+
+3. **Documentation Updates**:
+   - Verify all documentation reflects current multi-team implementation
+   - Update any outdated comments or documentation
+   - Ensure memory bank accuracy
 
 ### Potential Enhancement Areas
-- **Advanced Analytics**: Statistical analysis and trend identification
+- **Advanced Multi-Team Features**: Team comparison, cross-team analytics
 - **Performance Optimization**: Further optimization for very large datasets (2000+ recruits)
 - **User Experience**: Refinement based on user feedback
-- **Feature Completeness**: Ensure all documented features are fully implemented
+- **Community Features**: Configuration sharing and best practices
 
 ## Development Environment Context
 
@@ -223,10 +273,11 @@ The `sidebar/` folder contains older implementation code that serves as referenc
 - **Extension Loading**: Development mode in Chrome browser
 
 **Key Files for Understanding Current State**:
+- `lib/multi-team-storage.js` - Multi-team storage architecture and data management
+- `background.js` - Service worker with team detection and switching
 - `popup/popup.js` - Main application logic and UI handling
 - `content/scraper.js` - Data extraction and page integration
-- `lib/storage.js` - Data persistence and management
-- `background.js` - Service worker and message routing
+- `popup/communications.js` - Inter-component messaging
 - `manifest.json` - Extension configuration and permissions
 
-This context provides the foundation for continuing development work on the GD Recruit Assistant browser extension, with clear understanding of the current architecture, implemented features, and development patterns in use.
+This context provides the foundation for continuing development work on the GD Recruit Assistant browser extension, with clear understanding of the current multi-team architecture, implemented features, and development patterns in use. The extension is now feature-complete for v0.3.0 with comprehensive multi-team support and proper data architecture.

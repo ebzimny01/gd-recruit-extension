@@ -20,6 +20,12 @@ function scrapeRecruitData() {
     return;
   }
   
+  // Check if this is a refresh operation
+  const urlParams = new URLSearchParams(window.location.search);
+  const isRefreshMode = urlParams.get('refresh_mode') === 'true';
+  
+  console.log(`Scrape mode: ${isRefreshMode ? 'Refresh existing recruits' : 'Full scrape'}`);
+  
   // Get the table with recruit data
   const tableBody = document.querySelector('.advanced-recruit-body');
   
@@ -49,6 +55,48 @@ function scrapeRecruitData() {
     return;
   }
   
+  // If this is refresh mode, get the existing recruits first
+  if (isRefreshMode) {
+    chrome.runtime.sendMessage({ action: 'getConfig', key: 'refreshFieldsToUpdate' }, 
+      function(response) {
+        let fieldsToUpdate = ['watched', 'potential', 'priority', 'signed', 'considering'];
+        
+        if (response && response.value) {
+          try {
+            fieldsToUpdate = JSON.parse(response.value);
+            console.log('Fields to update:', fieldsToUpdate);
+          } catch (e) {
+            console.error('Error parsing fields to update:', e);
+          }
+        }
+        
+        // Now get all existing recruits
+        chrome.runtime.sendMessage({ action: 'getRecruits' }, function(response) {
+          if (response && response.recruits) {
+            const existingRecruits = response.recruits;
+            console.log(`Retrieved ${existingRecruits.length} existing recruits for update`);
+            
+            // Process the recruits in refresh mode
+            processRecruitsForRefresh(recruitRows, existingRecruits, fieldsToUpdate);
+          } else {
+            console.error('Failed to get existing recruits for refresh');
+            chrome.runtime.sendMessage({
+              action: 'recruitsScraped',
+              error: 'Failed to get existing recruits for refresh',
+              recruits: []
+            });
+          }
+        });
+      }
+    );
+  } else {
+    // Normal full scrape mode
+    processRecruits(recruitRows);
+  }
+}
+
+// Function for processing recruits in regular (full) mode
+function processRecruits(recruitRows) {
   const recruits = [];
   const signed_state = {'Not Signed': 0, 'Signed': 1};
   
@@ -187,6 +235,157 @@ function scrapeRecruitData() {
     // Still show notification so user knows data was collected
     showNotification(`Scraped ${recruits.length} recruits but couldn't save them: ${sendError.message}`);
   }
+}
+
+// New function to process recruits for refresh
+function processRecruitsForRefresh(recruitRows, existingRecruits, fieldsToUpdate) {
+  console.log(`Processing ${recruitRows.length} rows for refresh, updating fields:`, fieldsToUpdate);
+  
+  const updatedRecruits = [];
+  const signed_state = {'Not Signed': 0, 'Signed': 1};
+  const idMap = {};
+  
+  // Create a map of existing recruits by ID for quick lookup
+  existingRecruits.forEach(recruit => {
+    idMap[recruit.id] = recruit;
+    // Log watched status for debugging
+    if (recruit.watched === 1) {
+      console.log(`Recruit ${recruit.id} (${recruit.name}) is on watchlist prior to refresh`);
+    }
+  });
+  
+  // Safe parsing functions
+  const safeParseInt = (value) => {
+    try {
+      const parsed = parseInt(value);
+      return isNaN(parsed) ? 0 : parsed;
+    } catch (e) {
+      return 0;
+    }
+  };
+  
+  // Process each recruit row
+  recruitRows.forEach((row, index) => {
+    try {
+      // Get all cells in the row
+      const cells = row.querySelectorAll('td');
+      
+      // Check if we have enough cells
+      if (cells.length < 29) {
+        console.error(`Row ${index} doesn't have enough cells (found ${cells.length}, expected at least 29)`);
+        return; // Skip this row
+      }
+      
+      // Get the recruit ID
+      const recruitId = safeParseInt(cells[0].textContent);
+      
+      // Check if this recruit exists in our database
+      if (!idMap[recruitId]) {
+        console.log(`Recruit ID ${recruitId} not found in existing data, skipping`);
+        return;
+      }
+      
+      // Clone the existing recruit
+      const updatedRecruit = { ...idMap[recruitId] };
+        // Only update the specific fields      // Always preserve the existing watched value first before potentially updating it
+      const existingWatched = idMap[recruitId].watched || 0;
+      updatedRecruit.watched = existingWatched;
+      
+      // Only then check if we should update based on the page data
+      if (fieldsToUpdate.includes('watched')) {
+        try {
+          // Handle different formats of the watched field (might be checkbox or text)
+          const checkbox = cells[1].querySelector('input[type="checkbox"]');
+          if (checkbox) {
+            updatedRecruit.watched = checkbox.checked ? 1 : 0;
+          } else {
+            // Fallback to text content (X or empty)
+            const textContent = cells[1].textContent.trim();
+            updatedRecruit.watched = (textContent === 'X' || textContent === 'Yes' || textContent === '1') ? 1 : 0;
+          }
+          
+          // If there's a change in watched status, log it
+          if (existingWatched !== updatedRecruit.watched) {
+            console.log(`Recruit ${updatedRecruit.id} (${updatedRecruit.name}): Changed watched from ${existingWatched} to ${updatedRecruit.watched}`);
+          }
+        } catch (watchedError) {
+          console.error(`Error extracting watched status for recruit ${recruitId}:`, watchedError);
+          // On error, keep the existing value
+          updatedRecruit.watched = existingWatched;
+        }
+      }
+      
+      if (fieldsToUpdate.includes('priority')) {
+        const prioritySelect = cells[2].querySelector('select');
+        if (prioritySelect) {
+          updatedRecruit.priority = safeParseInt(prioritySelect.value);
+        } else {
+          // Fallback to text content
+          const textContent = cells[2].textContent.trim();
+          const priority = safeParseInt(textContent);
+          if (!isNaN(priority) && priority >= 0 && priority <= 5) {
+            updatedRecruit.priority = priority;
+          }
+        }
+        console.log(`Recruit ${updatedRecruit.id}: Updated priority to ${updatedRecruit.priority}`);
+      }
+      
+      if (fieldsToUpdate.includes('potential')) {
+        updatedRecruit.potential = cells[16] ? mapPotential(cells[16].textContent.trim()) : '?';
+        console.log(`Recruit ${updatedRecruit.id}: Updated potential to ${updatedRecruit.potential}`);
+      }
+      
+      if (fieldsToUpdate.includes('signed')) {
+        updatedRecruit.signed = cells[14] ? signed_state[cells[14].textContent.trim()] || 0 : 0;
+      }
+      
+      if (fieldsToUpdate.includes('considering')) {
+        // Parse considering schools if present
+        if (cells[42] && cells[42].textContent.trim() !== "") {
+          const consideringRows = cells[42].querySelectorAll('tr');
+          updatedRecruit.considering = parseConsidering(consideringRows);
+        } else {
+          updatedRecruit.considering = "undecided";
+        }
+      }
+      
+      // Add to updated recruits list
+      updatedRecruits.push(updatedRecruit);
+      
+      // Log progress for every 50 recruits
+      if (index % 50 === 0) {
+        console.log(`Processed ${index} of ${recruitRows.length} recruits for refresh`);
+      }
+    } catch (error) {
+      console.error(`Error processing recruit row ${index} for refresh:`, error);
+    }
+  });
+  
+  console.log(`Finished processing ${updatedRecruits.length} recruits for refresh`);
+  
+  // Send updated recruits to background script
+  chrome.runtime.sendMessage({
+    action: 'refreshRecruitsComplete',
+    recruits: updatedRecruits,
+    closeTab: true
+  }, response => {
+    if (chrome.runtime.lastError) {
+      console.error('Error sending refresh message:', chrome.runtime.lastError);
+      showNotification(`Updated ${updatedRecruits.length} recruits but encountered an error: ${chrome.runtime.lastError.message}`);
+      return;
+    }
+    
+    console.log('Background script response to refresh:', response);
+    showNotification(`Successfully updated ${updatedRecruits.length} recruits`);
+    
+    // Let the background script close the tab
+    if (response && response.success) {
+      chrome.runtime.sendMessage({
+        action: 'closeScraperTab',
+        tabId: chrome.devtools ? chrome.devtools.inspectedWindow.tabId : null
+      });
+    }
+  });
 }
 
 // Helper function to map potential values

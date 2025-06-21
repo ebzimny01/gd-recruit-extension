@@ -1,30 +1,20 @@
-// Import required functions and variables from sidebar.js
-import { handleScrapeRecruits as originalHandleScrapeRecruits, setStatusMessage as originalSetStatusMessage } from './sidebar.js';
+// Error handler for sidebar
+// This script enhances error handling and status message types without creating circular dependencies
 
 // Function to update error messages and status types
 function updateErrorMessages() {
-  // Modify setStatusMessage calls in handleScrapeRecruits
-  window.handleScrapeRecruits = async function() {
-    try {
-      await originalHandleScrapeRecruits.call(this);
-    } catch (error) {
-      console.error('Error in scrapeRecruits:', error);
-      
-      let errorMessage;
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      } else if (error && typeof error === 'object') {
-        errorMessage = JSON.stringify(error);
-      } else {
-        errorMessage = 'Unknown error';
-      }
-      
-      setStatusMessage('Error scraping recruits: ' + errorMessage, 'error');
-    }  };
-  
-  // Add 'success' type to success messages throughout the app
+  // Wait for sidebar.js to define its functions globally
+  if (typeof window.setStatusMessage !== 'function') {
+    console.log('setStatusMessage not available yet, waiting...');
+    // Try again after a short delay
+    setTimeout(updateErrorMessages, 500);
+    return;
+  }
+
+  // Store reference to original setStatusMessage
+  const originalSetStatusMessage = window.setStatusMessage;
+
+  // Override setStatusMessage with enhanced type detection
   window.setStatusMessage = function(message, type = 'info') {
     // Success pattern detection
     if (

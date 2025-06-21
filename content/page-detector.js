@@ -9,15 +9,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Detect recruiting pages
   if (url.includes('/gd/recruiting/Advanced.aspx')) {
     console.log('Detected Advanced Recruiting page');
-    
-    // Check if we were opened with auto_scrape parameter
+      // Check if we were opened with auto_scrape parameter
     const urlParams = new URLSearchParams(window.location.search);
     const autoScrape = urlParams.get('auto_scrape') === 'true';
+    const refreshMode = urlParams.get('refresh_mode') === 'true';
     
     if (autoScrape) {
-      console.log('Auto-scraping Advanced Recruiting page');
-      // Inject the advanced scraper script
-      injectScript('content/advanced-scraper.js');
+      console.log(`Auto-scraping Advanced Recruiting page${refreshMode ? ' in refresh mode' : ''}`);
+      // Just inject the standard scraper which now handles both modes
+      injectScript('content/scraper.js');
     } else {
       // Normal page load, just inject the standard scraper
       injectScript('content/scraper.js');
@@ -45,11 +45,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
       break;
       
+    // Remove this case or keep for backward compatibility with an empty implementation
     case 'triggerWatchlistScrape':
-      console.log('Triggering manual watchlist scrape');
-      // Load the watchlist scraper if not already loaded
-      injectScript('content/watchlist-scraper.js');
-      sendResponse({ success: true });
+      console.log('Watchlist scrape is deprecated - using main scraper for all recruit data');
+      sendResponse({ success: false, message: 'Watchlist scraping deprecated' });
       break;
       
     case 'getPageInfo':

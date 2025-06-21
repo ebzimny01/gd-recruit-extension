@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GD Recruit Assistant</title>
-    <link rel="stylesheet" href="sidebar.css" />
+    <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <div class="container">
-      <header>
+    <div class="popup-container">
+      <header class="popup-header">
         <div class="school-info">
           <span id="schoolName">Loading...</span>
         </div>
@@ -19,7 +19,7 @@
         </div>
       </header>
 
-      <main>
+      <main class="popup-main">
         <!-- Dashboard Tab -->
         <section id="dashboard-section" class="tab-content active">
           <div class="stats-container">
@@ -64,69 +64,73 @@
             <p id="status-message">Ready</p>
           </div>
         </section>
+
         <!-- Recruits Tab -->
         <section id="recruits-section" class="tab-content">
           <div class="filter-controls">
-            <div class="filter-section">
+            <!-- Main Filters Row -->
+            <div class="filter-row-main">
               <div class="filter-item">
                 <label for="filter-position">Position:</label>
-                <select
-                  id="filter-position"
-                  title="Filter by position"
-                ></select>
-              </div>              <div class="filter-item">
+                <select id="filter-position" title="Filter by position"></select>
+              </div>
+              <div class="filter-item">
                 <label for="filter-potential">Potential:</label>
-                <select
-                  id="filter-potential"
-                  title="Filter by potential"
-                ></select>
+                <select id="filter-potential" title="Filter by potential"></select>
+              </div>
+              <div class="filter-item">
+                <label for="filter-priority">Priority:</label>
+                <select id="filter-priority" title="Filter by priority"></select>
               </div>
               <div class="filter-item">
                 <label for="filter-division">Division:</label>
-                <select
-                  id="filter-division"
-                  title="Filter by division"
-                ></select>
+                <select id="filter-division" title="Filter by division"></select>
               </div>
-              <div class="filter-item checkbox-filter">
+              <div class="filter-item">
+                <label for="filter-distance">Distance:</label>
+                <select id="filter-distance" title="Filter by distance"></select>
+              </div>
+            </div>
+
+            <!-- Checkbox Filters Row -->
+            <div class="filter-row-checkboxes">
+              <div class="filter-item-checkbox">
                 <label for="filter-watched">
-                  <input
-                    type="checkbox"
-                    id="filter-watched"
-                    title="Show only watched recruits"
-                  />
+                  <input type="checkbox" id="filter-watched" title="Show only watched recruits" />
                   <span class="checkbox-label-text">Watched Only</span>
+                </label>
+              </div>
+              <div class="filter-item-checkbox">
+                <label for="filter-hide-signed">
+                  <input type="checkbox" id="filter-hide-signed" title="Hide signed recruits" />
+                  <span class="checkbox-label-text">Hide Signed</span>
+                </label>
+              </div>
+              <div class="filter-item-checkbox">
+                <label for="filter-undecided">
+                  <input type="checkbox" id="filter-undecided" title="Show only undecided recruits" />
+                  <span class="checkbox-label-text">Undecided Only</span>
                 </label>
               </div>
             </div>
 
-            <div class="filter-section">
-              <div class="filter-item">
-                <label for="filter-priority">Priority:</label>
-                <select
-                  id="filter-priority"
-                  title="Filter by priority"
-                ></select>
+            <!-- Collapsible Attribute Filters Section -->
+            <div class="attribute-filters-section">
+              <div class="attribute-filters-header">
+                <button type="button" id="toggle-attribute-filters" class="attribute-filters-toggle">
+                  <span class="toggle-icon">▼</span>
+                  <span class="toggle-text">Attribute Filters (>= values)</span>
+                </button>
+                <button type="button" id="clear-attribute-filters" class="clear-filters-btn">
+                  Clear All
+                </button>
               </div>
-              <div class="filter-item">
-                <label for="filter-distance">Distance:</label>
-                <select
-                  id="filter-distance"
-                  title="Filter by distance"
-                ></select>
-              </div>
-              <div class="filter-item checkbox-filter">
-                <label for="filter-hide-signed">
-                  <input
-                    type="checkbox"
-                    id="filter-hide-signed"
-                    title="Hide signed recruits"
-                  />
-                  <span class="checkbox-label-text">Hide Signed</span>
-                </label>
+              <div id="attribute-filters-container" class="attribute-filters-grid collapsed">
+                <!-- Dynamically generated filter inputs -->
               </div>
             </div>
           </div>
+          
           <div class="pagination-controls">
             <div class="page-size-control">
               <label for="page-size-select">Results per page</label>
@@ -138,52 +142,69 @@
                 <option value="25">25</option>
                 <option value="50">50</option>
                 <option value="100">100</option>
-                <option value="all">All</option>
               </select>
             </div>
+            <div class="table-controls">
+              <button id="btn-column-visibility" class="setting-btn">
+                Show/Hide Columns
+              </button>
+            </div>
           </div>
+          
+          <!-- Top Pagination Controls -->
+          <div class="pagination pagination-top">
+            <button id="prev-page-top">Previous</button>
+            <div class="pagination-info">
+              <span id="page-info-top">Page 1 of 1</span>
+            </div>
+            <button id="next-page-top">Next</button>
+          </div>
+          
           <div class="recruits-container">
-            <table id="recruits-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Pos</th>
-                  <th>Watched</th>
-                  <th>Pot</th>
-                  <th>Priority</th>
-                  <th>Height</th>
-                  <th>Weight</th>
-                  <th>Rating</th>
-                  <th>Rank</th>
-                  <th>Hometown</th>
-                  <th>Division</th>
-                  <th>Miles</th>
-                  <th>Signed</th>
-                  <th>GPA</th>
-                  <th>Ath</th>
-                  <th>Spd</th>
-                  <th>Dur</th>
-                  <th>WE</th>
-                  <th>Sta</th>
-                  <th>Str</th>
-                  <th>Blk</th>
-                  <th>Tkl</th>
-                  <th>Han</th>
-                  <th>GI</th>
-                  <th>Elu</th>
-                  <th>Tec</th>
-                  <th>R1</th>
-                  <th>R2</th>
-                  <th>R3</th>
-                  <th>R4</th>
-                  <th>R5</th>
-                  <th>R6</th>
-                  <th>Considering Schools</th>
-                </tr>
-              </thead>
-              <tbody id="recruits-list"></tbody>
-            </table>
+            <div class="table-wrapper">
+              <table id="recruits-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Pos</th>
+                    <th>Watched</th>
+                    <th>Pot</th>
+                    <th>Priority</th>
+                    <th>Height</th>
+                    <th>Weight</th>
+                    <th>Rating</th>
+                    <th>Rank</th>
+                    <th>Hometown</th>
+                    <th>Division</th>
+                    <th>Miles</th>
+                    <th>Signed</th>
+                    <th>GPA</th>
+                    <th>Ath</th>
+                    <th>Spd</th>
+                    <th>Dur</th>
+                    <th>WE</th>
+                    <th>Sta</th>
+                    <th>Str</th>
+                    <th>Blk</th>
+                    <th>Tkl</th>
+                    <th>Han</th>
+                    <th>GI</th>
+                    <th>Elu</th>
+                    <th>Tec</th>
+                    <th>R1</th>
+                    <th>R2</th>
+                    <th>R3</th>
+                    <th>R4</th>
+                    <th>R5</th>
+                    <th>R6</th>
+                    <th>Considering Schools</th>
+                  </tr>
+                </thead>
+                <tbody id="recruits-list"></tbody>
+              </table>
+            </div>
           </div>
+          
           <div class="pagination">
             <button id="prev-page">Previous</button>
             <div class="pagination-info">
@@ -228,6 +249,7 @@
               </button>
             </div>
           </div>
+          
           <div class="settings-group">
             <h3>Role Ratings Configuration</h3>
             <p>
@@ -243,6 +265,7 @@
               </button>
             </div>
           </div>
+          
           <div class="settings-group">
             <h3>Attribute Styling Configuration</h3>
             <p>
@@ -260,11 +283,11 @@
           </div>
 
           <div class="settings-group">
-            <h3>Table Column Visibility</h3>
-            <p>Customize which columns are visible in the recruits table:</p>
+            <h3>Table Configuration</h3>
+            <p>Column visibility can be configured in the Recruits tab. Column order can be changed by dragging table headers directly.</p>
             <div class="setting-row">
-              <button id="btn-column-visibility" class="setting-btn">
-                Manage Column Visibility
+              <button id="btn-reset-column-order" class="setting-btn">
+                Reset Column Order
               </button>
             </div>
           </div>
@@ -277,6 +300,7 @@
             </p>
           </div>
         </section>
+
         <!-- Season Input Modal -->
         <div id="season-modal" class="modal hidden">
           <div class="modal-content">
@@ -325,7 +349,8 @@
                       <input type="checkbox" id="division-d3" value="4" />
                       <span class="checkbox-label-text">D-III</span>
                     </label>
-                  </div>                </div>
+                  </div>
+                </div>
                 <small class="division-help-text">Your school's division will be automatically selected and cannot be unchecked.</small>
               </div>
             </div>
@@ -337,6 +362,7 @@
             </div>
           </div>
         </div>
+
         <!-- Role Ratings Configuration Modal -->
         <div id="role-ratings-modal" class="modal hidden">
           <div class="modal-content role-ratings-modal-content">
@@ -434,6 +460,7 @@
             </div>
           </div>
         </div>
+
         <!-- Column Visibility Modal -->
         <div id="column-visibility-modal" class="modal hidden">
           <div class="modal-content">
@@ -462,9 +489,74 @@
             </div>
           </div>
         </div>
+
+        <!-- Clear Data Modal -->
+        <div id="clear-data-modal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>Clear Data</h2>
+              <span class="close-button" id="clear-data-modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+              <div class="clear-data-warning">
+                <p><strong>⚠️ Warning:</strong> This action cannot be undone.</p>
+              </div>
+              
+              <div class="current-team-info">
+                <h4>Current Active Team:</h4>
+                <p id="clear-current-team-display">Loading...</p>
+              </div>
+
+              <div class="clear-options">
+                <h4>What would you like to clear?</h4>
+                
+                <div class="clear-option">
+                  <label class="radio-label">
+                    <input type="radio" name="clearScope" value="currentTeam" id="clear-current-team" checked />
+                    <span class="radio-label-text">
+                      <strong>Current Team Only</strong>
+                      <br />
+                      <small id="clear-current-team-description">Clear recruit data, season number, and last updated date for the active team only. Other teams will remain unchanged.</small>
+                    </span>
+                  </label>
+                </div>
+
+                <div class="clear-option">
+                  <label class="radio-label">
+                    <input type="radio" name="clearScope" value="allTeams" id="clear-all-teams" />
+                    <span class="radio-label-text">
+                      <strong>All Teams</strong>
+                      <br />
+                      <small id="clear-all-teams-description">Clear recruit data, season numbers, and last updated dates for ALL teams. Team configurations and role ratings will be preserved.</small>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="clear-impact-preview">
+                <h4>Impact Preview:</h4>
+                <div id="clear-impact-details">
+                  <p id="clear-impact-text">Loading impact assessment...</p>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button id="clear-data-confirm" class="action-btn danger">
+                Clear Data
+              </button>
+              <button id="clear-data-cancel" class="action-btn secondary">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
       </main>
-    </div>    <script src="communications.js" type="module"></script>
-    <script src="sidebar.js" type="module"></script>
+    </div>
+
+    <!-- Load JavaScript modules -->
+    <script src="communications.js" type="module"></script>
+    <script src="popup.js" type="module"></script>
     <script src="error-handler.js"></script>
   </body>
 </html>

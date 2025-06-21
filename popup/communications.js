@@ -1,5 +1,5 @@
-// Communications handler for sidebar
-// This script facilitates communication between the sidebar and the main page/content scripts
+// Communications handler for popup
+// This script facilitates communication between the popup and the main page/content scripts
 
 // Function to send a message to the background script with enhanced retry logic
 export function sendMessageToBackground(message) {
@@ -126,29 +126,87 @@ export async function isOnAdvancedRecruitingPage() {
   return tab && tab.url && tab.url.includes('whatifsports.com/gd/recruiting/Advanced.aspx');
 }
 
-// Function to listen for sidebar-specific messages
-export function setupSidebarListeners() {
-  // Listen for sidebar visibility changes
-  if (chrome.sidePanel && chrome.sidePanel.onVisibilityChanged) {
-    chrome.sidePanel.onVisibilityChanged.addListener((isVisible) => {
-      console.log('Sidebar visibility changed:', isVisible);
-      
-      // If sidebar becomes visible, refresh data
-      if (isVisible) {
-        // Dispatch an event that can be handled by sidebar.js
-        document.dispatchEvent(new CustomEvent('sidebar-visible'));
+// Function to setup popup-specific event listeners
+export function setupPopupListeners() {
+  // Listen for popup state changes and window events
+  window.addEventListener('beforeunload', () => {
+    console.log('Popup is being closed');
+    // Clean up any pending operations
+  });
+  
+  // Listen for focus/blur events to handle popup lifecycle
+  window.addEventListener('focus', () => {
+    console.log('Popup gained focus');
+    // Refresh data when popup regains focus
+    document.dispatchEvent(new CustomEvent('popup-focus'));
+  });
+  
+  window.addEventListener('blur', () => {
+    console.log('Popup lost focus');
+    // Optional: pause operations when popup loses focus
+    document.dispatchEvent(new CustomEvent('popup-blur'));
+  });
+}
+
+// Function to handle popup window resize events
+export function handlePopupResize() {
+  // Ensure proper layout adjustments for different popup sizes
+  const container = document.querySelector('.popup-container');
+  if (container) {
+    console.log('Setting up ResizeObserver for popup container');
+    
+    // Use requestAnimationFrame to prevent ResizeObserver loops
+    let isProcessingResize = false;
+    
+    const resizeObserver = new ResizeObserver(entries => {
+      // Prevent ResizeObserver loops by debouncing
+      if (isProcessingResize) {
+        console.log('Skipping resize processing - already in progress');
+        return;
       }
+      
+      isProcessingResize = true;
+      
+      // Use requestAnimationFrame to ensure DOM changes happen outside the ResizeObserver callback
+      requestAnimationFrame(() => {
+        try {
+          for (let entry of entries) {
+            const { width, height } = entry.contentRect;
+            console.log(`Popup resized to: ${width}x${height}`);
+            
+            // Dispatch resize event for components to respond
+            console.log('Dispatching popup-resize event with dimensions:', { width, height });
+            document.dispatchEvent(new CustomEvent('popup-resize', {
+              detail: { width, height }
+            }));
+          }
+        } catch (error) {
+          console.error('Error in ResizeObserver callback:', error);
+        } finally {
+          // Reset the flag after processing
+          isProcessingResize = false;
+        }
+      });
     });
+    
+    resizeObserver.observe(container);
+    console.log('ResizeObserver started observing popup container');
+  } else {
+    console.warn('No .popup-container found for resize observation');
   }
 }
 
-// Export sidebarComms object for backward compatibility
-export const sidebarComms = {
+// Export popupComms object for consistent interface
+export const popupComms = {
   sendMessageToBackground,
   sendMessageToContentScript,
   getActiveTab,
   isOnRecruitingPage,
   isOnAdvancedRecruitingPage,
-  setupSidebarListeners,
+  setupPopupListeners,
+  handlePopupResize,
   isDatabaseError
 };
+
+// Maintain backward compatibility with sidebarComms
+export const sidebarComms = popupComms;

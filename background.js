@@ -717,6 +717,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       })();
       return true; // Indicate asynchronous response
+    case 'clearTeamData':
+      // Clear data for a specific team
+      console.log('Handling clearTeamData request for team:', message.teamId);
+      clearTeamData(message.teamId)
+        .then(result => {
+          sendResponse(result);
+        })
+        .catch(error => {
+          console.error('Error clearing team data:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Indicate asynchronous response
+
     case 'clearAllData':
       // Clear all extension data
       console.log('Handling clearAllData request');
@@ -726,6 +739,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         })
         .catch(error => {
           console.error('Error clearing data:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Indicate asynchronous response
+
+    case 'resetAllSettings':
+      // Reset all extension settings to defaults
+      console.log('Handling resetAllSettings request');
+      resetAllSettings()
+        .then(result => {
+          sendResponse(result);
+        })
+        .catch(error => {
+          console.error('Error resetting settings:', error);
           sendResponse({ success: false, error: error.message });
         });
       return true; // Indicate asynchronous response
@@ -1588,30 +1614,26 @@ async function clearAllData() {
       console.warn('Warning during clear operation:', clearResult.warning);
     }
     
-    // Clear configuration data - use individual operations with error handling
-    const configOperations = [
-      { key: 'lastUpdated', value: null, description: 'lastUpdated timestamp' },
-      { key: 'watchlistCount', value: 0, description: 'watchlistCount' },
-      { key: 'currentSeason', value: null, description: 'current season' },
-      { key: SEASON_RECRUITING_URL_KEY, value: null, description: 'recruiting URL' }
-    ];
-
-    const configResults = [];
-    for (const operation of configOperations) {
-      try {
-        await multiTeamStorage.saveGlobalConfig(operation.key, operation.value);
-        console.log(`Successfully cleared ${operation.description}`);
-        configResults.push({ success: true, operation: operation.description });
-      } catch (configError) {
-        console.error(`Error clearing ${operation.description}:`, configError);
-        configResults.push({ 
-          success: false, 
-          operation: operation.description, 
-          error: configError.message 
-        });
-        // Continue with other operations despite this error
-      }
+    // Clear all team metadata across all teams
+    let metadataClearResult;
+    try {
+      console.log('Clearing all team metadata across all teams...');
+      metadataClearResult = await multiTeamStorage.clearAllTeamMetadata();
+      console.log('Clear all team metadata result:', metadataClearResult);
+    } catch (metadataError) {
+      console.error('Error clearing all team metadata:', metadataError);
+      metadataClearResult = { 
+        success: false, 
+        error: metadataError.message 
+      };
     }
+
+    // For compatibility, still create configResults array
+    const configResults = [{
+      success: metadataClearResult.success,
+      operation: 'all team metadata',
+      error: metadataClearResult.error || null
+    }];
 
     // Check if any config operations failed
     const failedConfigs = configResults.filter(r => !r.success);
@@ -2672,5 +2694,238 @@ async function logWatchlistStatus(label = "Current") {
   } catch (error) {
     console.error("Error logging watchlist status:", error);
     return -1;
+  }
+}
+
+// Clear data for a specific team
+async function clearTeamData(teamId) {
+  console.log(`Clearing data for team: ${teamId}`);
+
+  if (!teamId) {
+    throw new Error('Team ID is required for team data clearing');
+  }
+
+  try {
+    // Initialize multi-team storage
+    await multiTeamStorage.init();
+
+    // Verify team exists
+    const allTeams = await multiTeamStorage.getAllTeams();
+    const targetTeam = allTeams.find(team => team.teamId === teamId);
+    
+    if (!targetTeam) {
+      throw new Error(`Team ${teamId} not found in registered teams`);
+    }
+
+    console.log(`Found team to clear: ${targetTeam.schoolName || teamId}`);
+
+    // Store current team context to restore later
+    const originalTeamId = multiTeamStorage.getCurrentTeamId();
+    
+    // Switch to target team for clearing
+    await multiTeamStorage.setActiveTeam(teamId, targetTeam);
+    
+    // Clear team-specific recruit data
+    const clearResult = await multiTeamStorage.clearAllRecruits();
+    console.log('Clear team recruits result:', clearResult);
+
+    // Get team storage instance to clear team-specific metadata
+    const teamStorage = multiTeamStorage.getCurrentTeamStorage();
+    
+    // Clear team-specific metadata completely
+    let metadataClearResult;
+    try {
+      console.log('Clearing all team metadata...');
+      metadataClearResult = await teamStorage.clearAllTeamMetadata();
+      console.log('Clear team metadata result:', metadataClearResult);
+    } catch (metadataError) {
+      console.error('Error clearing team metadata:', metadataError);
+      metadataClearResult = { 
+        success: false, 
+        error: metadataError.message 
+      };
+    }
+
+    // For compatibility, still create configResults array
+    const configResults = [{
+      success: metadataClearResult.success,
+      operation: 'team metadata',
+      error: metadataClearResult.error || null
+    }];
+
+    // Restore original team context if it was different
+    if (originalTeamId && originalTeamId !== teamId) {
+      try {
+        const originalTeam = allTeams.find(team => team.teamId === originalTeamId);
+        if (originalTeam) {
+          await multiTeamStorage.setActiveTeam(originalTeamId, originalTeam);
+          console.log(`Restored original team context: ${originalTeamId}`);
+        }
+      } catch (restoreError) {
+        console.warn('Error restoring original team context:', restoreError);
+      }
+    }
+
+    // Check if any config operations failed
+    const failedConfigs = configResults.filter(r => !r.success);
+    
+    let warningMessage = null;
+    if (failedConfigs.length > 0) {
+      warningMessage = `Some team configuration settings could not be cleared: ${failedConfigs.map(f => f.operation).join(', ')}`;
+      console.warn(warningMessage);
+    }
+
+    // Combine warnings
+    const combinedWarning = [clearResult.warning, warningMessage].filter(Boolean).join('; ');
+
+    return {
+      success: true,
+      teamId: teamId,
+      teamName: targetTeam.schoolName || teamId,
+      warning: combinedWarning || null,
+      details: {
+        recruitsCleared: clearResult.success,
+        configResults: configResults
+      }
+    };
+
+  } catch (error) {
+    // Enhanced error handling with specific error types
+    const errorMessage = error.message || 'Unknown error';
+    console.error('Error in clearTeamData:', errorMessage, error);
+    
+    // Provide more specific error messages
+    let userFriendlyMessage = errorMessage;
+    if (errorMessage.includes('connection is closing')) {
+      userFriendlyMessage = 'Database connection issue. Please try again or restart the extension.';
+    } else if (errorMessage.includes('timeout')) {
+      userFriendlyMessage = 'Operation timed out. The database may be busy. Please try again.';
+    } else if (errorMessage.includes('transaction')) {
+      userFriendlyMessage = 'Database transaction failed. Please try again or check database status.';
+    }
+    
+    throw new Error(userFriendlyMessage);
+  }
+}
+
+// Reset all extension settings to defaults while preserving data
+async function resetAllSettings() {
+  console.log('Resetting all extension settings to defaults');
+
+  try {
+    // Initialize multi-team storage
+    await multiTeamStorage.init();
+
+    const resetOperations = [];
+
+    // Reset role ratings to defaults
+    try {
+      await resetRoleRatingsToDefaults();
+      console.log('Successfully reset role ratings to defaults');
+      resetOperations.push({ success: true, operation: 'role ratings' });
+    } catch (error) {
+      console.error('Error resetting role ratings:', error);
+      resetOperations.push({ success: false, operation: 'role ratings', error: error.message });
+    }
+
+    // Reset bold attributes configuration (stored in chrome.storage.local)
+    try {
+      await chrome.storage.local.remove(['boldAttributesConfig', 'boldAttributesUserConfig']);
+      console.log('Successfully reset bold attributes configuration');
+      resetOperations.push({ success: true, operation: 'bold attributes configuration' });
+    } catch (error) {
+      console.error('Error resetting bold attributes:', error);
+      resetOperations.push({ success: false, operation: 'bold attributes configuration', error: error.message });
+    }
+
+    // Reset column visibility settings
+    try {
+      await chrome.storage.local.remove(['columnVisibility']);
+      console.log('Successfully reset column visibility settings');
+      resetOperations.push({ success: true, operation: 'column visibility' });
+    } catch (error) {
+      console.error('Error resetting column visibility:', error);
+      resetOperations.push({ success: false, operation: 'column visibility', error: error.message });
+    }
+
+    // Reset column order settings
+    try {
+      await chrome.storage.local.remove(['columnOrder']);
+      console.log('Successfully reset column order settings');
+      resetOperations.push({ success: true, operation: 'column order' });
+    } catch (error) {
+      console.error('Error resetting column order:', error);
+      resetOperations.push({ success: false, operation: 'column order', error: error.message });
+    }
+
+    // Reset page size preference
+    try {
+      await chrome.storage.local.remove(['preferredPageSize']);
+      console.log('Successfully reset page size preference');
+      resetOperations.push({ success: true, operation: 'page size preference' });
+    } catch (error) {
+      console.error('Error resetting page size:', error);
+      resetOperations.push({ success: false, operation: 'page size preference', error: error.message });
+    }
+
+    // Reset any other extension-specific settings
+    const globalSettingsToReset = [
+      { key: 'extensionPreferences', description: 'extension preferences' },
+      { key: 'uiSettings', description: 'UI settings' },
+      { key: 'filterPreferences', description: 'filter preferences' }
+    ];
+
+    for (const setting of globalSettingsToReset) {
+      try {
+        await multiTeamStorage.saveGlobalConfig(setting.key, null);
+        console.log(`Successfully reset ${setting.description}`);
+        resetOperations.push({ success: true, operation: setting.description });
+      } catch (error) {
+        console.error(`Error resetting ${setting.description}:`, error);
+        resetOperations.push({ 
+          success: false, 
+          operation: setting.description, 
+          error: error.message 
+        });
+      }
+    }
+
+    // Check if any operations failed
+    const failedOperations = resetOperations.filter(r => !r.success);
+    const successfulOperations = resetOperations.filter(r => r.success);
+    
+    let warningMessage = null;
+    if (failedOperations.length > 0) {
+      warningMessage = `Some settings could not be reset: ${failedOperations.map(f => f.operation).join(', ')}`;
+      console.warn(warningMessage);
+    }
+
+    return {
+      success: true,
+      warning: warningMessage || null,
+      details: {
+        totalOperations: resetOperations.length,
+        successful: successfulOperations.length,
+        failed: failedOperations.length,
+        results: resetOperations
+      }
+    };
+
+  } catch (error) {
+    // Enhanced error handling
+    const errorMessage = error.message || 'Unknown error';
+    console.error('Error in resetAllSettings:', errorMessage, error);
+    
+    // Provide more specific error messages
+    let userFriendlyMessage = errorMessage;
+    if (errorMessage.includes('connection is closing')) {
+      userFriendlyMessage = 'Database connection issue. Please try again or restart the extension.';
+    } else if (errorMessage.includes('timeout')) {
+      userFriendlyMessage = 'Operation timed out. The database may be busy. Please try again.';
+    } else if (errorMessage.includes('transaction')) {
+      userFriendlyMessage = 'Database transaction failed. Please try again or check database status.';
+    }
+    
+    throw new Error(userFriendlyMessage);
   }
 }

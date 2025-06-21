@@ -2408,33 +2408,380 @@ async function handleImportData() {
 // Handle clear data functionality
 async function handleClearData() {
   try {
-    const confirmed = confirm('Are you sure you want to clear all recruit data? This action cannot be undone.');
-    if (!confirmed) return;
+    setStatusMessage('Opening clear data options...', 'info');
     
-    setStatusMessage('Clearing data...', 'info');
-      const response = await popupComms.sendMessageToBackground({
-      action: 'clearAllData'
-    });
-    
-    if (response.error) {
-      throw new Error(response.error);
-    }
-    
-    // Reset local state
-    state.recruits = [];
-    state.filtered_recruits = [];
-    state.current_page = 1;
-    
-    // Update displays
-    updateRecruitsList();
-    updatePaginationDisplay();
-    await refreshDashboardData();
-    
-    setStatusMessage('Data cleared successfully', 'success');
+    // Show clear data modal
+    showClearDataModal();
     
   } catch (error) {
-    handleError(error, 'data clearing');
+    handleError(error, 'clear data');
   }
+}
+
+// Show clear data modal with team-specific options
+function showClearDataModal() {
+  const modal = document.getElementById('clear-data-modal');
+  if (!validateElement(modal, 'clear-data-modal')) return;
+  
+  // Initialize modal content
+  initializeClearDataModal();
+  
+  // Show modal
+  modal.classList.remove('hidden');
+  
+  // Setup event listeners if not already done
+  if (!modal.dataset.initialized) {
+    setupClearDataModalListeners();
+    modal.dataset.initialized = 'true';
+  }
+}
+
+// Initialize clear data modal content
+function initializeClearDataModal() {
+  const modal = document.getElementById('clear-data-modal');
+  if (!modal) return;
+  
+  console.log('Initializing clear data modal...');
+  console.log('Multi-team enabled:', state.multiTeamEnabled);
+  console.log('Current team info:', state.currentTeamInfo);
+  console.log('All teams count:', state.allTeams?.length);
+  
+  // Update current team info display
+  const currentTeamDisplay = document.getElementById('clear-current-team-display');
+  if (currentTeamDisplay) {
+    if (state.currentTeamInfo && state.currentTeamInfo.schoolName) {
+      const teamName = `${state.currentTeamInfo.schoolName} (${state.currentTeamInfo.division || 'Unknown Division'})`;
+      currentTeamDisplay.textContent = teamName;
+      console.log('Updated team display to:', teamName);
+    } else {
+      currentTeamDisplay.textContent = 'No team information available';
+      console.log('No team info available for display');
+    }
+  }
+  
+  // Update option descriptions based on context
+  updateClearOptionDescriptions();
+  
+  // Set default selection and update preview
+  const isMultiTeam = state.multiTeamEnabled && state.allTeams?.length > 1;
+  const defaultOption = isMultiTeam ? 'currentTeam' : 'allTeams';
+  console.log('Setting default option to:', defaultOption, '(multi-team:', isMultiTeam, ')');
+  
+  const defaultRadio = document.getElementById(`clear-${defaultOption.replace('Teams', '-teams')}`);
+  if (defaultRadio) {
+    defaultRadio.checked = true;
+    updateClearDataPreview(defaultRadio.value);
+    console.log('Set default radio to:', defaultRadio.value);
+  }
+  
+  // Show/hide multi-team specific options
+  const currentTeamOption = document.querySelector('.clear-option:has(#clear-current-team)');
+  if (currentTeamOption) {
+    if (isMultiTeam) {
+      currentTeamOption.style.display = 'block';
+      console.log('Showing current team option for multi-team mode');
+    } else {
+      currentTeamOption.style.display = 'none';
+      console.log('Hiding current team option for single-team mode');
+    }
+  }
+}
+
+// Update clear option descriptions based on current context
+function updateClearOptionDescriptions() {
+  const currentTeamDesc = document.getElementById('clear-current-team-description');
+  const allTeamsDesc = document.getElementById('clear-all-teams-description');
+  
+  const currentTeamName = state.currentTeamInfo?.schoolName || 'Current Team';
+  const recruitCount = state.recruits?.length || 0;
+  const totalTeams = state.allTeams?.length || 1;
+  
+  if (currentTeamDesc) {
+    currentTeamDesc.textContent = `Clear recruit data for ${currentTeamName} only (${recruitCount} recruits). Other teams will remain unchanged.`;
+  }
+  
+  if (allTeamsDesc) {
+    if (state.multiTeamEnabled && totalTeams > 1) {
+      allTeamsDesc.textContent = `Clear recruit data for ALL ${totalTeams} teams. Team configurations and role ratings will be preserved.`;
+    } else {
+      allTeamsDesc.textContent = 'Clear all recruit data, season number, and configuration. Role ratings will be preserved.';
+    }
+  }
+}
+
+// Setup clear data modal event listeners
+function setupClearDataModalListeners() {
+  const modal = document.getElementById('clear-data-modal');
+  if (!modal) return;
+  
+  console.log('Setting up clear data modal listeners...');
+  
+  // Close button
+  const closeBtn = document.getElementById('clear-data-modal-close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeClearDataModal);
+    console.log('Added close button listener');
+  }
+  
+  // Cancel button
+  const cancelBtn = document.getElementById('clear-data-cancel');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', closeClearDataModal);
+    console.log('Added cancel button listener');
+  }
+  
+  // Confirm button
+  const confirmBtn = document.getElementById('clear-data-confirm');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', handleClearDataConfirm);
+    console.log('Added confirm button listener');
+  }
+  
+  // Radio button changes
+  const radioButtons = modal.querySelectorAll('input[name="clearScope"]');
+  console.log('Found radio buttons:', radioButtons.length);
+  radioButtons.forEach(radio => {
+    radio.addEventListener('change', (event) => {
+      if (event.target.checked) {
+        console.log('Radio changed to:', event.target.value);
+        updateClearDataPreview(event.target.value);
+      }
+    });
+  });
+  
+  // Close on backdrop click
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      closeClearDataModal();
+    }
+  });
+  
+  console.log('Clear data modal listeners setup complete');
+}
+
+// Update clear data impact preview
+function updateClearDataPreview(option) {
+  const impactText = document.getElementById('clear-impact-text');
+  if (!impactText) return;
+  
+  const currentTeamName = state.currentTeamInfo?.schoolName || 'Current Team';
+  const recruitCount = state.recruits?.length || 0;
+  const totalTeams = state.allTeams?.length || 1;
+  
+  let message = '';
+  
+  console.log('Updating preview for option:', option);
+  
+  switch (option) {
+    case 'currentTeam':
+      message = `This will permanently delete all recruit data for ${currentTeamName}. `;
+      message += `Approximately ${recruitCount} recruits will be removed. `;
+      if (totalTeams > 1) {
+        message += `Data for your other ${totalTeams - 1} team(s) will remain unchanged.`;
+      }
+      break;
+      
+    case 'allTeams':
+      if (state.multiTeamEnabled && totalTeams > 1) {
+        message = `This will permanently delete ALL recruit data across all ${totalTeams} teams. `;
+        message += `All team recruits, watchlists, and season configurations will be lost. `;
+        message += `Role ratings and extension settings will be preserved.`;
+      } else {
+        message = `This will permanently delete ALL recruit data. `;
+        message += `All recruits, watchlist, and season configuration will be lost. `;
+        message += `Role ratings and extension settings will be preserved.`;
+      }
+      break;
+      
+    default:
+      message = 'Please select an option to see the impact.';
+  }
+  
+  impactText.textContent = message;
+  console.log('Updated preview text:', message);
+}
+
+// Close clear data modal
+function closeClearDataModal() {
+  const modal = document.getElementById('clear-data-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    console.log('Clear data modal closed');
+  }
+}
+
+// Handle clear data confirmation
+async function handleClearDataConfirm() {
+  const modal = document.getElementById('clear-data-modal');
+  if (!modal) return;
+  
+  const selectedOption = modal.querySelector('input[name="clearScope"]:checked');
+  if (!selectedOption) {
+    setStatusMessage('Please select an option', 'warning');
+    return;
+  }
+  
+  const option = selectedOption.value;
+  const confirmBtn = document.getElementById('clear-data-confirm');
+  
+  console.log('Confirming clear data with option:', option);
+  
+  // Get additional confirmation from user
+  const confirmationMessage = getConfirmationMessage(option);
+  if (!confirm(confirmationMessage)) {
+    console.log('User cancelled confirmation dialog');
+    return;
+  }
+  
+  try {
+    // Show loading state
+    modal.classList.add('loading');
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Processing...';
+    }
+    
+    switch (option) {
+      case 'currentTeam':
+        await handleClearCurrentTeam();
+        break;
+      case 'allTeams':
+        await handleClearAllTeams();
+        break;
+      default:
+        throw new Error('Invalid clear option selected');
+    }
+    
+  } catch (error) {
+    console.error('Error during clear operation:', error);
+    setStatusMessage(`Error: ${error.message}`, 'error');
+  } finally {
+    // Reset modal state
+    modal.classList.remove('loading');
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Clear Data';
+    }
+    closeClearDataModal();
+  }
+}
+
+// Get confirmation message for clear operation
+function getConfirmationMessage(option) {
+  const currentTeamName = state.currentTeamInfo?.schoolName || 'Current Team';
+  const recruitCount = state.recruits?.length || 0;
+  const totalTeams = state.allTeams?.length || 1;
+  
+  switch (option) {
+    case 'currentTeam':
+      return `Are you absolutely sure you want to clear all data for ${currentTeamName}?\n\n` +
+             `This will permanently delete:\n` +
+             `• ${recruitCount} recruits\n` +
+             `• Watchlist entries\n` +
+             `• Season configuration\n\n` +
+             `This action cannot be undone.`;
+      
+    case 'allTeams':
+      if (state.multiTeamEnabled && totalTeams > 1) {
+        return `Are you absolutely sure you want to clear ALL data for ALL ${totalTeams} teams?\n\n` +
+               `This will permanently delete:\n` +
+               `• All recruit data across all teams\n` +
+               `• All watchlist entries\n` +
+               `• All season configurations\n\n` +
+               `This action cannot be undone.`;
+      } else {
+        return `Are you absolutely sure you want to clear ALL extension data?\n\n` +
+               `This will permanently delete:\n` +
+               `• ${recruitCount} recruits\n` +
+               `• Watchlist entries\n` +
+               `• Season configuration\n\n` +
+               `This action cannot be undone.`;
+      }
+      
+    default:
+      return 'Are you sure you want to proceed with this action?';
+  }
+}
+
+// Handle clearing current team data only
+async function handleClearCurrentTeam() {
+  if (!state.currentTeamInfo) {
+    throw new Error('No current team available to clear');
+  }
+  
+  setStatusMessage('Clearing current team data...', 'info');
+  console.log('Clearing data for team:', state.currentTeamInfo.teamId);
+  
+  const response = await popupComms.sendMessageToBackground({
+    action: 'clearTeamData',
+    teamId: state.currentTeamInfo.teamId
+  });
+  
+  if (!response.success) {
+    throw new Error(response.error || 'Failed to clear team data');
+  }
+  
+  console.log('Team data cleared successfully:', response);
+  
+  // Reset local state for current team
+  state.recruits = [];
+  state.filtered_recruits = [];
+  state.current_page = 1;
+  
+  // Clear any cached statistics to force fresh dashboard data
+  state.last_data_refresh = null;
+  
+  // Update displays and force complete dashboard refresh
+  updateRecruitsList();
+  updatePaginationDisplay();
+  
+  // Force a complete dashboard refresh to ensure cleared metadata is reflected
+  setTimeout(async () => {
+    await refreshDashboardData();
+    // Also refresh team selector if in multi-team mode
+    if (state.multiTeamEnabled) {
+      updateTeamSelector();
+    }
+  }, 100);
+  
+  const successMessage = `${state.currentTeamInfo.schoolName} data cleared successfully`;
+  setStatusMessage(successMessage, 'success');
+  console.log(successMessage);
+}
+
+// Handle clearing all teams data
+async function handleClearAllTeams() {
+  setStatusMessage('Clearing all data...', 'info');
+  console.log('Clearing all data across all teams');
+  
+  const response = await popupComms.sendMessageToBackground({
+    action: 'clearAllData'
+  });
+  
+  if (!response.success) {
+    throw new Error(response.error || 'Failed to clear all data');
+  }
+  
+  console.log('All data cleared successfully:', response);
+  
+  // Reset local state
+  state.recruits = [];
+  state.filtered_recruits = [];
+  state.current_page = 1;
+  
+  // Clear team info if in multi-team mode
+  if (state.multiTeamEnabled) {
+    // Note: Don't clear allTeams and currentTeamInfo as the teams still exist,
+    // just their data has been cleared
+    console.log('Multi-team mode: teams still exist but data cleared');
+  }
+  
+  // Update displays
+  updateRecruitsList();
+  updatePaginationDisplay();
+  await refreshDashboardData();
+  
+  setStatusMessage('All data cleared successfully', 'success');
 }
 
 // Handle refresh all data functionality

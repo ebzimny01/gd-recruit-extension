@@ -490,6 +490,67 @@
           </div>
         </div>
 
+        <!-- Clear Data Modal -->
+        <div id="clear-data-modal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>Clear Data</h2>
+              <span class="close-button" id="clear-data-modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+              <div class="clear-data-warning">
+                <p><strong>⚠️ Warning:</strong> This action cannot be undone.</p>
+              </div>
+              
+              <div class="current-team-info">
+                <h4>Current Active Team:</h4>
+                <p id="clear-current-team-display">Loading...</p>
+              </div>
+
+              <div class="clear-options">
+                <h4>What would you like to clear?</h4>
+                
+                <div class="clear-option">
+                  <label class="radio-label">
+                    <input type="radio" name="clearScope" value="currentTeam" id="clear-current-team" checked />
+                    <span class="radio-label-text">
+                      <strong>Current Team Only</strong>
+                      <br />
+                      <small id="clear-current-team-description">Clear recruit data, season number, and last updated date for the active team only. Other teams will remain unchanged.</small>
+                    </span>
+                  </label>
+                </div>
+
+                <div class="clear-option">
+                  <label class="radio-label">
+                    <input type="radio" name="clearScope" value="allTeams" id="clear-all-teams" />
+                    <span class="radio-label-text">
+                      <strong>All Teams</strong>
+                      <br />
+                      <small id="clear-all-teams-description">Clear recruit data, season numbers, and last updated dates for ALL teams. Team configurations and role ratings will be preserved.</small>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="clear-impact-preview">
+                <h4>Impact Preview:</h4>
+                <div id="clear-impact-details">
+                  <p id="clear-impact-text">Loading impact assessment...</p>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button id="clear-data-confirm" class="action-btn danger">
+                Clear Data
+              </button>
+              <button id="clear-data-cancel" class="action-btn secondary">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
 

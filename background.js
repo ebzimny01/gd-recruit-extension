@@ -2,6 +2,7 @@
 // This script handles data processing and communication between content scripts and popup
 
 import { recruitStorage } from './lib/storage.js';
+import { multiTeamStorage } from './lib/multi-team-storage.js';
 import { 
   calculateRoleRating, 
   recalculateRoleRatings, 
@@ -13,6 +14,63 @@ import {
 
 // Configuration constants
 const SEASON_RECRUITING_URL_KEY = 'seasonRecruitingUrl';
+const TEAM_SPECIFIC_CONFIG_KEYS = ['currentSeason', 'lastUpdated', 'seasonRecruitingUrl', 'teamId', 'teamInfo', 'watchListCount'];
+
+// Helper function to save configuration with proper routing
+async function saveConfigSmart(key, value) {
+  if (TEAM_SPECIFIC_CONFIG_KEYS.includes(key)) {
+    // Use multi-team storage for team-specific data
+    try {
+      await multiTeamStorage.init();
+      if (multiTeamStorage.getCurrentTeamStorage()) {
+        await multiTeamStorage.saveConfig(key, value);
+        console.log(`Saved team-specific config via smart router: ${key}`);
+        return true;
+      } else {
+        // Fallback to legacy storage if no active team
+        await recruitStorage.saveConfig(key, value);
+        console.log(`Saved to legacy storage (no active team) via smart router: ${key}`);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error saving team-specific config via smart router:', error);
+      throw error;
+    }
+  } else {
+    // Use legacy storage for global configurations
+    await recruitStorage.saveConfig(key, value);
+    console.log(`Saved global config via smart router: ${key}`);
+    return true;
+  }
+}
+
+// Helper function to get configuration with proper routing
+async function getConfigSmart(key) {
+  if (TEAM_SPECIFIC_CONFIG_KEYS.includes(key)) {
+    // Use multi-team storage for team-specific data
+    try {
+      await multiTeamStorage.init();
+      if (multiTeamStorage.getCurrentTeamStorage()) {
+        const value = await multiTeamStorage.getConfig(key);
+        console.log(`Retrieved team-specific config via smart router: ${key} = ${value}`);
+        return value;
+      } else {
+        // Fallback to legacy storage if no active team
+        const value = await recruitStorage.getConfig(key);
+        console.log(`Retrieved from legacy storage (no active team) via smart router: ${key} = ${value}`);
+        return value;
+      }
+    } catch (error) {
+      console.error('Error getting team-specific config via smart router:', error);
+      throw error;
+    }
+  } else {
+    // Use legacy storage for global configurations
+    const value = await recruitStorage.getConfig(key);
+    console.log(`Retrieved global config via smart router: ${key} = ${value}`);
+    return value;
+  }
+}
 
 // Handle extension icon click - open popup as new tab for better user experience
 chrome.action.onClicked.addListener(async (tab) => {
@@ -315,7 +373,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       let seasonPromise = Promise.resolve();
       if (message.seasonNumber !== undefined && !isRefreshOnly) {
         console.log(`Setting current season to ${message.seasonNumber}`);
-        seasonPromise = recruitStorage.saveConfig('currentSeason', message.seasonNumber)
+        seasonPromise = saveConfigSmart('currentSeason', message.seasonNumber)
           .then(() => console.log('Season number saved successfully'))
           .catch(err => console.error('Error saving season number:', err));
       }      // Only proceed with team info AFTER season number is saved
@@ -333,7 +391,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           console.log('Using selected divisions:', selectedDivisions);
             // Store the URL for future refresh operations
           try {
-            await recruitStorage.saveConfig(SEASON_RECRUITING_URL_KEY, url);
+            await saveConfigSmart(SEASON_RECRUITING_URL_KEY, url);
             console.log('Stored recruiting URL for future refresh operations:', url);
           } catch (error) {
             console.error('Error storing recruiting URL:', error);
@@ -341,7 +399,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               } else if (isRefreshOnly) {
           // For refresh operations, try to use the stored URL first
           try {
-            const storedUrl = await recruitStorage.getConfig(SEASON_RECRUITING_URL_KEY);
+            const storedUrl = await getConfigSmart(SEASON_RECRUITING_URL_KEY);
             if (storedUrl) {
               url = storedUrl;
               console.log('✓ Using stored recruiting URL for refresh:', url);
@@ -490,35 +548,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         return true;
       }
 
-      // Save the scraped recruits
-      saveRecruits(message.recruits).then(async result => {
-        // Update last updated timestamp
-        await recruitStorage.saveConfig('lastUpdated', new Date().toISOString());
+  // Save the scraped recruits
+  saveRecruits(message.recruits).then(async result => {
+    // Update last updated timestamp
+    await recruitStorage.saveConfig('lastUpdated', new Date().toISOString());
 
-        // Notify any listeners (such as the sidebar) that scraping is complete
-        chrome.runtime.sendMessage({
-          action: 'scrapeComplete',
-          success: true,
-          count: result.count
-        });
+    // Update team counts after bulk operation (performance optimized)
+    try {
+      await multiTeamStorage.updateTeamCountsIfNeeded();
+      console.log('Team counts updated after bulk recruit save operation');
+    } catch (error) {
+      console.warn('Error updating team counts after bulk save:', error);
+    }
 
-        sendResponse({
-          success: true,
-          count: result.count
-        });
-      }).catch(error => {
-        console.error('Error saving scraped recruits:', error);
+    // Notify any listeners (such as the sidebar) that scraping is complete
+    chrome.runtime.sendMessage({
+      action: 'scrapeComplete',
+      success: true,
+      count: result.count
+    });
 
-        // Notify listeners of error
-        chrome.runtime.sendMessage({
-          action: 'scrapeComplete',
-          success: false,
-          error: error.message,
-          count: 0
-        });
+    sendResponse({
+      success: true,
+      count: result.count
+    });
+  }).catch(error => {
+    console.error('Error saving scraped recruits:', error);
 
-        sendResponse({ success: false, error: error.message });
-      });
+    // Notify listeners of error
+    chrome.runtime.sendMessage({
+      action: 'scrapeComplete',
+      success: false,
+      error: error.message,
+      count: 0
+    });
+
+    sendResponse({ success: false, error: error.message });
+  });
       return true; // Indicate asynchronous response
     case 'closeScraperTab':
       // Close the tab after the content script has received our response
@@ -580,25 +646,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } return true; // Indicate asynchronous response
 
     case 'getRecruits':
-      // Retrieve recruits from database
-      console.log('Getting all recruits from storage');
-      recruitStorage.getAllRecruits().then(recruits => {
-        sendResponse({ recruits });
-      }).catch(error => {
-        console.error('Error getting recruits:', error);
-        sendResponse({ error: error.message });
-      });
+      // Retrieve recruits from database using multi-team storage
+      console.log('Getting all recruits from multi-team storage');
+      (async () => {
+        try {
+          await multiTeamStorage.init();
+          const recruits = await multiTeamStorage.getAllRecruits();
+          sendResponse({ recruits });
+        } catch (error) {
+          console.error('Error getting recruits:', error);
+          sendResponse({ error: error.message });
+        }
+      })();
       return true; // Indicate asynchronous response
 
     case 'getStats':
-      // Get extension stats
+      // Get extension stats using multi-team storage
       console.log('Handling getStats request');
-      getStats().then(stats => {
-        sendResponse(stats);
-      }).catch(error => {
-        console.error('Error getting stats:', error);
-        sendResponse({ error: error.message });
-      });
+      (async () => {
+        try {
+          await multiTeamStorage.init();
+          
+          // Get current team info
+          const currentTeam = await multiTeamStorage.getCurrentTeam();
+          
+          if (currentTeam) {
+            // Get team-specific stats
+            const stats = await multiTeamStorage.getTeamStats(currentTeam.teamId);
+            sendResponse(stats);
+          } else {
+            // Fallback to legacy storage if no active team
+            const stats = await getStats();
+            sendResponse(stats);
+          }
+        } catch (error) {
+          console.error('Error getting stats:', error);
+          sendResponse({ error: error.message });
+        }
+      })();
       return true; // Indicate asynchronous response
     case 'clearAllData':
       // Clear all extension data
@@ -627,29 +712,78 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true; // Indicate asynchronous response
 
     case 'saveConfig':
-      // Save configuration setting
+      // Save configuration setting - use appropriate storage based on data type
       console.log(`Saving config: ${message.key} = ${message.value}`);
-      recruitStorage.saveConfig(message.key, message.value)
-        .then(() => {
-          sendResponse({ success: true });
-        })
-        .catch(error => {
-          console.error('Error saving config:', error);
-          sendResponse({ success: false, error: error.message });
-        });
+      
+      if (TEAM_SPECIFIC_CONFIG_KEYS.includes(message.key)) {
+        // Use multi-team storage for team-specific data
+        (async () => {
+          try {
+            await multiTeamStorage.init();
+            if (multiTeamStorage.getCurrentTeamStorage()) {
+              await multiTeamStorage.saveConfig(message.key, message.value);
+              console.log(`Saved team-specific config: ${message.key}`);
+              sendResponse({ success: true });
+            } else {
+              // Fallback to legacy storage if no active team
+              await recruitStorage.saveConfig(message.key, message.value);
+              console.log(`Saved to legacy storage (no active team): ${message.key}`);
+              sendResponse({ success: true });
+            }
+          } catch (error) {
+            console.error('Error saving team-specific config:', error);
+            sendResponse({ success: false, error: error.message });
+          }
+        })();
+      } else {
+        // Use legacy storage for global configurations
+        recruitStorage.saveConfig(message.key, message.value)
+          .then(() => {
+            sendResponse({ success: true });
+          })
+          .catch(error => {
+            console.error('Error saving config:', error);
+            sendResponse({ success: false, error: error.message });
+          });
+      }
       return true; // Indicate asynchronous response    
+    
     case 'getConfig':
-      // Get configuration setting
+      // Get configuration setting - use appropriate storage based on data type
       console.log(`Getting config: ${message.key}`);
-      recruitStorage.getConfig(message.key)
-        .then(value => {
-          sendResponse({ success: true, value });
-        })
-        .catch(error => {
-          console.error('Error getting config:', error);
-          sendResponse({ success: false, error: error.message });
-        });
-      return true; // Indicate asynchronous response      
+      
+      if (TEAM_SPECIFIC_CONFIG_KEYS.includes(message.key)) {
+        // Use multi-team storage for team-specific data
+        (async () => {
+          try {
+            await multiTeamStorage.init();
+            if (multiTeamStorage.getCurrentTeamStorage()) {
+              const value = await multiTeamStorage.getConfig(message.key);
+              console.log(`Retrieved team-specific config: ${message.key} = ${value}`);
+              sendResponse({ success: true, value });
+            } else {
+              // Fallback to legacy storage if no active team
+              const value = await recruitStorage.getConfig(message.key);
+              console.log(`Retrieved from legacy storage (no active team): ${message.key} = ${value}`);
+              sendResponse({ success: true, value });
+            }
+          } catch (error) {
+            console.error('Error getting team-specific config:', error);
+            sendResponse({ success: false, error: error.message });
+          }
+        })();
+      } else {
+        // Use legacy storage for global configurations
+        recruitStorage.getConfig(message.key)
+          .then(value => {
+            sendResponse({ success: true, value });
+          })
+          .catch(error => {
+            console.error('Error getting config:', error);
+            sendResponse({ success: false, error: error.message });
+          });
+      }
+      return true; // Indicate asynchronous response
     case 'getRoleRatings':
       // Get current role ratings for editing
       console.log('Getting current role ratings');
@@ -968,6 +1102,82 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       return true;
 
+    case 'checkTeamChanges':
+      // Check for team changes when popup gets focus
+      console.log('Checking for team changes on popup focus');
+      (async () => {
+        try {
+          // Get current cookie value
+          const cookie = await getWispersistedCookie();
+          
+          if (!cookie) {
+            sendResponse({ success: false, error: 'No wispersisted cookie found' });
+            return;
+          }
+          
+          // Get stored cookie value to compare
+          const storedCookieValue = await recruitStorage.getConfig('wispersistedCookie');
+          
+          // Check if cookie has changed
+          if (cookie.value !== storedCookieValue) {
+            console.log('🔄 Team change detected on popup focus');
+            console.log('Cookie changed from:', storedCookieValue, 'to:', cookie.value);
+            
+            // Update stored cookie
+            await recruitStorage.saveConfig('wispersistedCookie', cookie.value);
+            
+            // Extract team ID and get team info
+            const teamId = extractTeamIdFromCookie(cookie.value);
+            if (teamId) {
+              // Initialize multi-team storage and switch teams
+              await multiTeamStorage.init();
+              
+              // Get team info from GDR data
+              const gdrData = await loadGdrData();
+              const teamInfo = gdrData.find(team => team.wis_id === teamId);
+              
+              const teamData = teamInfo ? {
+                teamId,
+                division: teamInfo.division,
+                world: teamInfo.world,
+                schoolLong: teamInfo.school_long,
+                schoolShort: teamInfo.school_short,
+                conference: teamInfo.conference
+              } : { teamId, division: null, world: null };
+              
+              // Switch to the new team in multi-team storage
+              await multiTeamStorage.setActiveTeam(teamId, teamData);
+              
+              console.log('✅ Team switched successfully:', teamData);
+              
+              sendResponse({ 
+                success: true, 
+                changed: true, 
+                teamInfo: teamData,
+                message: 'Team changed detected and updated'
+              });
+            } else {
+              sendResponse({ 
+                success: false, 
+                error: 'Could not extract team ID from cookie' 
+              });
+            }
+          } else {
+            // No change detected
+            console.log('No team change detected on popup focus');
+            sendResponse({ 
+              success: true, 
+              changed: false,
+              message: 'No team change detected'
+            });
+          }
+        } catch (error) {
+          console.error('Error checking for team changes:', error);
+          sendResponse({ success: false, error: error.message });
+        }
+      })();
+      return true;
+
     default:
       console.warn('Unknown message action:', message.action);
       sendResponse({ success: false, error: `Unknown action: ${message.action}` });
@@ -975,9 +1185,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Save recruit data to storage
+// Save recruit data to storage using multi-team storage
 async function saveRecruits(recruits) {
-  console.log(`Saving ${recruits.length} recruits to storage`);
+  console.log(`Saving ${recruits.length} recruits to multi-team storage`);
+
+  // Initialize multi-team storage if needed
+  await multiTeamStorage.init();
+
+  // Ensure we have an active team context
+  if (!multiTeamStorage.getCurrentTeamId()) {
+    console.log('No active team found, attempting to establish team context from cookies');
+    
+    try {
+      // Get team info from cookies to establish context
+      const teamInfo = await getTeamInfoFromCookies();
+      if (teamInfo?.teamId) {
+        console.log(`Setting active team to ${teamInfo.teamId} before saving recruits`);
+        await multiTeamStorage.setActiveTeam(teamInfo.teamId, teamInfo);
+      } else {
+        console.warn('No team context available, falling back to legacy storage for recruit saving');
+        // Fall back to legacy storage if no team context can be established
+        return await saveRecruitsLegacy(recruits);
+      }
+    } catch (error) {
+      console.error('Error establishing team context, falling back to legacy storage:', error);
+      return await saveRecruitsLegacy(recruits);
+    }
+  }
 
   // Check if recruits is valid
   if (!Array.isArray(recruits)) {
@@ -997,7 +1231,7 @@ async function saveRecruits(recruits) {
   // Clear existing recruits first to avoid potential issues with duplicate IDs
   try {
     console.log('Clearing existing recruits before saving new ones');
-    await recruitStorage.clearAllRecruits();
+    await multiTeamStorage.clearAllRecruits();
   } catch (error) {
     console.error('Error clearing existing recruits:', error);
     // Continue anyway to attempt saving new recruits
@@ -1031,15 +1265,17 @@ async function saveRecruits(recruits) {
     // Log some sample recruits for debugging
     if (i < 3 || i === recruits.length - 1) {
       console.log(`Recruit ${i}:`, JSON.stringify(recruit));
-    }    try {
+    }
+
+    try {
       // Calculate role ratings for the recruit
       const roleRatings = await calculateRoleRating(recruit);
       
       // Add role ratings to recruit
       Object.assign(recruit, roleRatings);
       
-      await recruitStorage.saveRecruit(recruit);
-      console.log(`Successfully saved recruit ${recruit.id} with role ratings`);
+      await multiTeamStorage.saveRecruit(recruit);
+      console.log(`Successfully saved recruit ${recruit.id} with role ratings to team ${multiTeamStorage.getCurrentTeamId()}`);
       results.success++;
     } catch (error) {
       console.error(`Error saving recruit ${recruit.id}:`, error);
@@ -1054,8 +1290,8 @@ async function saveRecruits(recruits) {
 
   // Verify storage
   try {
-    const savedRecruits = await recruitStorage.getAllRecruits();
-    console.log(`Verification: Found ${savedRecruits.length} recruits in storage after save operation`);
+    const savedRecruits = await multiTeamStorage.getAllRecruits();
+    console.log(`Verification: Found ${savedRecruits.length} recruits in team ${multiTeamStorage.getCurrentTeamId()} storage after save operation`);
 
     if (savedRecruits.length === 0 && results.success > 0) {
       console.error('Warning: Recruits were reportedly saved but none found in verification');
@@ -1065,6 +1301,85 @@ async function saveRecruits(recruits) {
   }
 
   console.log('Save operation completed with results:', results);
+
+  return {
+    count: results.success,
+    failed: results.failed,
+    total: results.total
+  };
+}
+
+// Legacy recruit saving function for fallback when no team context is available
+async function saveRecruitsLegacy(recruits) {
+  console.log(`Falling back to legacy storage for ${recruits.length} recruits`);
+
+  // Check if recruits is valid
+  if (!Array.isArray(recruits)) {
+    console.error('Invalid recruits data: not an array', recruits);
+    throw new Error('Invalid recruits data: not an array');
+  }
+
+  if (recruits.length === 0) {
+    console.warn('No recruits to save');
+    return { count: 0 };
+  }
+
+  // Clear existing recruits first
+  try {
+    console.log('Clearing existing recruits from legacy storage before saving new ones');
+    await recruitStorage.clearAllRecruits();
+  } catch (error) {
+    console.error('Error clearing existing recruits from legacy storage:', error);
+    // Continue anyway to attempt saving new recruits
+  }
+
+  // Save recruits one by one and collect results
+  const results = {
+    success: 0,
+    failed: 0,
+    total: recruits.length
+  };
+
+  for (let i = 0; i < recruits.length; i++) {
+    const recruit = recruits[i];
+
+    // Validate recruit object
+    if (!recruit || typeof recruit !== 'object') {
+      console.error(`Invalid recruit at index ${i}:`, recruit);
+      results.failed++;
+      continue;
+    }
+
+    // Make sure ID is a number
+    if (typeof recruit.id !== 'number' || isNaN(recruit.id) || recruit.id === 0) {
+      console.error(`Invalid recruit ID for index ${i}:`, recruit.id);
+      // Add a valid fallback ID to prevent storage issues
+      recruit.id = i + Date.now();
+      console.log(`Assigned fallback ID ${recruit.id} to recruit`, recruit.name);
+    }
+
+    try {
+      // Calculate role ratings for the recruit
+      const roleRatings = await calculateRoleRating(recruit);
+      
+      // Add role ratings to recruit
+      Object.assign(recruit, roleRatings);
+      
+      await recruitStorage.saveRecruit(recruit);
+      console.log(`Successfully saved recruit ${recruit.id} with role ratings to legacy storage`);
+      results.success++;
+    } catch (error) {
+      console.error(`Error saving recruit ${recruit.id} to legacy storage:`, error);
+      results.failed++;
+    }
+
+    // Log progress periodically
+    if (i % 50 === 0 || i === recruits.length - 1) {
+      console.log(`Legacy storage progress: ${i + 1}/${recruits.length} recruits processed`);
+    }
+  }
+
+  console.log('Legacy save operation completed with results:', results);
 
   return {
     count: results.success,
@@ -1566,7 +1881,7 @@ async function getTeamInfoFromCookies() {
         };
         
         // Save team info to storage
-        await recruitStorage.saveConfig('teamInfo', JSON.stringify(teamData));
+        await saveConfigSmart('teamInfo', JSON.stringify(teamData));
         
         return teamData;
       }
@@ -1827,15 +2142,267 @@ function broadcastDataUpdate(updateType, data = {}) {
 // Add these lines after your existing imports at the top
 console.log('GD Recruit Assistant extension loaded');
 
-// Cookie monitoring for wispersisted changes
-let lastKnownCookieValue = null;
+// Multi-team cookie monitoring system
+class TeamCookieMonitor {
+  constructor() {
+    this.currentTeamId = null;
+    this.lastKnownCookieValue = null;
+    this.pollInterval = 2000; // Check every 2 seconds
+    this.isMonitoring = false;
+    this.monitoringInterval = null;
+    this.consecutiveFailures = 0;
+    this.maxFailures = 5;
+  }
+  
+  async startMonitoring() {
+    if (this.isMonitoring) {
+      console.log('Team cookie monitoring already active');
+      return;
+    }
+    
+    console.log('Starting team cookie monitoring');
+    this.isMonitoring = true;
+    
+    // Initialize with stored cookie value
+    try {
+      const storedCookieValue = await recruitStorage.getConfig('wispersistedCookie');
+      this.lastKnownCookieValue = storedCookieValue;
+      
+      // If we have a stored cookie, try to extract team ID and set active team
+      if (storedCookieValue) {
+        const teamId = this.extractTeamIdFromCookie(storedCookieValue);
+        if (teamId) {
+          await this.initializeTeamFromCookie(teamId);
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing cookie monitoring:', error);
+    }
+    
+    // Start periodic monitoring
+    this.monitoringInterval = setInterval(() => {
+      this.checkTeamCookie().catch(error => {
+        console.error('Error in periodic cookie check:', error);
+      });
+    }, this.pollInterval);
+    
+    // Initial check
+    await this.checkTeamCookie();
+  }
+  
+  async checkTeamCookie() {
+    try {
+      const cookie = await chrome.cookies.get({
+        url: "https://whatifsports.com",
+        name: "wispersisted"
+      });
+      
+      const currentValue = cookie ? cookie.value : null;
+      
+      // Check if this is actually a change from our last known value
+      if (currentValue !== this.lastKnownCookieValue) {
+        console.log('Cookie value changed from:', this.lastKnownCookieValue, 'to:', currentValue);
+        
+        this.lastKnownCookieValue = currentValue;
+        await this.handleTeamChange(currentValue, !cookie);
+      }
+      
+      this.consecutiveFailures = 0;
+      
+    } catch (error) {
+      this.consecutiveFailures++;
+      console.warn(`Cookie check failed (attempt ${this.consecutiveFailures}):`, error);
+      
+      if (this.consecutiveFailures >= this.maxFailures) {
+        console.warn('Multiple cookie check failures, reducing monitoring frequency');
+        this.pollInterval = Math.min(this.pollInterval * 2, 10000); // Max 10 seconds
+        
+        // Update the interval
+        if (this.monitoringInterval) {
+          clearInterval(this.monitoringInterval);
+          this.monitoringInterval = setInterval(() => {
+            this.checkTeamCookie().catch(error => {
+              console.error('Error in periodic cookie check:', error);
+            });
+          }, this.pollInterval);
+        }
+      }
+    }
+  }
+  
+  async handleTeamChange(newCookieValue, wasRemoved) {
+    console.log('Handling team change via cookie monitoring');
+    
+    try {
+      if (wasRemoved || !newCookieValue) {
+        console.log('wispersisted cookie was removed or cleared');
+        
+        // Clear stored team information
+        await recruitStorage.saveConfig('wispersistedCookie', null);
+        await recruitStorage.saveConfig('teamInfo', null);
+        await recruitStorage.saveConfig('teamId', null);
+        
+        // Reset current team context
+        this.currentTeamId = null;
+        
+        // Broadcast team change to update UI
+        this.broadcastTeamChange(null);
+        return;
+      }
+      
+      // Store the new cookie value
+      await recruitStorage.saveConfig('wispersistedCookie', newCookieValue);
+      console.log('Saved new cookie value to storage');
+      
+      // Extract team ID from the new cookie
+      const teamId = this.extractTeamIdFromCookie(newCookieValue);
+      
+      if (teamId && teamId !== this.currentTeamId) {
+        console.log(`🔄 Team change detected: ${this.currentTeamId} → ${teamId}`);
+        
+        // Get team info for the new team
+        const teamInfo = await this.getTeamInfoForId(teamId);
+        
+        if (teamInfo) {
+          console.log('🎯 AUTO-ENABLING multi-team mode due to team switch');
+          
+          // Initialize multi-team storage if needed
+          try {
+            await multiTeamStorage.init();
+            console.log('Multi-team storage initialized successfully');
+          } catch (error) {
+            console.warn('Multi-team storage already initialized or error:', error);
+          }
+          
+          // Switch to the new team (this will trigger auto-enablement if multiple teams exist)
+          await multiTeamStorage.setActiveTeam(teamId, teamInfo);
+          this.currentTeamId = teamId;
+          
+          console.log('✅ Successfully switched to team:', teamInfo);
+          
+          // Verify multi-team mode status
+          const isMultiTeamEnabled = await multiTeamStorage.isMultiTeamMode();
+          console.log(`Multi-team mode after switch: ${isMultiTeamEnabled}`);
+          
+          // Broadcast the team change
+          this.broadcastTeamChange(teamInfo);
+        } else {
+          console.warn('Could not retrieve team information for new team ID');
+          this.broadcastTeamChange({ teamId, error: 'Team info not found' });
+        }
+      } else if (!teamId) {
+        console.warn('Could not extract team ID from new cookie value');
+        this.broadcastTeamChange({ error: 'Invalid cookie format' });
+      }
+      
+    } catch (error) {
+      console.error('Error handling team change:', error);
+      this.broadcastTeamChange({ error: error.message });
+    }
+  }
+  
+  async initializeTeamFromCookie(teamId) {
+    try {
+      console.log(`Initializing active team from stored cookie: ${teamId}`);
+      
+      const teamInfo = await this.getTeamInfoForId(teamId);
+      if (teamInfo) {
+        await multiTeamStorage.setActiveTeam(teamId, teamInfo);
+        this.currentTeamId = teamId;
+        console.log('Initialized active team successfully:', teamInfo);
+      }
+    } catch (error) {
+      console.warn('Could not initialize team from cookie:', error);
+    }
+  }
+  
+  async getTeamInfoForId(teamId) {
+    try {
+      // Get team info from GDR data
+      const gdrData = await loadGdrData();
+      const teamInfo = gdrData.find(team => team.wis_id === teamId);
+      
+      if (!teamInfo) {
+        console.log('Team not found in GDR data for ID:', teamId);
+        return { teamId, division: null, world: null };
+      }
+      
+      console.log(`Found team in GDR data: ${teamInfo.school_long}, Division: ${teamInfo.division}, World: ${teamInfo.world}`);
+      
+      const teamData = {
+        teamId,
+        division: teamInfo.division,
+        world: teamInfo.world,
+        schoolLong: teamInfo.school_long,
+        schoolShort: teamInfo.school_short,
+        conference: teamInfo.conference
+      };
+      
+      // Save team info to legacy storage for compatibility
+      await recruitStorage.saveConfig('teamInfo', JSON.stringify(teamData));
+      await recruitStorage.saveConfig('teamId', teamId);
+      
+      return teamData;
+    } catch (error) {
+      console.error('Error getting team info for ID:', teamId, error);
+      return null;
+    }
+  }
+  
+  extractTeamIdFromCookie(cookieValue) {
+    if (cookieValue && cookieValue.includes('gd_teamid=')) {
+      const match = cookieValue.match(/gd_teamid=(\d{5})\b/);
+      if (match && match[1]) {
+        const teamId = match[1];
+        console.log(`Extracted team ID from cookie: ${teamId}`);
+        return teamId;
+      }
+    }
+    console.log('Team ID not found in cookie value');
+    return null;
+  }
+  
+  broadcastTeamChange(teamInfo) {
+    const message = {
+      action: 'teamChanged',
+      teamInfo: teamInfo,
+      timestamp: Date.now()
+    };
+    
+    console.log('Broadcasting team change:', message);
+    
+    // Send to all extension contexts
+    chrome.runtime.sendMessage(message).catch(() => {
+      console.log('No active listeners for team change broadcast');
+    });
+  }
+  
+  stopMonitoring() {
+    console.log('Stopping team cookie monitoring');
+    this.isMonitoring = false;
+    
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+    }
+  }
+  
+  getCurrentTeamId() {
+    return this.currentTeamId;
+  }
+}
 
-// Initialize last known cookie value on startup
+// Create global team cookie monitor instance
+const teamCookieMonitor = new TeamCookieMonitor();
+
+// Enhanced startup listener with multi-team support
 chrome.runtime.onStartup.addListener(async () => {
+  console.log('Extension startup - initializing multi-team support');
+  
   // Run existing tab checking
   checkAllTabsForGDOffice();
   
-  // Also ensure defaults are initialized on startup
+  // Initialize defaults
   try {
     await initializeDefaultRatings();
     console.log('Default role ratings verified on startup');
@@ -1843,123 +2410,29 @@ chrome.runtime.onStartup.addListener(async () => {
     console.error('Error verifying default role ratings on startup:', error);
   }
   
-  // Initialize cookie monitoring
+  // Start team cookie monitoring
   try {
-    const storedCookieValue = await recruitStorage.getConfig('wispersistedCookie');
-    lastKnownCookieValue = storedCookieValue;
-    console.log('Initialized cookie monitoring with stored value');
+    await teamCookieMonitor.startMonitoring();
+    console.log('Team cookie monitoring started successfully');
   } catch (error) {
-    console.error('Error initializing cookie monitoring:', error);
+    console.error('Error starting team cookie monitoring:', error);
   }
 });
 
-// Listen for cookie changes
-chrome.cookies.onChanged.addListener(async (changeInfo) => {
-  // Only monitor wispersisted cookie changes on whatifsports.com
-  if (changeInfo.cookie.name === 'wispersisted' && 
-      changeInfo.cookie.domain.includes('whatifsports.com')) {
-    
-    console.log('wispersisted cookie changed:', changeInfo);
-    
-    const newCookieValue = changeInfo.removed ? null : changeInfo.cookie.value;
-    
-    // Check if this is actually a change from our last known value
-    if (newCookieValue !== lastKnownCookieValue) {
-      console.log('Cookie value changed from:', lastKnownCookieValue, 'to:', newCookieValue);
-      
-      // Update our tracking variable
-      lastKnownCookieValue = newCookieValue;
-      
-      // Handle the cookie change
-      await handleCookieChange(newCookieValue, changeInfo.removed);
-    }
+// Enhanced installation listener with multi-team support
+chrome.runtime.onInstalled.addListener(async () => {
+  console.log('Extension installed/updated - initializing multi-team support');
+  
+  // Start team cookie monitoring
+  try {
+    await teamCookieMonitor.startMonitoring();
+    console.log('Team cookie monitoring started successfully');
+  } catch (error) {
+    console.error('Error starting team cookie monitoring:', error);
   }
 });
 
-// Handler for cookie changes
-async function handleCookieChange(newCookieValue, wasRemoved) {
-  console.log('Handling wispersisted cookie change');
-  
-  try {
-    if (wasRemoved || !newCookieValue) {
-      console.log('wispersisted cookie was removed or cleared');
-      
-      // Clear stored team information
-      await recruitStorage.saveConfig('wispersistedCookie', null);
-      await recruitStorage.saveConfig('teamInfo', null);
-      await recruitStorage.saveConfig('teamId', null);
-      
-      // Broadcast team change to update UI
-      broadcastTeamChange(null);
-      return;
-    }
-    
-    // Store the new cookie value
-    await recruitStorage.saveConfig('wispersistedCookie', newCookieValue);
-    console.log('Saved new cookie value to storage');
-    
-    // Extract team ID from the new cookie
-    const teamId = extractTeamIdFromCookie(newCookieValue);
-    
-    if (teamId) {
-      console.log(`Extracted new team ID: ${teamId}`);
-      
-      // Get updated team information
-      const teamInfo = await getTeamInfoFromCookies();
-      
-      if (teamInfo) {
-        console.log('Updated team information:', teamInfo);
-        
-        // Broadcast the team change to all extension contexts
-        broadcastTeamChange(teamInfo);
-      } else {
-        console.warn('Could not retrieve team information for new team ID');
-        broadcastTeamChange({ teamId, error: 'Team info not found' });
-      }
-    } else {
-      console.warn('Could not extract team ID from new cookie value');
-      broadcastTeamChange({ error: 'Invalid cookie format' });
-    }
-    
-  } catch (error) {
-    console.error('Error handling cookie change:', error);
-    broadcastTeamChange({ error: error.message });
-  }
-}
-
-// Broadcast team change to all extension contexts
-function broadcastTeamChange(teamInfo) {
-  const message = {
-    action: 'teamChanged',
-    teamInfo: teamInfo,
-    timestamp: Date.now()
-  };
-  
-  console.log('Broadcasting team change:', message);
-  
-  // Send to all extension contexts (sidebar, popup, etc.)
-  chrome.runtime.sendMessage(message).catch(() => {
-    // Silently handle cases where no listeners are active
-    console.log('No active listeners for team change broadcast');
-  });
-}
-
-// Periodic cookie check as backup (every 30 seconds)
-setInterval(async () => {
-  try {
-    const currentCookie = await getWispersistedCookie();
-    const currentValue = currentCookie ? currentCookie.value : null;
-    
-    // Check if the cookie value has changed since last check
-    if (currentValue !== lastKnownCookieValue) {
-      console.log('Periodic check detected cookie change');
-      lastKnownCookieValue = currentValue;
-      await handleCookieChange(currentValue, !currentCookie);
-    }
-  } catch (error) {
-    console.error('Error in periodic cookie check:', error);
-  }
-}, 30000); // Check every 30 seconds
+// Note: Cookie monitoring is now handled by TeamCookieMonitor class above
 
 // Set up listener for GD Office page
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -2151,6 +2624,3 @@ async function logWatchlistStatus(label = "Current") {
     return -1;
   }
 }
-
-
-

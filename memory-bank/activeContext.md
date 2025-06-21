@@ -198,6 +198,10 @@ The `sidebar/` folder contains older implementation code that serves as referenc
     c. Need to store Last Updated date with each team DB.
     d. Need to store each watchlist count with each team DB.
     e. Need to store each recruit count with each team DB.
+    f. Role Rating Config should be global.
+    g. Attribute Styling should be global.
+    h. Column visibilty should be global.
+    i. The user will switch teams using the whatifsports.com Gridiron Dynasty website and the browser extension will listen and react. The user will not directly switch teams using the browser extension itself. The browser extension will monitor the whatifsports.com wispersisted cookie for changes and use it to identify the current active team.
 6. **Code Review**: Examine current implementation for optimization opportunities
 7. **Error Handling**: Ensure robust error recovery throughout the application
 8. **Performance Validation**: Verify performance targets are being met

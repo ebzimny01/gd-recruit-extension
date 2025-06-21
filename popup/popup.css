@@ -2546,3 +2546,124 @@ textarea:focus-visible {
     font-size: var(--font-size-xl);
   }
 }
+
+/* Team Selector Styles */
+.team-selector-container {
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  display: none; /* Hidden by default, shown when multi-team mode is enabled */
+}
+
+.team-selector-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.team-selector-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.team-selector {
+  flex: 1;
+  min-width: 200px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  background-color: var(--surface-color);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.team-selector:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.team-selector:hover {
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-light);
+}
+
+.team-selector:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: var(--background-color);
+}
+
+.team-selector-indicator {
+  font-size: var(--font-size-lg);
+  color: var(--primary-color);
+  flex-shrink: 0;
+  margin-left: var(--spacing-xs);
+}
+
+/* Team selector when active/selected */
+.team-selector-container.active {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+  border-color: var(--primary-color);
+}
+
+/* Responsive adjustments for team selector */
+@media (max-width: 768px) {
+  .team-selector-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .team-selector-label {
+    min-width: auto;
+    align-self: flex-start;
+  }
+  
+  .team-selector {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
+/* Status Message Styles */
+.status-message {
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin: 10px 0;
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.status-info {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+.status-success {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.status-warning {
+  background-color: #fff3e0;
+  color: #f57c00;
+  border: 1px solid #ffcc02;
+}
+
+.status-error {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}

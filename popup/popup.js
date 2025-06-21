@@ -5,6 +5,7 @@
 import { popupComms, sidebarComms } from './communications.js';
 import boldAttributesConfig from '../modules/bold-attributes-config.js';
 import { getFullVersionString } from '../lib/version.js';
+import { multiTeamStorage } from '../lib/multi-team-storage.js';
 
 // Configuration constants - snake_case for constants as per guidelines
 const POSITION_MAP = {
@@ -224,9 +225,12 @@ let state = {
   recruits: [],
   filtered_recruits: [],
   
-  // Team information
+  // Team information - enhanced for multi-team support
   currentTeamId: null,
+  currentTeamInfo: null,
   currentSeason: null,
+  multiTeamEnabled: false,
+  allTeams: [],
   
   // Pagination state
   current_page: 1,
@@ -523,6 +527,9 @@ async function initializePopup() {
     state.popup_lifecycle = 'initializing';
     setStatusMessage('Initializing extension...', 'info');
     
+    // Initialize multi-team storage system
+    await initializeMultiTeamSupport();
+    
     // Setup event listeners
     setupEventListeners();
     
@@ -555,6 +562,101 @@ async function initializePopup() {
     handleError(error, 'popup initialization');
     state.popup_lifecycle = 'error';
   }
+}
+
+// Initialize multi-team storage support
+async function initializeMultiTeamSupport() {
+  console.log('=== initializeMultiTeamSupport START ===');
+  
+  try {
+    console.log('Initializing multi-team storage support...');
+    
+    // Check if multiTeamStorage is available
+    if (!multiTeamStorage) {
+      console.error('multiTeamStorage module is not available!');
+      throw new Error('multiTeamStorage module not imported');
+    }
+    
+    console.log('multiTeamStorage module is available, calling init()...');
+    
+    // Initialize the multi-team storage system
+    await multiTeamStorage.init();
+    console.log('multiTeamStorage.init() completed successfully');
+    
+    // Check if multi-team mode is enabled
+    console.log('Checking if multi-team mode is enabled...');
+    state.multiTeamEnabled = await multiTeamStorage.isMultiTeamMode();
+    console.log('Multi-team mode enabled:', state.multiTeamEnabled);
+    
+    // 🎯 SAFETY NET: Auto-enable multi-team mode if multiple teams exist but mode is disabled
+    if (!state.multiTeamEnabled) {
+      console.log('Multi-team mode not enabled, checking if multiple teams exist...');
+      const allTeams = await multiTeamStorage.getAllTeams();
+      console.log(`Found ${allTeams.length} registered teams`);
+      
+      if (allTeams.length > 1) {
+        console.log('🎯 SAFETY NET: Multiple teams detected but multi-team mode disabled!');
+        console.log('Teams:', allTeams.map(t => `${t.teamId} (${t.schoolName})`).join(', '));
+        console.log('Auto-enabling multi-team mode...');
+        
+        const enableSuccess = await multiTeamStorage.setMultiTeamMode(true);
+        if (enableSuccess) {
+          state.multiTeamEnabled = true;
+          console.log('✅ SAFETY NET: Multi-team mode auto-enabled successfully');
+        } else {
+          console.error('❌ SAFETY NET: Failed to auto-enable multi-team mode');
+        }
+      }
+    }
+    
+    if (state.multiTeamEnabled) {
+      console.log('Multi-team mode is enabled, loading teams...');
+      
+      // Load all teams
+      state.allTeams = await multiTeamStorage.getAllTeams();
+      console.log('Loaded teams count:', state.allTeams ? state.allTeams.length : 0);
+      console.log('Loaded teams data:', state.allTeams);
+      
+      // Get current team
+      console.log('Getting current team...');
+      const currentTeam = await multiTeamStorage.getCurrentTeam();
+      console.log('Current team from storage:', currentTeam);
+      
+      if (currentTeam) {
+        state.currentTeamInfo = currentTeam;
+        state.currentTeamId = currentTeam.teamId;
+        console.log('✅ Current team set in state:');
+        console.log('  - Team ID:', state.currentTeamId);
+        console.log('  - Team Info:', state.currentTeamInfo);
+      } else {
+        console.log('⚠️ No current team found in storage');
+      }
+    } else {
+      console.log('Multi-team mode is disabled, skipping team loading');
+    }
+    
+    console.log('✅ Multi-team storage support initialized successfully');
+    console.log('Final state:');
+    console.log('  - multiTeamEnabled:', state.multiTeamEnabled);
+    console.log('  - currentTeamId:', state.currentTeamId);
+    console.log('  - allTeams count:', state.allTeams ? state.allTeams.length : 0);
+    
+  } catch (error) {
+    console.error('❌ Error initializing multi-team support:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      cause: error.cause
+    });
+    
+    // Don't fail initialization if multi-team support fails
+    state.multiTeamEnabled = false;
+    state.allTeams = [];
+    console.log('Set fallback state - multiTeamEnabled: false, allTeams: []');
+  }
+  
+  console.log('=== initializeMultiTeamSupport END ===');
 }
 
 // Setup event listeners for all interactive elements
@@ -590,9 +692,24 @@ function setupPopupLifecycleListeners() {
   popupComms.handlePopupResize();
   
   // Listen for popup focus events
-  document.addEventListener('popup-focus', () => {
+  document.addEventListener('popup-focus', async () => {
+    console.log('=== POPUP-FOCUS EVENT RECEIVED ===');
+    console.log('Timestamp:', new Date().toISOString());
+    
     state.is_popup_focused = true;
-    refreshDataIfStale();  });
+    console.log('Set is_popup_focused to true');
+    
+    // Check for team changes when popup gains focus
+    console.log('Calling checkForTeamChanges()...');
+    await checkForTeamChanges();
+    console.log('checkForTeamChanges() completed');
+    
+    console.log('Calling refreshDataIfStale()...');
+    refreshDataIfStale();
+    console.log('refreshDataIfStale() completed');
+    
+    console.log('=== POPUP-FOCUS EVENT HANDLING COMPLETED ===');
+  });
   
   document.addEventListener('popup-blur', () => {
     state.is_popup_focused = false;
@@ -913,6 +1030,103 @@ function handlePopupResize(dimensions) {
     // Log error but don't propagate it to prevent cascades
     console.warn('Non-critical error in handlePopupResize:', error);
   }
+}
+
+// Check for team changes when popup gains focus
+async function checkForTeamChanges() {
+  console.log('=== checkForTeamChanges START ===');
+  
+  try {
+    // Debug: Check initial state
+    console.log('Multi-team enabled:', state.multiTeamEnabled);
+    console.log('Current state.currentTeamId:', state.currentTeamId);
+    console.log('Current state.currentTeamInfo:', state.currentTeamInfo);
+    
+    // Only check for team changes if multi-team mode is enabled
+    if (!state.multiTeamEnabled) {
+      console.log('Multi-team mode not enabled, skipping team change check');
+      return;
+    }
+
+    console.log('Multi-team mode enabled, checking for team changes...');
+    
+    // Debug: Check if multiTeamStorage is available
+    if (!multiTeamStorage) {
+      console.error('multiTeamStorage is not available!');
+      return;
+    }
+    
+    console.log('multiTeamStorage is available, calling getCurrentTeam()...');
+    
+    // Get the current team from multi-team storage
+    const currentTeam = await multiTeamStorage.getCurrentTeam();
+    
+    console.log('getCurrentTeam() result:', currentTeam);
+    
+    if (!currentTeam) {
+      console.log('No current team found in storage - this might be normal for single-team users');
+      return;
+    }
+    
+    // Check if the team has changed
+    const currentTeamId = currentTeam.teamId;
+    const storedTeamId = state.currentTeamId;
+    
+    console.log('Team comparison:');
+    console.log('  Storage team ID:', currentTeamId);
+    console.log('  State team ID:', storedTeamId);
+    console.log('  Are they equal?', currentTeamId === storedTeamId);
+    
+    if (currentTeamId !== storedTeamId) {
+      console.log(`🔄 TEAM CHANGE DETECTED: "${storedTeamId}" -> "${currentTeamId}"`);
+      console.log('Previous team info:', state.currentTeamInfo);
+      console.log('New team info:', currentTeam);
+      
+      // Update state with new team info
+      state.currentTeamInfo = currentTeam;
+      state.currentTeamId = currentTeamId;
+      
+      console.log('Updated state with new team info');
+      console.log('New state.currentTeamId:', state.currentTeamId);
+      console.log('New state.currentTeamInfo:', state.currentTeamInfo);
+      
+      // Clear current data to force refresh
+      const oldRecruitsCount = state.recruits.length;
+      state.recruits = [];
+      state.filtered_recruits = [];
+      state.current_page = 1;
+      
+      console.log(`Cleared ${oldRecruitsCount} recruits from state, reset pagination`);
+      
+      // Update team selector if visible
+      console.log('Calling updateTeamSelector()...');
+      updateTeamSelector();
+      
+      // Refresh all data for the new team
+      const statusMessage = `Switched to ${currentTeam.schoolName}`;
+      console.log('Setting status message:', statusMessage);
+      setStatusMessage(statusMessage, 'info');
+      
+      console.log('Calling loadInitialData() for new team...');
+      await loadInitialData();
+      
+      console.log('✅ Team change handling completed successfully');
+    } else {
+      console.log('✅ No team change detected - teams match');
+    }
+    
+  } catch (error) {
+    console.error('❌ Error in checkForTeamChanges:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      cause: error.cause
+    });
+    // Don't throw error to prevent popup initialization issues
+  }
+  
+  console.log('=== checkForTeamChanges END ===');
 }
 
 // Check if data needs refreshing
@@ -1244,9 +1458,21 @@ async function handleSeasonConfirm() {
 // Refresh dashboard data from background script
 async function refreshDashboardData() {
   try {
-    const response = await popupComms.sendMessageToBackground({
-      action: 'getStats'
-    });
+    let response;
+    
+    if (state.multiTeamEnabled && state.currentTeamInfo) {
+      // Use multi-team storage for team-specific data
+      response = await multiTeamStorage.getTeamStats(state.currentTeamInfo.teamId);
+      
+      // Add team info to response
+      response.teamInfo = state.currentTeamInfo;
+      response.schoolName = state.currentTeamInfo.schoolName;
+    } else {
+      // Use legacy single-team method
+      response = await popupComms.sendMessageToBackground({
+        action: 'getStats'
+      });
+    }
     
     if (response.error) {
       throw new Error(response.error);
@@ -1320,6 +1546,148 @@ function updateSchoolNameDisplay(schoolName, teamInfo) {
   
   if (elements.dashboard_school_name) {
     elements.dashboard_school_name.textContent = displayName;
+  }
+}
+
+// Update team selector display based on multi-team mode
+function updateTeamSelector() {
+  // Check if we need to show/hide team selector
+  const teamSelectorContainer = document.getElementById('team-selector-container');
+  
+  if (!state.multiTeamEnabled || state.allTeams.length <= 1) {
+    // Hide team selector if not in multi-team mode or only one team
+    if (teamSelectorContainer) {
+      teamSelectorContainer.style.display = 'none';
+    }
+    return;
+  }
+  
+  // Show team selector for multi-team mode
+  if (teamSelectorContainer) {
+    teamSelectorContainer.style.display = 'block';
+    populateTeamSelector();
+  } else {
+    // Create team selector if it doesn't exist
+    createTeamSelector();
+  }
+}
+
+// Create team selector UI component
+function createTeamSelector() {
+  const dashboardSection = document.getElementById('dashboard-section');
+  if (!dashboardSection) {
+    console.warn('Dashboard section not found for team selector');
+    return;
+  }
+  
+  // Create team selector container
+  const container = document.createElement('div');
+  container.id = 'team-selector-container';
+  container.className = 'team-selector-container';
+  
+  // Create team selector HTML
+  container.innerHTML = `
+    <div class="team-selector-wrapper">
+      <label for="team-selector" class="team-selector-label">Current Team:</label>
+      <select id="team-selector" class="team-selector">
+        <option value="">Loading teams...</option>
+      </select>
+      <span class="team-selector-indicator">🏈</span>
+    </div>
+  `;
+  
+  // Insert after the school name display
+  const schoolDisplay = dashboardSection.querySelector('.school-info');
+  if (schoolDisplay) {
+    schoolDisplay.parentNode.insertBefore(container, schoolDisplay.nextSibling);
+  } else {
+    // Insert at the beginning of dashboard if school display not found
+    dashboardSection.insertBefore(container, dashboardSection.firstChild);
+  }
+  
+  // Setup event listener
+  const selector = container.querySelector('#team-selector');
+  if (selector) {
+    selector.addEventListener('change', handleTeamSelectorChange);
+  }
+  
+  // Populate with teams
+  populateTeamSelector();
+}
+
+// Populate team selector with available teams
+function populateTeamSelector() {
+  const selector = document.getElementById('team-selector');
+  if (!selector) return;
+  
+  // Clear existing options
+  selector.innerHTML = '';
+  
+  if (!state.allTeams || state.allTeams.length === 0) {
+    selector.innerHTML = '<option value="">No teams available</option>';
+    selector.disabled = true;
+    return;
+  }
+  
+  // Add teams to selector
+  state.allTeams.forEach(team => {
+    const option = document.createElement('option');
+    option.value = team.teamId;
+    option.textContent = `${team.schoolName} (${team.division || 'Unknown'})`;
+    
+    // Mark current team as selected
+    if (state.currentTeamInfo && team.teamId === state.currentTeamInfo.teamId) {
+      option.selected = true;
+    }
+    
+    selector.appendChild(option);
+  });
+  
+  selector.disabled = false;
+}
+
+// Handle team selector change
+async function handleTeamSelectorChange(event) {
+  const selectedTeamId = event.target.value;
+  
+  if (!selectedTeamId || selectedTeamId === state.currentTeamId) {
+    return; // No change or invalid selection
+  }
+  
+  try {
+    setStatusMessage('Switching teams...', 'info');
+    
+    // Find the selected team info
+    const selectedTeam = state.allTeams.find(team => team.teamId === selectedTeamId);
+    if (!selectedTeam) {
+      throw new Error('Selected team not found');
+    }
+    
+    // Update current team in multi-team storage
+    await multiTeamStorage.setCurrentTeam(selectedTeamId);
+    
+    // Update local state
+    state.currentTeamInfo = selectedTeam;
+    state.currentTeamId = selectedTeamId;
+    
+    // Clear current data to force refresh
+    state.recruits = [];
+    state.filtered_recruits = [];
+    state.current_page = 1;
+    
+    // Refresh all data for the new team
+    await loadInitialData();
+    
+    setStatusMessage(`Switched to ${selectedTeam.schoolName}`, 'success');
+    
+  } catch (error) {
+    console.error('Error switching teams:', error);
+    setStatusMessage(`Error switching teams: ${error.message}`, 'error');
+    
+    // Revert selector to current team
+    if (state.currentTeamInfo) {
+      event.target.value = state.currentTeamInfo.teamId;
+    }
   }
 }
 
@@ -3596,16 +3964,28 @@ async function loadRecruitsData() {
     console.log('Initial state.recruits length:', state.recruits ? state.recruits.length : 'undefined');
     
     // Load recruits and page size preference in parallel
-    console.log('Sending getRecruits message to background...');
-    const [recruitsResponse] = await Promise.all([
-      popupComms.sendMessageToBackground({ action: 'getRecruits' }),
-      loadPageSizePreference()
-    ]);
+    console.log('Loading recruits data...');
     
-    console.log('Received response from background:', recruitsResponse);
+    let recruitsResponse;
+    
+    if (state.multiTeamEnabled && state.currentTeamInfo) {
+      // Use multi-team storage for team-specific recruit data
+      console.log('Using multi-team storage for recruits...');
+      recruitsResponse = {
+        recruits: await multiTeamStorage.getTeamRecruits(state.currentTeamInfo.teamId)
+      };
+    } else {
+      // Use legacy single-team method
+      console.log('Sending getRecruits message to background...');
+      recruitsResponse = await popupComms.sendMessageToBackground({ action: 'getRecruits' });
+    }
+    
+    await loadPageSizePreference();
+    
+    console.log('Received response:', recruitsResponse);
     
     if (recruitsResponse.error) {
-      console.error('Background returned error:', recruitsResponse.error);
+      console.error('Error in recruits response:', recruitsResponse.error);
       throw new Error(recruitsResponse.error);
     }
     
@@ -5213,7 +5593,53 @@ function applyColumnOrderToTable() {
 }
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', initializePopup);
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('GD Recruit Assistant popup loaded');
+  
+  try {
+    // Initialize the popup
+    await initializePopup();
+    
+  } catch (error) {
+    console.error('Failed to initialize popup:', error);
+    setStatusMessage('Failed to initialize extension popup. Please try refreshing the page.', 'error');
+  }
+});
+
+// Listen for popup focus events to check for team changes
+window.addEventListener('focus', async () => {
+  console.log('=== POPUP FOCUS EVENT RECEIVED ===');
+  console.log('Timestamp:', new Date().toISOString());
+  
+  try {
+    // Send a message to background to check for team changes
+    const response = await popupComms.sendMessageToBackground({
+      action: 'checkTeamChanges'
+    });
+    
+    if (response.success && response.changed) {
+      console.log('🔄 Team change detected:', response.message);
+      
+      // Clear current data to force refresh
+      state.recruits = [];
+      state.filtered_recruits = [];
+      state.current_page = 1;
+      
+      // Update displays and reload data
+      await loadInitialData();
+      
+      setStatusMessage(response.message, 'info');
+    } else if (response.success) {
+      console.log('✅ No team change detected');
+    } else {
+      console.warn('Team change check failed:', response.error);
+    }
+  } catch (error) {
+    console.error('Error checking for team changes on focus:', error);
+  }
+  
+  console.log('=== POPUP FOCUS EVENT HANDLING COMPLETED ===');
+});
 
 // Handle popup unload
 window.addEventListener('beforeunload', () => {

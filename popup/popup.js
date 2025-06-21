@@ -879,7 +879,9 @@ function switchTab(tabId) {
     if (!targetSection) {
       console.warn(`Unknown tab: ${tabId}`);
       return;
-    }      // Update button states
+    }
+    
+    // Update button states
     if (elements.tab_buttons && Array.isArray(elements.tab_buttons) && elements.tab_buttons.length > 0) {
       elements.tab_buttons.forEach(btn => {
         if (btn && btn.classList) {
@@ -887,7 +889,7 @@ function switchTab(tabId) {
         }
       });
     } else {
-      console.warn('tab_buttons not properly initialized or empty');
+      console.warn('tab_buttons not available for tab switching');
     }
     
     // Update section visibility
@@ -898,43 +900,17 @@ function switchTab(tabId) {
         }
       });
     } else {
-      console.warn('tab_sections not properly initialized or empty');
+      console.warn('tab_sections not available for section switching');
     }
-      // Perform tab-specific initialization
-    if (targetSection === 'recruits-section') {
-      console.log('Switching to recruits section, refreshing display...');
-      try {
-        refreshRecruitsDisplay();
-        console.log('refreshRecruitsDisplay completed successfully');
-      } catch (error) {
-        console.error('Error in refreshRecruitsDisplay during tab switch:', error);
-        console.error('Error type:', typeof error, 'Error value:', error);
-        
-        if (error === null) {
-          console.error('CAUGHT NULL ERROR in refreshRecruitsDisplay!');
-        }
-        
-        // Don't propagate the error to prevent cascades
-        setStatusMessage(`Error loading recruits: ${error && error.message ? error.message : 'Unknown error'}`, 'error');
-      }
+    
+    // Perform tab-specific actions
+    if (tabId === 'tab-recruits') {
+      refreshRecruitsDisplay();
     }
     
   } catch (error) {
     console.error('Error in switchTab:', error);
-    handleError(error, 'switching tab');
-  }
-}
-
-// Load version information
-async function loadVersionInfo() {
-  try {
-    const versionString = await getFullVersionString();
-    const versionElement = document.getElementById('version-display');
-    if (versionElement) {
-      versionElement.textContent = versionString;
-    }
-  } catch (error) {
-    console.warn('Could not load version info:', error);
+    setStatusMessage(`Tab switch error: ${error.message || error}`, 'error');
   }
 }
 
@@ -967,6 +943,19 @@ async function loadSavedPreferences() {
     
   } catch (error) {
     console.warn('Could not load saved preferences:', error);
+  }
+}
+
+// Load version information and display it
+async function loadVersionInfo() {
+  try {
+    const version = await getFullVersionString();
+    const versionElement = document.getElementById('version-info');
+    if (versionElement) {
+      versionElement.textContent = `v${version}`;
+    }
+  } catch (error) {
+    console.warn('Could not load version info:', error);
   }
 }
 
@@ -2705,48 +2694,126 @@ function getConfirmationMessage(option) {
 
 // Handle clearing current team data only
 async function handleClearCurrentTeam() {
-  if (!state.currentTeamInfo) {
-    throw new Error('No current team available to clear');
-  }
+  console.log('=== handleClearCurrentTeam START ===');
+  console.log('Initial state:', {
+    multiTeamEnabled: state.multiTeamEnabled,
+    currentTeamInfo: state.currentTeamInfo,
+    currentTeamId: state.currentTeamId
+  });
   
   setStatusMessage('Clearing current team data...', 'info');
-  console.log('Clearing data for team:', state.currentTeamInfo.teamId);
+  
+  // Multi-team approach: get team info and use team-specific clearing
+  let currentTeamInfo = state.currentTeamInfo;
+  let teamId = state.currentTeamId;
+  
+  console.log('Getting team information...');
+  console.log('Initial values:', { currentTeamInfo, teamId });
+  
+  // Try to get from multi-team storage
+  if (!teamId && multiTeamStorage) {
+    try {
+      console.log('Trying to get current team from multiTeamStorage...');
+      const currentTeam = await multiTeamStorage.getCurrentTeam();
+      console.log('getCurrentTeam result:', currentTeam);
+      
+      if (currentTeam && currentTeam.teamId) {
+        teamId = currentTeam.teamId;
+        currentTeamInfo = currentTeam;
+        console.log('Got team info from multiTeamStorage:', { teamId, currentTeamInfo });
+      }
+    } catch (error) {
+      console.warn('Could not get team from multiTeamStorage:', error);
+    }
+  }
+  
+  // Try to get from dashboard elements if still no team info
+  if (!currentTeamInfo) {
+    console.log('Trying to get team info from dashboard elements...');
+    const schoolName = elements.school_name?.textContent || elements.dashboard_school_name?.textContent;
+    const division = elements.team_division?.textContent;
+    const world = elements.team_world?.textContent;
+    
+    console.log('Dashboard elements:', { schoolName, division, world });
+    
+    if (schoolName && schoolName !== 'Unknown School' && schoolName.trim() !== '') {
+      currentTeamInfo = {
+        schoolName: schoolName.trim(),
+        division: division?.trim() || 'Unknown',
+        world: world?.trim() || 'Unknown'
+      };
+      console.log('Created team info from dashboard:', currentTeamInfo);
+    }
+  }
+  
+  // For single-team mode OR when we can't identify the specific team,
+  // use the safer clearCurrentTeamOnly action that handles the logic in background
+  if (!state.multiTeamEnabled || !teamId) {
+    console.log('Using clearCurrentTeamOnly action for safer single-team clearing');
+    
+    const response = await popupComms.sendMessageToBackground({
+      action: 'clearCurrentTeamOnly'
+    });
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to clear current team data');
+    }
+    
+    console.log('Current team data cleared successfully:', response);
+    
+    // Reset local state
+    state.recruits = [];
+    state.filtered_recruits = [];
+    state.current_page = 1;
+    state.last_data_refresh = null;
+    
+    // Update displays
+    updateRecruitsList();
+    updatePaginationDisplay();
+    await refreshDashboardData();
+    
+    const teamName = currentTeamInfo?.schoolName || 'Current team';
+    setStatusMessage(`${teamName} data cleared successfully`, 'success');
+    console.log('=== handleClearCurrentTeam END (clearCurrentTeamOnly success) ===');
+    return;
+  }
+  
+  // Multi-team mode with specific team ID - use team-specific clearing
+  console.log('Using team-specific clear for teamId:', teamId);
   
   const response = await popupComms.sendMessageToBackground({
     action: 'clearTeamData',
-    teamId: state.currentTeamInfo.teamId
+    teamId: teamId
   });
   
   if (!response.success) {
     throw new Error(response.error || 'Failed to clear team data');
   }
   
-  console.log('Team data cleared successfully:', response);
+  console.log('Team-specific clear succeeded:', response);
   
   // Reset local state for current team
   state.recruits = [];
   state.filtered_recruits = [];
   state.current_page = 1;
-  
-  // Clear any cached statistics to force fresh dashboard data
   state.last_data_refresh = null;
   
-  // Update displays and force complete dashboard refresh
+  // Update displays
   updateRecruitsList();
   updatePaginationDisplay();
   
-  // Force a complete dashboard refresh to ensure cleared metadata is reflected
+  // Force a complete dashboard refresh
   setTimeout(async () => {
     await refreshDashboardData();
-    // Also refresh team selector if in multi-team mode
     if (state.multiTeamEnabled) {
       updateTeamSelector();
     }
   }, 100);
   
-  const successMessage = `${state.currentTeamInfo.schoolName} data cleared successfully`;
+  const teamName = currentTeamInfo?.schoolName || `Team ${teamId}`;
+  const successMessage = `${teamName} data cleared successfully`;
   setStatusMessage(successMessage, 'success');
-  console.log(successMessage);
+  console.log('=== handleClearCurrentTeam END (team-specific success) ===');
 }
 
 // Handle clearing all teams data
@@ -2781,7 +2848,29 @@ async function handleClearAllTeams() {
   updatePaginationDisplay();
   await refreshDashboardData();
   
-  setStatusMessage('All data cleared successfully', 'success');
+  // Provide detailed feedback about the clearing operation
+  const details = response.details;
+  let successMessage = 'All data cleared successfully';
+  
+  if (details && details.teamsProcessed > 1) {
+    // Multi-team scenario
+    if (details.successfulTeams === details.teamsProcessed) {
+      successMessage = `Data cleared successfully across all ${details.teamsProcessed} teams (${details.totalRecruitsClearedCount} total recruits removed)`;
+    } else {
+      successMessage = `Data cleared for ${details.successfulTeams} of ${details.teamsProcessed} teams (${details.totalRecruitsClearedCount} total recruits removed)`;
+    }
+  } else if (details && details.totalRecruitsClearedCount > 0) {
+    // Single team scenario
+    successMessage = `All data cleared successfully (${details.totalRecruitsClearedCount} recruits removed)`;
+  }
+  
+  // Show warning if there were any issues
+  if (response.warning) {
+    console.warn('Clear operation completed with warnings:', response.warning);
+    successMessage += ` (${response.warning})`;
+  }
+  
+  setStatusMessage(successMessage, 'success');
 }
 
 // Handle refresh all data functionality

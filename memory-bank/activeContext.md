@@ -313,4 +313,22 @@ The `sidebar/` folder contains older implementation code that serves as referenc
 
 **Status**: Clear team data functionality now works correctly with immediate dashboard updates. While not perfect, it resolves several critical issues and provides a solid foundation for further optimization.
 
+### Clear Team Data Action Handler Bug Fix ✅ (2025-06-21)
+**Critical Bug Resolved**: "Clear Current Team" option was incorrectly clearing all teams instead of just the current team
+**Root Cause**: Missing `clearCurrentTeamOnly` action handler in background.js causing fallback to `clearAllData`
+**User Impact**: Users risked accidentally losing data from multiple teams when intending to clear only their current team
+
+**Solution Implemented**:
+- **Added missing action handler** in background.js message listener for `clearCurrentTeamOnly` action
+- **Verified proper routing**:
+  - "Clear Current Team" → `clearCurrentTeamOnly` action → Only clears active team data
+  - "Clear All Teams" → `clearAllData` action → Clears all teams (as intended)
+- **Enhanced user safety** by preventing accidental data loss across multiple teams
+- **Preserved existing functionality** - `clearCurrentTeamOnly()` function was already implemented, just needed proper action routing
+
+**Files Modified**:
+- `background.js` - Added missing `clearCurrentTeamOnly` action handler in chrome.runtime.onMessage listener
+
+**Status**: Clear team data functionality now works correctly with proper single-team vs multi-team clearing distinction. Users can now safely clear individual team data without affecting other teams they manage.
+
 This context provides the foundation for continuing development work on the GD Recruit Assistant browser extension, with clear understanding of the current multi-team architecture, implemented features, and development patterns in use. The extension is now feature-complete for v0.3.0 with comprehensive multi-team support and proper data architecture.

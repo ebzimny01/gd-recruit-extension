@@ -351,4 +351,17 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
 - **Intelligent fallback** to single-team mode when only one team is registered
 - **Status**: Cross-team role ratings recalculation fully implemented, ensuring role rating consistency across all managed teams
 
+### 2025-06-21 - Clear Team Data Bug Fix Complete
+- **Fixed critical bug** where "Clear Current Team" option was incorrectly clearing all teams instead of just the current team
+- **Root cause identified**: Missing `clearCurrentTeamOnly` action handler in background.js causing fallback to `clearAllData`
+- **Added missing action handler** in background.js message listener for `clearCurrentTeamOnly` action
+- **Verified proper routing**:
+  - "Clear Current Team" → `clearCurrentTeamOnly` action → Only clears active team data
+  - "Clear All Teams" → `clearAllData` action → Clears all teams (as intended)
+- **Enhanced user safety** by preventing accidental data loss across multiple teams
+- **Preserved existing functionality** - `clearCurrentTeamOnly()` function was already implemented, just needed proper action routing
+- **Multi-team context handling** ensures only the currently active team's data is affected
+- **Proper error handling** with user-friendly error messages and fallback mechanisms
+- **Status**: Clear team data functionality now works correctly, users can safely clear individual team data without affecting other teams
+
 The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams.

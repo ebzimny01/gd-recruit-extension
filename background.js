@@ -730,6 +730,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         });
       return true; // Indicate asynchronous response
 
+    case 'clearCurrentTeamOnly':
+      // Clear data for current team only (new action for single-team clearing)
+      console.log('Handling clearCurrentTeamOnly request');
+      clearCurrentTeamOnly()
+        .then(result => {
+          sendResponse(result);
+        })
+        .catch(error => {
+          console.error('Error clearing current team data:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // Indicate asynchronous response
+
     case 'clearAllData':
       // Clear all extension data
       console.log('Handling clearAllData request');
@@ -1600,18 +1613,88 @@ async function importData(data) {
   return { recruitsImported: data.recruits.length };
 }
 
-// Clear all data with enhanced error handling
+// Clear all data with enhanced error handling - fixed for multi-team support
 async function clearAllData() {
-  console.log('Clearing all data - enhanced version');
+  console.log('Clearing all data across all teams - enhanced version');
 
   try {
-    // Clear recruits data first with retries
-    console.log('Starting recruit data clear operation...');
-    const clearResult = await multiTeamStorage.clearAllRecruits();
-    console.log('Clear recruits result:', clearResult);
-
-    if (!clearResult.success) {
-      console.warn('Warning during clear operation:', clearResult.warning);
+    // Initialize multi-team storage
+    await multiTeamStorage.init();
+    
+    // Get all registered teams
+    const allTeams = await multiTeamStorage.getAllTeams();
+    console.log(`Found ${allTeams.length} registered teams for data clearing`);
+    
+    // Store original team context to restore later
+    const originalTeamId = multiTeamStorage.getCurrentTeamId();
+    console.log('Original team context:', originalTeamId);
+    
+    // Track results for each team
+    const teamClearResults = [];
+    let totalRecruitsClearedCount = 0;
+    
+    if (allTeams.length === 0) {
+      console.log('No teams found, clearing current context only');
+      // Fallback: clear current team data if no teams in registry
+      const clearResult = await multiTeamStorage.clearAllRecruits();
+      console.log('Clear recruits result (no teams):', clearResult);
+      
+      return {
+        success: true,
+        warning: clearResult.warning || null,
+        details: {
+          recruitsCleared: clearResult.success,
+          teamsProcessed: 0,
+          configResults: []
+        }
+      };
+    }
+    
+    // Clear recruit data for each team
+    console.log('Starting recruit data clear operation for all teams...');
+    for (let i = 0; i < allTeams.length; i++) {
+      const team = allTeams[i];
+      
+      try {
+        console.log(`Processing team ${i + 1}/${allTeams.length}: ${team.schoolName || team.teamId}`);
+        
+        // Switch to this team's context
+        await multiTeamStorage.setActiveTeam(team.teamId, team);
+        
+        // Get recruit count before clearing for reporting
+        const recruits = await multiTeamStorage.getAllRecruits();
+        const recruitCount = recruits.length;
+        
+        // Clear recruits for this team
+        const clearResult = await multiTeamStorage.clearAllRecruits();
+        
+        teamClearResults.push({
+          teamId: team.teamId,
+          schoolName: team.schoolName || team.teamId,
+          recruitCount: recruitCount,
+          success: clearResult.success,
+          warning: clearResult.warning || null,
+          error: clearResult.error || null
+        });
+        
+        if (clearResult.success) {
+          totalRecruitsClearedCount += recruitCount;
+          console.log(`✅ Cleared ${recruitCount} recruits for team ${team.schoolName}`);
+        } else {
+          console.error(`❌ Failed to clear recruits for team ${team.schoolName}:`, clearResult.error);
+        }
+        
+      } catch (teamError) {
+        console.error(`Error processing team ${team.schoolName || team.teamId}:`, teamError);
+        teamClearResults.push({
+          teamId: team.teamId,
+          schoolName: team.schoolName || team.teamId,
+          recruitCount: 0,
+          success: false,
+          warning: null,
+          error: teamError.message
+        });
+      }
     }
     
     // Clear all team metadata across all teams
@@ -1627,34 +1710,64 @@ async function clearAllData() {
         error: metadataError.message 
       };
     }
-
-    // For compatibility, still create configResults array
+    
+    // Restore original team context if it exists and team still exists
+    if (originalTeamId) {
+      try {
+        const originalTeam = allTeams.find(team => team.teamId === originalTeamId);
+        if (originalTeam) {
+          await multiTeamStorage.setActiveTeam(originalTeamId, originalTeam);
+          console.log(`Restored original team context: ${originalTeamId}`);
+        } else {
+          console.log('Original team no longer exists, using first available team');
+          if (allTeams.length > 0) {
+            await multiTeamStorage.setActiveTeam(allTeams[0].teamId, allTeams[0]);
+          }
+        }
+      } catch (restoreError) {
+        console.warn('Error restoring original team context:', restoreError);
+      }
+    }
+    
+    // Analyze results
+    const successfulTeams = teamClearResults.filter(r => r.success);
+    const failedTeams = teamClearResults.filter(r => !r.success);
+    
+    // For compatibility, create configResults array
     const configResults = [{
       success: metadataClearResult.success,
       operation: 'all team metadata',
       error: metadataClearResult.error || null
     }];
-
-    // Check if any config operations failed
-    const failedConfigs = configResults.filter(r => !r.success);
     
-    let warningMessage = null;
-    if (failedConfigs.length > 0) {
-      warningMessage = `Some configuration settings could not be cleared: ${failedConfigs.map(f => f.operation).join(', ')}`;
-      console.warn(warningMessage);
+    // Generate summary messages
+    const teamWarnings = [];
+    if (failedTeams.length > 0) {
+      teamWarnings.push(`Failed to clear data for ${failedTeams.length} team(s): ${failedTeams.map(t => t.schoolName).join(', ')}`);
     }
-
-    // Combine warnings
-    const combinedWarning = [clearResult.warning, warningMessage].filter(Boolean).join('; ');
-
+    
+    if (!metadataClearResult.success) {
+      teamWarnings.push(`Failed to clear team metadata: ${metadataClearResult.error}`);
+    }
+    
+    const combinedWarning = teamWarnings.length > 0 ? teamWarnings.join('; ') : null;
+    
+    console.log(`Clear all data completed: ${successfulTeams.length}/${allTeams.length} teams successful, ${totalRecruitsClearedCount} total recruits cleared`);
+    
     return {
-      success: true,
-      warning: combinedWarning || null,
+      success: failedTeams.length === 0 && metadataClearResult.success,
+      warning: combinedWarning,
       details: {
-        recruitsCleared: clearResult.success,
+        recruitsCleared: successfulTeams.length > 0,
+        teamsProcessed: allTeams.length,
+        successfulTeams: successfulTeams.length,
+        failedTeams: failedTeams.length,
+        totalRecruitsClearedCount: totalRecruitsClearedCount,
+        teamResults: teamClearResults,
         configResults: configResults
       }
     };
+    
   } catch (error) {
     // Enhanced error handling with specific error types
     const errorMessage = error.message || 'Unknown error';
@@ -2694,6 +2807,130 @@ async function logWatchlistStatus(label = "Current") {
   } catch (error) {
     console.error("Error logging watchlist status:", error);
     return -1;
+  }
+}
+
+// Clear data for current team only (without affecting other teams)
+async function clearCurrentTeamOnly() {
+  console.log('Clearing data for current team only');
+
+  try {
+    // Initialize multi-team storage
+    await multiTeamStorage.init();
+
+    // Get current team info
+    const currentTeamId = multiTeamStorage.getCurrentTeamId();
+    
+    if (!currentTeamId) {
+      console.log('No current team context found, attempting to establish from cookies');
+      
+      // Try to get team info from cookies
+      const teamInfo = await getTeamInfoFromCookies();
+      if (teamInfo?.teamId) {
+        console.log(`Establishing team context ${teamInfo.teamId} for current team clear`);
+        await multiTeamStorage.setActiveTeam(teamInfo.teamId, teamInfo);
+      } else {
+        console.log('No team context available, using fallback single-team clear');
+        
+        // Fallback: just clear current storage context without multi-team logic
+        const clearResult = await multiTeamStorage.clearAllRecruits();
+        console.log('Fallback clear recruits result:', clearResult);
+        
+        // Clear basic metadata without affecting other teams
+        const metadataKeys = ['currentSeason', 'lastUpdated', 'seasonRecruitingUrl'];
+        const configResults = [];
+        
+        for (const key of metadataKeys) {
+          try {
+            await saveConfigSmart(key, null);
+            configResults.push({ success: true, operation: key });
+          } catch (error) {
+            console.error(`Error clearing ${key}:`, error);
+            configResults.push({ success: false, operation: key, error: error.message });
+          }
+        }
+        
+        return {
+          success: true,
+          warning: clearResult.warning || null,
+          details: {
+            recruitsCleared: clearResult.success,
+            configResults: configResults
+          }
+        };
+      }
+    }
+    
+    // Now we have a current team context, clear only this team
+    const currentTeam = await multiTeamStorage.getCurrentTeam();
+    console.log(`Clearing data for current team: ${currentTeam?.schoolName || currentTeamId}`);
+    
+    // Clear team-specific recruit data
+    const clearResult = await multiTeamStorage.clearAllRecruits();
+    console.log('Clear current team recruits result:', clearResult);
+
+    // Clear team-specific metadata for current team only
+    const teamStorage = multiTeamStorage.getCurrentTeamStorage();
+    
+    let metadataClearResult;
+    try {
+      console.log('Clearing current team metadata...');
+      metadataClearResult = await teamStorage.clearAllTeamMetadata();
+      console.log('Clear current team metadata result:', metadataClearResult);
+    } catch (metadataError) {
+      console.error('Error clearing current team metadata:', metadataError);
+      metadataClearResult = { 
+        success: false, 
+        error: metadataError.message 
+      };
+    }
+
+    // For compatibility, create configResults array
+    const configResults = [{
+      success: metadataClearResult.success,
+      operation: 'current team metadata',
+      error: metadataClearResult.error || null
+    }];
+
+    // Check if any config operations failed
+    const failedConfigs = configResults.filter(r => !r.success);
+    
+    let warningMessage = null;
+    if (failedConfigs.length > 0) {
+      warningMessage = `Some team configuration settings could not be cleared: ${failedConfigs.map(f => f.operation).join(', ')}`;
+      console.warn(warningMessage);
+    }
+
+    // Combine warnings
+    const combinedWarning = [clearResult.warning, warningMessage].filter(Boolean).join('; ');
+
+    return {
+      success: true,
+      teamId: currentTeamId,
+      teamName: currentTeam?.schoolName || currentTeamId,
+      warning: combinedWarning || null,
+      details: {
+        recruitsCleared: clearResult.success,
+        configResults: configResults
+      }
+    };
+
+  } catch (error) {
+    // Enhanced error handling with specific error types
+    const errorMessage = error.message || 'Unknown error';
+    console.error('Error in clearCurrentTeamOnly:', errorMessage, error);
+    
+    // Provide more specific error messages
+    let userFriendlyMessage = errorMessage;
+    if (errorMessage.includes('connection is closing')) {
+      userFriendlyMessage = 'Database connection issue. Please try again or restart the extension.';
+    } else if (errorMessage.includes('timeout')) {
+      userFriendlyMessage = 'Operation timed out. The database may be busy. Please try again.';
+    } else if (errorMessage.includes('transaction')) {
+      userFriendlyMessage = 'Database transaction failed. Please try again or check database status.';
+    }
+    
+    throw new Error(userFriendlyMessage);
   }
 }
 

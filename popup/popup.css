@@ -403,7 +403,6 @@ body {
 #recruits-table th {
   background: var(--background-color);
   padding: var(--spacing-sm) var(--spacing-xs);
-  text-align: left;
   border-bottom: 2px solid var(--border-color);
   font-weight: 600;
   font-size: var(--font-size-xs);
@@ -537,6 +536,172 @@ body {
   padding: var(--spacing-xs);
   border-bottom: 1px solid var(--border-color);
   white-space: nowrap;
+}
+
+/* Column-specific alignment styles */
+#recruits-table th[data-column-key="name"],
+#recruits-table td[data-column="name"] {
+  text-align: left;
+}
+
+#recruits-table th[data-column-key="pos"],
+#recruits-table td[data-column="pos"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="watched"],
+#recruits-table td[data-column="watched"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="potential"],
+#recruits-table td[data-column="potential"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="priority"],
+#recruits-table td[data-column="priority"] {
+  text-align: right;
+}
+
+#recruits-table th[data-column-key="height"],
+#recruits-table td[data-column="height"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="weight"],
+#recruits-table td[data-column="weight"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="rating"],
+#recruits-table td[data-column="rating"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="rank"],
+#recruits-table td[data-column="rank"] {
+  text-align: right;
+}
+
+#recruits-table th[data-column-key="hometown"],
+#recruits-table td[data-column="hometown"] {
+  text-align: left;
+}
+
+#recruits-table th[data-column-key="division"],
+#recruits-table td[data-column="division"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="miles"],
+#recruits-table td[data-column="miles"] {
+  text-align: right;
+}
+
+#recruits-table th[data-column-key="signed"],
+#recruits-table td[data-column="signed"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="gpa"],
+#recruits-table td[data-column="gpa"] {
+  text-align: left;
+}
+
+#recruits-table th[data-column-key="ath"],
+#recruits-table td[data-column="ath"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="spd"],
+#recruits-table td[data-column="spd"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="dur"],
+#recruits-table td[data-column="dur"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="we"],
+#recruits-table td[data-column="we"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="sta"],
+#recruits-table td[data-column="sta"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="str"],
+#recruits-table td[data-column="str"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="blk"],
+#recruits-table td[data-column="blk"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="tkl"],
+#recruits-table td[data-column="tkl"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="han"],
+#recruits-table td[data-column="han"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="gi"],
+#recruits-table td[data-column="gi"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="elu"],
+#recruits-table td[data-column="elu"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="tec"],
+#recruits-table td[data-column="tec"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="r1"],
+#recruits-table td[data-column="r1"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="r2"],
+#recruits-table td[data-column="r2"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="r3"],
+#recruits-table td[data-column="r3"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="r4"],
+#recruits-table td[data-column="r4"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="r5"],
+#recruits-table td[data-column="r5"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="r6"],
+#recruits-table td[data-column="r6"] {
+  text-align: center;
+}
+
+#recruits-table th[data-column-key="considering"],
+#recruits-table td[data-column="considering"] {
+  text-align: left;
 }
 
 #recruits-table tr:hover {

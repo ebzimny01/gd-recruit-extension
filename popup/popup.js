@@ -4364,6 +4364,9 @@ function createRecruitRow(recruit, teamInfo) {
       const { content, attribute, tooltip, classes = [], isLink, linkUrl, isWatched } = allColumnData[columnKey] || { content: '', classes: [] };
     const cell = document.createElement('td');
     
+    // Add data attribute for column alignment
+    cell.setAttribute('data-column', columnKey);
+    
     // Create link or plain text content
     if (isLink && linkUrl && content) {
       const link = document.createElement('a');
@@ -5113,6 +5116,9 @@ function rebuildTableHeader() {
         th.textContent = column.label;
         th.setAttribute('data-column-index', index);
         th.setAttribute('data-column-key', columnKey);
+        
+        // Make all headers draggable
+        th.draggable = true;
         
         // Make sortable if applicable
         if (column.sortable) {

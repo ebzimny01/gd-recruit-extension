@@ -432,8 +432,8 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
 - **Files modified**: `manifest.json` (version bump), `background.js` (enhanced teamInfo structure), `popup/popup.js` (direct database access function)
 - **Status**: Version 0.4.4 successfully released with data integrity improvements and database access reliability enhancements
 
-### 2025-06-22 - Version 0.4.6 Formation IQ Support - PENDING COMMIT ⏳
-- **Status**: DEVELOPMENT COMPLETE, AWAITING COMMIT
+### 2025-06-22 - Version 0.4.6 Formation IQ Support Complete ✅
+- **Status**: COMPLETED AND COMMITTED
 - **Major Feature Addition**: Formation IQ attributes support expanding the data model with 13 new coaching intelligence metrics
 - **Enhanced data scraping capabilities**:
   - **New Formation IQ columns**: Added iq_threefour, iq_fourthree, iq_fourfour, iq_fivetwo, iq_nickel, iq_dime, iq_iformation, iq_wishbone, iq_proset, iq_ndbox, iq_shotgun, iq_trips, iq_specialteams
@@ -460,7 +460,7 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
   - `manifest.json` - Version bump from 0.4.5 to 0.4.6
   - `content/scraper.js` - Enhanced data extraction with Formation IQ attributes and updated validation
   - `popup/popup.js` - Added Formation IQ attribute filters, column definitions, and UI integration
-- **Status**: Formation IQ support development complete and fully tested. Changes are staged and ready for commit to source control. This represents a significant enhancement providing coaches with comprehensive formation-specific intelligence for advanced recruiting analysis.
+- **Status**: Formation IQ support implementation completed and committed. This represents a significant enhancement providing coaches with comprehensive formation-specific intelligence for advanced recruiting analysis.
 
 ### 2025-06-22 - Role Rating Tooltips Implementation Complete
 - **Status**: COMPLETED
@@ -503,4 +503,39 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
   - **Competitive Assessment**: Better understanding of recruiting landscape
 - **Status**: Enhancement complete and fully functional, provides comprehensive considering schools data while maintaining full backward compatibility with existing extension features
 
-The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams.
+### 2025-06-22 - Version 0.4.7 Donation Support System - IN PROGRESS ⏳
+- **Status**: DEVELOPMENT IN PROGRESS, PENDING COMMIT
+- **Major Feature Addition**: Donation support system for project sustainability and user contribution management
+- **Outstanding Changes**:
+  - **Version bump**: Updated manifest.json from version 0.4.6 to 0.4.7
+  - **Multi-team storage integration**: Added donation configuration management methods to `lib/multi-team-storage.js`
+  - **Donation reminder system**: Implementation of periodic donation reminders with intelligent timing and user preference tracking
+  - **UI integration**: Added donation support section to Settings tab with "Show Donation Options" button functionality
+  - **User contribution tracking**: Methods to track user donation actions and reminder preferences across all teams
+  - **Global configuration**: Donation preferences stored in global config system for cross-team accessibility
+- **Technical implementation**:
+  - **Storage integration**: New `saveDonationConfig()` and `getDonationConfig()` methods use existing global configuration system
+  - **Cross-team compatibility**: Donation reminders work consistently across multi-team installations without data duplication
+  - **User experience focus**: Non-intrusive reminder system that respects user preferences and previous feedback
+  - **Privacy conscious**: Local tracking only with no external data transmission or analytics collection
+- **Enhanced UI features**:
+  - **Donation modal system**: Complete popup modal for donation information and user action tracking
+  - **Reminder scheduling**: Intelligent reminder timing based on usage patterns, extension adoption, and user feedback
+  - **User preference management**: Allow users to indicate previous support or request later reminders with customizable timing
+  - **Settings integration**: Seamless integration into existing Settings tab without disrupting current workflow
+- **Files modified (pending commit)**:
+  - `manifest.json` - Version bump from 0.4.6 to 0.4.7
+  - `lib/multi-team-storage.js` - Added donation configuration management methods (+114 lines)
+  - `popup/popup.html` - Added donation support section to Settings tab (+75 lines)
+  - `popup/popup.css` - Enhanced styling for donation UI components and modal system (+323 lines)
+  - `popup/popup.js` - Donation modal functionality and reminder system integration (+164 lines)
+  - `memory-bank/activeContext.md` - Updated to reflect current development state
+  - `memory-bank/progress.md` - Updated to reflect current development state
+- **User experience benefits**:
+  - **Project sustainability**: Enables users to support continued development and maintenance
+  - **Optional participation**: Completely optional with respect for users who choose not to contribute
+  - **Non-intrusive design**: Donation reminders designed to be helpful without being disruptive to recruiting workflow
+  - **Transparency**: Clear information about how contributions support ongoing development and feature enhancement
+- **Status**: Donation support system development in active progress with significant changes implemented but not yet committed. This represents an important enhancement for long-term project sustainability while maintaining the extension's primary focus on recruiting management excellence. Changes total 684 lines across 7 files, indicating substantial feature addition ready for integration testing and commit.
+
+The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams. Version 0.4.7 development adds important sustainability features while preserving core functionality.

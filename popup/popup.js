@@ -605,6 +605,9 @@ async function initializePopup() {
     // Load initial data
     await loadInitialData();
     
+    // Check and show donation reminder if needed
+    await checkAndShowDonationReminder();
+    
     state.popup_lifecycle = 'ready';
     setStatusMessage('Extension ready', 'success');
     
@@ -2520,6 +2523,12 @@ function setupSettingsListeners() {
   const resetColumnOrderBtn = document.getElementById('btn-reset-column-order');
   if (resetColumnOrderBtn) {
     resetColumnOrderBtn.addEventListener('click', handleResetColumnOrder);
+  }
+  
+  // Show donation modal button in settings
+  const showDonationModalBtn = document.getElementById('btn-show-donation-modal');
+  if (showDonationModalBtn) {
+    showDonationModalBtn.addEventListener('click', handleShowDonationModal);
   }
 }
 
@@ -6621,6 +6630,161 @@ if (typeof window !== 'undefined') {
     switchTab,
     handleError
   };
+}
+
+// Donation reminder functionality
+async function checkAndShowDonationReminder() {
+  try {
+    console.log('Checking if donation reminder should be shown...');
+    
+    // Check if we should show the donation reminder
+    const shouldShow = await multiTeamStorage.shouldShowDonationReminder();
+    
+    if (shouldShow) {
+      console.log('Showing donation reminder to user');
+      setTimeout(() => {
+        showDonationReminderModal();
+      }, 2000); // Show after 2 seconds to let the user settle in
+    } else {
+      console.log('Donation reminder not needed at this time');
+    }
+    
+  } catch (error) {
+    console.error('Error checking donation reminder:', error);
+    // Don't fail the entire initialization if this fails
+  }
+}
+
+// Show donation reminder modal
+function showDonationReminderModal() {
+  const modal = document.getElementById('donation-reminder-modal');
+  if (!modal) {
+    console.warn('Donation reminder modal not found in DOM');
+    return;
+  }
+  
+  // Setup event listeners if not already done
+  if (!modal.dataset.initialized) {
+    setupDonationReminderModalListeners();
+    modal.dataset.initialized = 'true';
+  }
+  
+  // Show the modal
+  modal.classList.remove('hidden');
+  
+  // Focus management for accessibility
+  const supportButton = document.getElementById('donation-reminder-support');
+  if (supportButton) {
+    supportButton.focus();
+  }
+}
+
+// Setup donation reminder modal event listeners
+function setupDonationReminderModalListeners() {
+  const modal = document.getElementById('donation-reminder-modal');
+  if (!modal) return;
+  
+  console.log('Setting up donation reminder modal listeners...');
+  
+  // Support button
+  const supportBtn = document.getElementById('donation-reminder-support');
+  if (supportBtn) {
+    supportBtn.addEventListener('click', handleDonationSupport);
+  }
+  
+  // Later button
+  const laterBtn = document.getElementById('donation-reminder-later');
+  if (laterBtn) {
+    laterBtn.addEventListener('click', handleDonationLater);
+  }
+  
+  // Close button (if exists)
+  const closeBtn = modal.querySelector('.close-button');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', handleDonationLater);
+  }
+  
+  // Close on backdrop click
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      handleDonationLater();
+    }
+  });
+  
+  // Handle escape key
+  const handleEscape = (event) => {
+    if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+      handleDonationLater();
+    }
+  };
+  
+  document.addEventListener('keydown', handleEscape);
+  
+  // Store the escape handler so we can remove it later
+  modal._escapeHandler = handleEscape;
+}
+
+// Handle donation support button click
+async function handleDonationSupport() {
+  try {
+    console.log('User clicked "I\'ve already supported"');
+    
+    // Record that the user has already supported
+    await multiTeamStorage.recordDonationAction('support');
+    
+    // Close the modal
+    hideDonationReminderModal();
+    
+    // Show thank you message
+    setStatusMessage('Thank you for your support! 🙏', 'success');
+    
+  } catch (error) {
+    console.error('Error handling donation support:', error);
+    // Still close the modal even if there's an error
+    hideDonationReminderModal();
+    setStatusMessage('Thank you for your support!', 'success');
+  }
+}
+
+// Handle donation later button click
+async function handleDonationLater() {
+  try {
+    console.log('User clicked donation later');
+    
+    // Mark reminder as shown and record later action
+    await multiTeamStorage.recordDonationAction('later');
+    
+    // Close the modal
+    hideDonationReminderModal();
+    
+  } catch (error) {
+    console.error('Error handling donation later:', error);
+    // Still close the modal even if there's an error
+    hideDonationReminderModal();
+  }
+}
+
+// Handle manual show donation modal button click
+function handleShowDonationModal() {
+  console.log('User manually requested donation modal');
+  showDonationReminderModal();
+}
+
+// Hide donation reminder modal
+function hideDonationReminderModal() {
+  const modal = document.getElementById('donation-reminder-modal');
+  if (!modal) return;
+  
+  // Hide the modal
+  modal.classList.add('hidden');
+  
+  // Clean up escape key handler if it exists
+  if (modal._escapeHandler) {
+    document.removeEventListener('keydown', modal._escapeHandler);
+    modal._escapeHandler = null;
+  }
+  
+  console.log('Donation reminder modal hidden');
 }
 
 // Handle scrape complete messages

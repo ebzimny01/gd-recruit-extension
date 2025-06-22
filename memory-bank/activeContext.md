@@ -402,11 +402,11 @@ Hofstra University (52672), 1128 miles, SIM AI, 14 | 14; Georgia Southern Univer
 
 **Status**: Version 0.4.4 successfully released with data integrity improvements and database access reliability enhancements.
 
-### Version 0.4.6 Development ⏳ (2025-06-22)
-**Status**: PENDING COMMIT
+### Version 0.4.6 Development ✅ (2025-06-22)
+**Status**: COMPLETED AND COMMITTED
 **Objective**: Formation IQ attributes support and enhanced data model
 
-**Pending Changes**:
+**Completed Changes**:
 - **Version bump**: Updated manifest.json from version 0.4.5 to 0.4.6
 - **Formation IQ Attributes Support**: Major feature addition expanding data model
   - **Enhanced data scraping**: Added 13 new Formation IQ columns (cells 29-41) in content/scraper.js
@@ -428,6 +428,40 @@ Hofstra University (52672), 1128 miles, SIM AI, 14 | 14; Georgia Southern Univer
 - `content/scraper.js` - Enhanced data extraction with Formation IQ attributes and updated cell count validation
 - `popup/popup.js` - Added Formation IQ attribute filters and column definitions
 
-**Status**: Formation IQ support development complete, changes ready for commit to source control. This represents a significant enhancement to the data model providing coaches with comprehensive formation-specific intelligence for recruiting decisions.
+**Status**: Formation IQ support implementation completed and committed. This represents a significant enhancement to the data model providing coaches with comprehensive formation-specific intelligence for recruiting decisions.
 
-This context provides the foundation for continuing development work on the GD Recruit Assistant browser extension, with clear understanding of the current multi-team architecture, implemented features, and development patterns in use. The extension is now feature-complete for v0.3.0 with comprehensive multi-team support and proper data architecture.
+### Version 0.4.7 Development ⏳ (2025-06-22)
+**Status**: IN PROGRESS - PENDING COMMIT
+**Objective**: Donation support system and user contribution management
+
+**Outstanding Changes**:
+- **Version bump**: Updated manifest.json from version 0.4.6 to 0.4.7
+- **Donation Support System**: Major feature addition for project sustainability
+  - **Multi-team storage integration**: Added donation configuration methods (`saveDonationConfig()`, `getDonationConfig()`) to `lib/multi-team-storage.js`
+  - **Donation reminder system**: Implementation of periodic donation reminders with user preference tracking
+  - **UI integration**: Added donation support section to Settings tab in popup.html with "Show Donation Options" button
+  - **User contribution tracking**: Methods to track user donation actions and reminder preferences
+  - **Global configuration**: Donation preferences stored in global config accessible across all teams
+- **Enhanced UI features**: 
+  - **Donation modal system**: Popup modal for donation information and user action tracking
+  - **Reminder scheduling**: Intelligent reminder timing based on usage patterns and user feedback
+  - **User preference management**: Allow users to indicate previous support or request later reminders
+
+**Technical Implementation**:
+- **Storage integration**: Donation config methods use existing global configuration system
+- **Cross-team compatibility**: Donation reminders work consistently across multi-team installations
+- **User experience focus**: Non-intrusive reminder system respecting user preferences
+- **Privacy conscious**: Local tracking only, no external data transmission
+
+**Files Modified (Pending Commit)**:
+- `manifest.json` - Version bump from 0.4.6 to 0.4.7
+- `lib/multi-team-storage.js` - Added donation configuration management methods (+114 lines)
+- `popup/popup.html` - Added donation support section to Settings tab (+75 lines)
+- `popup/popup.css` - Enhanced styling for donation UI components (+323 lines)
+- `popup/popup.js` - Donation modal and reminder functionality integration (+164 lines)
+- `memory-bank/activeContext.md` - Updated to reflect current development state
+- `memory-bank/progress.md` - Updated to reflect current development state
+
+**Status**: Donation support system development in progress, significant changes staged but not yet committed. This represents an important enhancement for project sustainability while maintaining the extension's core focus on recruiting management.
+
+This context provides the foundation for continuing development work on the GD Recruit Assistant browser extension, with clear understanding of the current multi-team architecture, implemented features, development patterns in use, and outstanding work for version 0.4.7. The extension is feature-complete for v0.3.0 with comprehensive multi-team support and proper data architecture, with v0.4.7 adding sustainability features.

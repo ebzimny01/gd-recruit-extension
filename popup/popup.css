@@ -3089,3 +3089,326 @@ textarea:focus-visible {
   background-color: #e3f2fd;
   box-shadow: 0 0 0 1px var(--primary-color);
 }
+
+/* Donation Support Styles */
+.donation-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-md);
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  border-left: 4px solid var(--accent-color);
+}
+
+.donation-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  transition: all 0.2s ease;
+}
+
+.donation-option:hover {
+  border-color: var(--accent-color);
+  box-shadow: var(--shadow-light);
+  transform: translateY(-1px);
+}
+
+.donation-option strong {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.donation-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  word-break: break-all;
+}
+
+.donation-link:hover {
+  color: var(--secondary-color);
+  text-decoration: underline;
+}
+
+.donation-info {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: 'Courier New', Courier, monospace;
+  background: rgba(193, 120, 23, 0.1);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(193, 120, 23, 0.3);
+}
+
+.donation-note {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-style: italic;
+  text-align: center;
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border-color);
+}
+
+/* Donation Reminder Modal Styles */
+#donation-reminder-modal .modal-header {
+  background: var(--primary-gradient);
+  color: white;
+  text-align: center;
+}
+
+#donation-reminder-modal .modal-header h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin: 0;
+}
+
+#donation-reminder-modal .modal-body {
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+#donation-reminder-modal .modal-body p {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-lg);
+}
+
+#donation-reminder-modal .donation-options {
+  margin: var(--spacing-lg) 0;
+  background: linear-gradient(135deg, rgba(193, 120, 23, 0.05), rgba(45, 80, 22, 0.05));
+  border-left: 4px solid var(--accent-color);
+}
+
+#donation-reminder-modal .donation-option {
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-base);
+}
+
+#donation-reminder-modal .donation-option strong {
+  min-width: 80px;
+  font-size: var(--font-size-lg);
+  color: var(--primary-color);
+}
+
+#donation-reminder-modal .donation-link {
+  font-size: var(--font-size-base);
+  word-break: break-all;
+}
+
+#donation-reminder-modal .donation-info {
+  font-size: var(--font-size-lg);
+  background: rgba(193, 120, 23, 0.15);
+  border: 2px solid rgba(193, 120, 23, 0.4);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+#donation-reminder-modal .donation-note {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 2px solid var(--border-color);
+}
+
+#donation-reminder-modal .modal-footer {
+  background: var(--background-color);
+  border-top: 2px solid var(--border-color);
+  padding: var(--spacing-lg);
+  justify-content: center;
+  gap: var(--spacing-lg);
+}
+
+#donation-reminder-modal .action-btn {
+  min-width: 160px;
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+#donation-reminder-support {
+  background: linear-gradient(135deg, var(--accent-color), #d48806);
+  color: white;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+#donation-reminder-support::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+#donation-reminder-support:hover::before {
+  left: 100%;
+}
+
+#donation-reminder-support:hover {
+  background: linear-gradient(135deg, #d48806, var(--accent-color));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+#donation-reminder-later {
+  background: var(--surface-color);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+}
+
+#donation-reminder-later:hover {
+  background: var(--background-color);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+/* Responsive adjustments for donation elements */
+@media (max-width: 768px) {
+  #donation-reminder-modal .modal-content {
+    max-width: 95vw;
+    margin: var(--spacing-md);
+  }
+  
+  #donation-reminder-modal .modal-body {
+    padding: var(--spacing-lg);
+  }
+  
+  #donation-reminder-modal .donation-option {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    text-align: center;
+  }
+  
+  #donation-reminder-modal .donation-option strong {
+    min-width: auto;
+  }
+  
+  #donation-reminder-modal .modal-footer {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
+  #donation-reminder-modal .action-btn {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .donation-options {
+    gap: var(--spacing-sm);
+  }
+  
+  .donation-option {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--spacing-xs);
+  }
+  
+  .donation-option strong {
+    min-width: auto;
+  }
+}
+
+/* High contrast support for donation elements */
+@media (prefers-contrast: high) {
+  .donation-option {
+    border: 2px solid #000000;
+  }
+  
+  .donation-link {
+    color: #0000ff;
+    text-decoration: underline;
+  }
+  
+  .donation-info {
+    background: #ffff00;
+    border: 2px solid #000000;
+    color: #000000;
+  }
+  
+  #donation-reminder-support {
+    background: #008000;
+    border: 2px solid #000000;
+    color: #ffffff;
+  }
+  
+  #donation-reminder-later {
+    background: #ffffff;
+    border: 2px solid #000000;
+    color: #000000;
+  }
+}
+
+/* Animation for donation modal appearance */
+@keyframes donationModalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+#donation-reminder-modal:not(.hidden) .modal-content {
+  animation: donationModalSlideIn 0.4s ease;
+}
+
+/* Focus management for donation elements */
+.donation-link:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  background: rgba(45, 80, 22, 0.1);
+  border-radius: var(--border-radius-sm);
+}
+
+#donation-reminder-modal .action-btn:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Accessibility improvements */
+.donation-option {
+  cursor: default;
+}
+
+.donation-option:focus-within {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  #donation-reminder-modal:not(.hidden) .modal-content {
+    animation: none;
+  }
+  
+  #donation-reminder-support::before {
+    transition: none;
+  }
+  
+  #donation-reminder-support:hover::before {
+    display: none;
+  }
+}

@@ -1500,7 +1500,12 @@ async function getStats() {
         recruitCount,
         currentSeason: currentSeason || null,
         schoolName,
-        teamInfo
+        teamInfo: {
+          ...teamInfo,
+          // Ensure teamId is always included for conditional formatting
+          teamId: teamInfo?.teamId || null,
+          schoolName: schoolName
+        }
       };
 
     } catch (error) {

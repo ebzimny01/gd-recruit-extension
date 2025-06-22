@@ -412,18 +412,24 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
 - **Professional appearance** suitable for college football recruiting management
 - **Status**: Football theme fully implemented across all UI components, providing cohesive aesthetic that aligns with the extension's football recruiting purpose
 
-### 2025-06-22 - Code Quality Optimization (v0.4.2)
-- **Version bump to 0.4.2** indicating patch release with bug fixes and stability improvements
-- **Enhanced tab validation in background.js** for improved stability and error prevention:
-  - **URL filtering implemented**: Added `['*://*/*']` filter to exclude browser internal pages (chrome://, about:, etc.)
-  - **Tab status validation**: Enhanced filtering to only process fully loaded tabs (`status === 'complete'`)
-  - **Comprehensive tab property validation**: Added checks for required tab properties (id, url)
-  - **Improved error handling**: Enhanced validation prevents processing of invalid or browser-internal tabs
-  - **Better debugging**: More descriptive console logging showing filtered vs total tabs
-- **Browser compatibility improvements**: Enhanced handling of browser-specific URLs (Edge, Firefox, Chrome extensions)
-- **Stability enhancements**: Prevents extension from attempting to process invalid tabs that could cause errors
-- **Performance optimization**: Reduced unnecessary processing by filtering out non-web pages
-- **Status**: Code quality optimizations complete, ready for commit to version control
+### 2025-06-22 - Code Quality Optimization (v0.4.4) - PENDING COMMIT
+- **Version bump to 0.4.4** indicating patch release with data integrity improvements and database access reliability
+- **Enhanced teamInfo data structure in background.js** for improved data consistency:
+  - **Data integrity**: Enhanced `getStats()` function to ensure teamInfo always includes required properties (teamId, schoolName)
+  - **Spread operator usage**: Proper object spreading to preserve existing teamInfo properties while adding missing ones
+  - **Conditional formatting support**: Explicit teamId inclusion for UI conditional formatting operations
+  - **Data reliability**: Added schoolName redundancy to teamInfo object for enhanced data consistency
+- **Direct database access function in popup.js** for improved reliability:
+  - **New function**: Added `getCurrentTeamIdFromMaster()` for direct IndexedDB access to master database
+  - **Promise-based approach**: Asynchronous database operations with proper error handling and rejection paths
+  - **Fallback mechanism**: Provides direct database access when normal team detection methods encounter issues
+  - **Database isolation**: Opens master database specifically for team identification operations without affecting current team context
+- **Technical improvements**: 
+  - **Error resilience**: Improves extension stability when team context operations encounter database issues
+  - **Multi-team architecture enhancement**: Strengthens master database access patterns for reliable team switching
+  - **Database access reliability**: Provides direct fallback mechanism for team identification operations
+- **Files modified**: `manifest.json` (version bump), `background.js` (enhanced teamInfo structure), `popup/popup.js` (direct database access function)
+- **Status**: Code quality optimizations complete, changes are staged and ready for commit to version control
 
 ### 2025-06-22 - Role Rating Tooltips Implementation Complete
 - **Status**: COMPLETED

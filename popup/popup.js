@@ -1075,6 +1075,51 @@ function handlePopupResize(dimensions) {
   }
 }
 
+// Function to get current team ID directly from IndexedDB master database
+async function getCurrentTeamIdFromMaster() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('gdRecruitDB_master', 1);
+    
+    request.onerror = () => {
+      console.error('Error opening master database:', request.error);
+      reject(request.error);
+    };
+    
+    request.onsuccess = () => {
+      const db = request.result;
+      
+      try {
+        const transaction = db.transaction(['globalConfig'], 'readonly');
+        const store = transaction.objectStore('globalConfig');
+        const getRequest = store.get('teamId');
+        
+        getRequest.onsuccess = () => {
+          const result = getRequest.result;
+          const teamId = result ? result.value : null;
+          console.log('🔍 DEBUG: Retrieved teamId from master DB globalConfig:', teamId);
+          db.close();
+          resolve(teamId);
+        };
+        
+        getRequest.onerror = () => {
+          console.error('Error getting teamId from globalConfig:', getRequest.error);
+          db.close();
+          reject(getRequest.error);
+        };
+      } catch (error) {
+        console.error('Error creating transaction:', error);
+        db.close();
+        reject(error);
+      }
+    };
+    
+    request.onupgradeneeded = () => {
+      console.log('Master database needs upgrade - this should not happen');
+      resolve(null);
+    };
+  });
+}
+
 // Clear all filters to reset the view
 function clearAllFilters() {
   console.log('🧹 Clearing all filters for team switch');
@@ -1594,13 +1639,30 @@ async function refreshDashboardData() {
 }
 
 // Update dashboard display with fresh data
-function updateDashboardDisplay(stats) {
+async function updateDashboardDisplay(stats) {
   console.log('Updating dashboard display with stats:', stats);
   
-  // Store team information in state for use in conditional formatting
-  if (stats.teamInfo) {
-    state.currentTeamId = stats.teamInfo.teamId;
-    console.log('Updated current team ID in state:', state.currentTeamId);
+  // Get current team ID directly from IndexedDB gdRecruitDB_master
+  try {
+    const teamId = await getCurrentTeamIdFromMaster();
+    if (teamId) {
+      state.currentTeamId = teamId;
+      console.log('🎯 Got current team ID from master DB:', state.currentTeamId);
+    } else {
+      console.warn('No current team ID found in master DB');
+      // Fallback to stats if available
+      if (stats.teamInfo && stats.teamInfo.teamId) {
+        state.currentTeamId = stats.teamInfo.teamId;
+        console.log('Fallback: Using team ID from stats:', state.currentTeamId);
+      }
+    }
+  } catch (error) {
+    console.error('Error getting team ID from master DB:', error);
+    // Fallback to stats if available
+    if (stats.teamInfo && stats.teamInfo.teamId) {
+      state.currentTeamId = stats.teamInfo.teamId;
+      console.log('Fallback: Using team ID from stats:', state.currentTeamId);
+    }
   }
   
   // Update school name displays
@@ -5338,6 +5400,15 @@ function updateRecruitsListStandard(pageRecruits) {
     world: elements.team_world?.textContent || null
   };
   
+  // Debug logging to identify the issue
+  console.log('🔍 DEBUG: teamInfo in updateRecruitsListStandard:', teamInfo);
+  console.log('🔍 DEBUG: state.currentTeamId:', state.currentTeamId);
+  console.log('🔍 DEBUG: Elements check:', {
+    schoolName: elements.school_name?.textContent,
+    division: elements.team_division?.textContent,
+    world: elements.team_world?.textContent
+  });
+  
   // Create rows for recruits
   pageRecruits.forEach((recruit, index) => {
     try {
@@ -5538,18 +5609,33 @@ function createRecruitRow(recruit, teamInfo) {
           
           // Add conditional formatting based on current school status
           if (teamInfo && teamInfo.teamId && recruit.considering) {
+            console.log('🔍 DEBUG: About to check considering status for recruit:', recruit.name);
+            console.log('🔍 DEBUG: teamInfo.teamId:', teamInfo.teamId);
+            console.log('🔍 DEBUG: recruit.considering:', recruit.considering);
+            
             const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, teamInfo.teamId);
+            console.log('🔍 DEBUG: consideringStatus result:', consideringStatus);
+            
             switch (consideringStatus) {
               case 'only':
                 baseClasses.push('considering-only-school');
+                console.log('🔍 DEBUG: Added considering-only-school class');
                 break;
               case 'included':
                 baseClasses.push('considering-among-schools');
+                console.log('🔍 DEBUG: Added considering-among-schools class');
                 break;
               case 'not_included':
                 // No special formatting for not included
+                console.log('🔍 DEBUG: No special class - not included');
                 break;
             }
+          } else {
+            console.log('🔍 DEBUG: Conditional formatting skipped - missing data:', {
+              hasTeamInfo: !!teamInfo,
+              hasTeamId: teamInfo?.teamId,
+              hasConsidering: recruit.considering
+            });
           }
           
           return baseClasses;

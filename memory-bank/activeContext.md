@@ -331,28 +331,33 @@ The `sidebar/` folder contains older implementation code that serves as referenc
 
 **Status**: Clear team data functionality now works correctly with proper single-team vs multi-team clearing distinction. Users can now safely clear individual team data without affecting other teams they manage.
 
-### Code Quality Optimization - Version 0.4.2 ✅ (2025-06-22)
-**Objective**: Implement bug fixes and stability improvements for patch release v0.4.2
+### Code Quality Optimization - Version 0.4.4 ✅ (2025-06-22)
+**Objective**: Data integrity improvements and database access reliability for patch release v0.4.4
 
-**Changes Implemented**:
-- **Version bump**: Updated manifest.json from version 0.4.1 to 0.4.2
-- **Enhanced tab validation in background.js**:
-  - **URL filtering**: Added `['*://*/*']` filter to `chrome.tabs.query()` to exclude browser internal pages
-  - **Tab status validation**: Enhanced filtering to only process fully loaded tabs (`status === 'complete'`)
-  - **Property validation**: Added comprehensive checks for required tab properties (id, url)
-  - **Browser URL exclusion**: Enhanced filtering to exclude chrome://, chrome-extension://, about:, edge://, moz-extension:// URLs
-  - **Improved logging**: More descriptive console messages showing filtered vs total tab counts
+**Pending Changes (Ready for Commit)**:
+- **Version bump**: Updated manifest.json from version 0.4.3 to 0.4.4
+- **Enhanced teamInfo data structure in background.js**:
+  - **Data consistency**: Enhanced `getStats()` function to ensure teamInfo always includes required properties
+  - **TeamId preservation**: Explicit teamId inclusion for conditional formatting operations
+  - **SchoolName redundancy**: Added schoolName to teamInfo object for data reliability
+  - **Spread operator usage**: Proper object spreading to preserve existing teamInfo properties
+- **Direct database access in popup.js**:
+  - **New function**: Added `getCurrentTeamIdFromMaster()` for direct IndexedDB access to master database
+  - **Promise-based approach**: Asynchronous database operations with proper error handling
+  - **Fallback mechanism**: Provides direct database access when normal team detection methods encounter issues
+  - **Database isolation**: Opens master database specifically for team identification operations
 
 **Technical Impact**:
-- **Stability improvement**: Prevents extension from attempting to process invalid or browser-internal tabs
-- **Error reduction**: Enhanced validation prevents potential errors from accessing restricted tab contexts
-- **Performance optimization**: Reduces unnecessary processing by filtering out non-web pages
-- **Cross-browser compatibility**: Better handling of browser-specific internal URLs
+- **Data integrity improvement**: Ensures teamInfo object always contains necessary properties for UI operations
+- **Database access reliability**: Provides direct fallback mechanism for team identification when standard methods fail
+- **Multi-team architecture enhancement**: Strengthens the master database access patterns for team switching
+- **Error resilience**: Improves extension stability when team context operations encounter database issues
 
 **Files Modified**:
-- `manifest.json` - Version bump from 0.4.1 to 0.4.2
-- `background.js` - Enhanced `checkAllTabsForGDOffice()` function with improved tab validation and filtering
+- `manifest.json` - Version bump from 0.4.3 to 0.4.4
+- `background.js` - Enhanced teamInfo data structure in getStats() function
+- `popup/popup.js` - Added getCurrentTeamIdFromMaster() function for direct database access
 
-**Status**: Code quality optimization complete. Changes are ready for commit to version control. This represents routine maintenance and stability improvements typical of a patch release.
+**Status**: Code quality optimization complete. Changes are ready for commit to version control. This represents data integrity improvements and database access reliability enhancements typical of a patch release.
 
 This context provides the foundation for continuing development work on the GD Recruit Assistant browser extension, with clear understanding of the current multi-team architecture, implemented features, and development patterns in use. The extension is now feature-complete for v0.3.0 with comprehensive multi-team support and proper data architecture.

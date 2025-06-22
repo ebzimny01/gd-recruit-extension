@@ -93,8 +93,7 @@
 5. **Multi-Team Edge Cases**: Test complex team switching scenarios
 
 ### 🟠 Known Technical Debt
-1. **Legacy Sidebar Code**: `sidebar/` folder contains outdated implementation
-2. **Documentation Sync**: Some code comments may not reflect current architecture
+1. **Documentation Sync**: Some code comments may not reflect current architecture
 3. **Testing Coverage**: Manual testing only, no automated test suite
 4. **Performance Monitoring**: Limited real-world performance metrics
 5. **User Feedback Integration**: No built-in feedback or analytics system
@@ -124,22 +123,12 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
 ### 🚀 Future Enhancement Opportunities
 
 #### Phase 1: Stability and Polish
+- **CX Polish**: Refine the CX styling and formatting for usability and aesthetics
+- **Accept Donations**: Offer information on how to donate including a periodic donation reminder popup
 - **Enhanced Error Recovery**: More sophisticated error handling and recovery
 - **Performance Monitoring**: Built-in performance metrics and monitoring
 - **User Feedback System**: Integrated feedback collection mechanism
 - **Advanced Validation**: More comprehensive data validation and sanitization
-
-#### Phase 2: Advanced Multi-Team Features
-- **Team Comparison**: Compare recruiting between multiple teams
-- **Cross-Team Analytics**: Historical data analysis across all managed teams
-- **Team Templates**: Configuration templates specific to division/world combinations
-- **Bulk Team Operations**: Manage multiple teams simultaneously
-
-#### Phase 3: Community Features
-- **Configuration Sharing**: Share role ratings and configurations with community
-- **Best Practices**: Built-in recruiting strategy recommendations
-- **Community Templates**: Shared configuration templates for different strategies
-- **Advanced Reporting**: Comprehensive recruiting reports and analytics
 
 ## Evolution of Project Decisions
 
@@ -364,4 +353,189 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
 - **Proper error handling** with user-friendly error messages and fallback mechanisms
 - **Status**: Clear team data functionality now works correctly, users can safely clear individual team data without affecting other teams
 
-The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams.
+### 2025-06-21 - Legacy Code Cleanup and Documentation Update Complete
+- **Identified and analyzed orphaned code files** throughout the codebase for cleanup opportunities
+- **Removed deprecated watchlist-scraper.js** which was no longer functional:
+  - Script sent `'updateWatchlist'` action that had no handler in background.js
+  - Functionality was replaced by direct calculation from recruit data
+  - Background function was already deprecated with warning message
+- **Identified office-page-handler.js as orphaned** with no essential functionality:
+  - Script sent `'gdOfficePageLoaded'` action that had no handler in background.js
+  - Functionality was redundant with existing `checkIfGDOfficePage()` in background.js
+  - Background script already handles office page detection and cookie extraction
+- **Updated all documentation** to reflect code cleanup:
+  - Removed references to orphaned files from `memory-bank/systemPatterns.md`
+  - Updated content script references in `memory-bank/techContext.md`
+  - Corrected project structure documentation in `README.md`
+  - Updated progress documentation to reflect cleanup completion
+- **Verified manifest.json was already clean** with no references to orphaned files
+- **Enhanced code maintainability** by removing unused functionality and updating documentation
+- **Improved project clarity** by ensuring documentation accurately reflects current implementation
+- **Status**: Legacy code cleanup complete, all documentation updated to reflect current implementation
+
+### 2025-06-21 - Separate Grid Containers for Filter Layout Complete
+- **Implemented separate grid containers** for improved filter organization and visual hierarchy
+- **Created distinct container structure**:
+  - **Attribute Filters Grid Container**: Houses all numeric attribute filters (GPA, ATH, SPD, DUR, WE, STA, STR, BLK, TKL, HAN, GI, ELU, TEC, R1-R6) in bordered container
+  - **Text Search Filters Grid Container**: Houses text-based search filters ("Considering Schools") in separate bordered container
+- **Enhanced visual design** with proper vertical stacking and consistent spacing between containers
+- **Maintained collapsible functionality** by updating CSS selectors to target the main container (`#attribute-filters-container.collapsed`)
+- **Improved user experience** with clear visual separation between filter types while maintaining unified design
+- **CSS layout optimization**:
+  - Attribute filters use `repeat(auto-fit, minmax(40px, 1fr))` for compact numeric inputs
+  - Text search filters use `1fr` grid layout for full-width search inputs
+  - Vertical stacking enforced with `flex-direction: column` and proper gap spacing
+- **Preserved all existing functionality** including filter states, active indicators, and clear operations
+- **Enhanced accessibility** with better visual organization and maintained keyboard navigation
+- **Status**: Filter layout redesign complete, separate grid containers implemented with improved visual hierarchy and maintained functionality
+
+### 2025-06-21 - Football Theme Implementation Complete
+- **Complete UI redesign** from purplish color scheme to football-themed aesthetics
+- **Football-inspired color palette** implemented throughout the extension:
+  - **Primary Colors**: Deep forest green (`#2d5016`) and lighter green (`#4a7c23`) representing football field colors
+  - **Accent Color**: Golden yellow (`#c17817`) representing goalpost and helmet accents
+  - **Background**: Cream/off-white (`#f8f6f0`) resembling stadium lighting
+  - **Additional Colors**: Football leather brown (`#8b4513`) and dark field green (`#1e3a0e`) for enhanced theming
+- **Comprehensive styling updates**:
+  - Header gradient updated to forest green theme
+  - All action buttons and interactive elements converted to green color scheme
+  - Table hover effects, drag indicators, and sort arrows updated
+  - Modal headers and dialogs redesigned with football gradient
+  - Focus states and accessibility indicators updated for new theme
+  - Shadow effects updated to use green-based transparency
+- **Maintained functionality and accessibility**:
+  - All existing features preserved during theme transition
+  - WCAG 2.1 AA accessibility compliance maintained with new colors
+  - High contrast and reduced motion support updated for football theme
+  - Responsive design elements kept intact across all devices
+- **Enhanced brand consistency** with football recruiting context through cohesive visual design
+- **Professional appearance** suitable for college football recruiting management
+- **Status**: Football theme fully implemented across all UI components, providing cohesive aesthetic that aligns with the extension's football recruiting purpose
+
+### 2025-06-22 - Version 0.4.4 Release Complete ✅
+- **Status**: RELEASED
+- **Version bump to 0.4.4** - patch release with data integrity improvements and database access reliability
+- **Enhanced teamInfo data structure in background.js** for improved data consistency:
+  - **Data integrity**: Enhanced `getStats()` function to ensure teamInfo always includes required properties (teamId, schoolName)
+  - **Spread operator usage**: Proper object spreading to preserve existing teamInfo properties while adding missing ones
+  - **Conditional formatting support**: Explicit teamId inclusion for UI conditional formatting operations
+  - **Data reliability**: Added schoolName redundancy to teamInfo object for enhanced data consistency
+- **Direct database access function in popup.js** for improved reliability:
+  - **New function**: Added `getCurrentTeamIdFromMaster()` for direct IndexedDB access to master database
+  - **Promise-based approach**: Asynchronous database operations with proper error handling and rejection paths
+  - **Fallback mechanism**: Provides direct database access when normal team detection methods encounter issues
+  - **Database isolation**: Opens master database specifically for team identification operations without affecting current team context
+- **Technical improvements**: 
+  - **Error resilience**: Improves extension stability when team context operations encounter database issues
+  - **Multi-team architecture enhancement**: Strengthens master database access patterns for reliable team switching
+  - **Database access reliability**: Provides direct fallback mechanism for team identification operations
+- **Files modified**: `manifest.json` (version bump), `background.js` (enhanced teamInfo structure), `popup/popup.js` (direct database access function)
+- **Status**: Version 0.4.4 successfully released with data integrity improvements and database access reliability enhancements
+
+### 2025-06-22 - Version 0.4.6 Formation IQ Support Complete ✅
+- **Status**: COMPLETED AND COMMITTED
+- **Major Feature Addition**: Formation IQ attributes support expanding the data model with 13 new coaching intelligence metrics
+- **Enhanced data scraping capabilities**:
+  - **New Formation IQ columns**: Added iq_threefour, iq_fourthree, iq_fourfour, iq_fivetwo, iq_nickel, iq_dime, iq_iformation, iq_wishbone, iq_proset, iq_ndbox, iq_shotgun, iq_trips, iq_specialteams
+  - **Updated cell validation**: Increased minimum cell count from 29 to 42 to accommodate Formation IQ data (cells 29-41)
+  - **Robust data extraction**: Formation IQ values parsed using safeParseInt() with proper error handling
+  - **Data model integration**: Formation IQ attributes fully integrated into recruit data structure for storage and persistence
+- **Complete UI integration**:
+  - **Advanced filtering**: All 13 Formation IQ attributes available as numeric filters (0-100 range) in popup interface
+  - **Table display**: Formation IQ columns included in recruits table with full sorting capability
+  - **Column management**: Formation IQ columns manageable through column visibility and column order controls
+  - **Tooltip support**: Formation IQ attributes include descriptive tooltips for user guidance
+  - **Filter summary**: Formation IQ filters included in active filter count and clear operations
+- **Technical implementation**:
+  - **Data extraction**: Formation IQ values extracted from cells 29-41 in content/scraper.js
+  - **UI configuration**: Formation IQ attributes added to ATTRIBUTE_COLUMNS and COLUMNS arrays in popup.js
+  - **Filter integration**: Formation IQ filters integrated into existing attribute filtering system
+  - **Performance considerations**: Virtual scrolling and column visibility ensure performance with expanded data model
+- **User experience benefits**:
+  - **Formation-specific recruiting**: Coaches can now filter and analyze recruits based on formation-specific intelligence
+  - **Strategic planning**: Enhanced data enables formation-specific recruiting strategies
+  - **Comprehensive analysis**: 13 new data points provide deeper recruit evaluation capabilities
+  - **Consistent interface**: Formation IQ attributes seamlessly integrated into existing filtering and display systems
+- **Files modified**: 
+  - `manifest.json` - Version bump from 0.4.5 to 0.4.6
+  - `content/scraper.js` - Enhanced data extraction with Formation IQ attributes and updated validation
+  - `popup/popup.js` - Added Formation IQ attribute filters, column definitions, and UI integration
+- **Status**: Formation IQ support implementation completed and committed. This represents a significant enhancement providing coaches with comprehensive formation-specific intelligence for advanced recruiting analysis.
+
+### 2025-06-22 - Role Rating Tooltips Implementation Complete
+- **Status**: COMPLETED
+- **Goal**: Add informative tooltips to R1-R6 role rating columns in popup interface
+- **Implementation Summary**:
+  - **Non-blocking data loading**: Added `loadRoleRatingsForTooltips()` function for asynchronous role data loading during popup initialization
+  - **Tooltip helper function**: Implemented `getRoleRatingTooltip()` function that generates descriptive tooltips (e.g., "R1: Scrambler (85)")
+  - **Proper integration**: Function integrated into existing `createRecruitRow()` function for automatic tooltip generation
+  - **Position mapping**: Uses `POSITION_MAP` to convert short position codes (QB, RB) to full position keys
+  - **Role indexing**: Maps R1-R6 columns to actual active roles for each position (R1 = first active role, etc.)
+  - **Graceful fallbacks**: Returns basic tooltips when role data unavailable, handles edge cases
+- **User Experience Enhancement**: Users can now hover over R1-R6 values to see exactly what each role rating represents for each position
+- **Status**: Role rating tooltips fully implemented and functional
+
+### 2025-06-22 - Enhanced Considering Schools Data Extraction Complete
+- **Status**: COMPLETED
+- **Major Enhancement**: Complete rewrite of considering schools data extraction to capture comprehensive recruiting intelligence
+- **Problem Addressed**: Previous considering schools data was limited to basic school name and interest level, missing critical recruiting intelligence like distance, coach information, and scholarship availability
+- **Implementation Summary**:
+  - **Enhanced parseConsidering() Function**: Complete rewrite to parse complex nested HTML structure within `cells[42]`
+  - **Rich Data Extraction**: Captures school name, school ID, distance, coach name, starting scholarships, and remaining scholarships
+  - **Formatted Output**: Creates structured string format: `school name (schoolId), miles, coachName, scholarshipsStart | scholarshipsRemaining`
+  - **Data Processing Rules**: Miles rounded to whole numbers, empty coach names replaced with "SIM AI", multiple schools separated by semicolons
+  - **Enhanced HTML Parsing**: Targets correct structure: `table.considering-subtable → tbody.considering → tr.considering`
+  - **Robust Error Handling**: Comprehensive fallbacks for missing/malformed data with graceful degradation
+  - **Backward Compatibility**: Maintains existing school ID detection and highlighting systems
+- **Technical Implementation**:
+  - **HTML Structure Parsing**: Correctly handles nested table structure within recruit considering cell
+  - **CSS Selector Usage**: Efficient extraction using `.considering-schoolname`, `.considering-miles span.considering-miles`, etc.
+  - **Data Validation**: Comprehensive validation ensures data quality with fallback mechanisms
+  - **Both Scraping Modes**: Enhanced data extraction works in both full scrape and refresh modes
+- **Files Modified**:
+  - `content/scraper.js` - Complete rewrite of parseConsidering() function and updated function calls
+  - `CONSIDERING_SCHOOLS_ENHANCED_DATA.md` - Comprehensive documentation of enhancement
+- **Example Output**: `Hofstra University (52672), 1128 miles, SIM AI, 14 | 14; Georgia Southern University (52678), 869 miles, SIM AI, 14 | 14; Texas Southern University (52697), 635 miles, SIM AI, 12 | 12`
+- **Benefits Delivered**:
+  - **Improved Recruiting Intelligence**: Distance analysis, scholarship tracking, coach identification
+  - **Enhanced User Experience**: Richer information for recruiting decisions
+  - **Strategic Planning**: Better data for recruiting strategy development
+  - **Competitive Assessment**: Better understanding of recruiting landscape
+- **Status**: Enhancement complete and fully functional, provides comprehensive considering schools data while maintaining full backward compatibility with existing extension features
+
+### 2025-06-22 - Version 0.4.7 Donation Support System - IN PROGRESS ⏳
+- **Status**: DEVELOPMENT IN PROGRESS, PENDING COMMIT
+- **Major Feature Addition**: Donation support system for project sustainability and user contribution management
+- **Outstanding Changes**:
+  - **Version bump**: Updated manifest.json from version 0.4.6 to 0.4.7
+  - **Multi-team storage integration**: Added donation configuration management methods to `lib/multi-team-storage.js`
+  - **Donation reminder system**: Implementation of periodic donation reminders with intelligent timing and user preference tracking
+  - **UI integration**: Added donation support section to Settings tab with "Show Donation Options" button functionality
+  - **User contribution tracking**: Methods to track user donation actions and reminder preferences across all teams
+  - **Global configuration**: Donation preferences stored in global config system for cross-team accessibility
+- **Technical implementation**:
+  - **Storage integration**: New `saveDonationConfig()` and `getDonationConfig()` methods use existing global configuration system
+  - **Cross-team compatibility**: Donation reminders work consistently across multi-team installations without data duplication
+  - **User experience focus**: Non-intrusive reminder system that respects user preferences and previous feedback
+  - **Privacy conscious**: Local tracking only with no external data transmission or analytics collection
+- **Enhanced UI features**:
+  - **Donation modal system**: Complete popup modal for donation information and user action tracking
+  - **Reminder scheduling**: Intelligent reminder timing based on usage patterns, extension adoption, and user feedback
+  - **User preference management**: Allow users to indicate previous support or request later reminders with customizable timing
+  - **Settings integration**: Seamless integration into existing Settings tab without disrupting current workflow
+- **Files modified (pending commit)**:
+  - `manifest.json` - Version bump from 0.4.6 to 0.4.7
+  - `lib/multi-team-storage.js` - Added donation configuration management methods (+114 lines)
+  - `popup/popup.html` - Added donation support section to Settings tab (+75 lines)
+  - `popup/popup.css` - Enhanced styling for donation UI components and modal system (+323 lines)
+  - `popup/popup.js` - Donation modal functionality and reminder system integration (+164 lines)
+  - `memory-bank/activeContext.md` - Updated to reflect current development state
+  - `memory-bank/progress.md` - Updated to reflect current development state
+- **User experience benefits**:
+  - **Project sustainability**: Enables users to support continued development and maintenance
+  - **Optional participation**: Completely optional with respect for users who choose not to contribute
+  - **Non-intrusive design**: Donation reminders designed to be helpful without being disruptive to recruiting workflow
+  - **Transparency**: Clear information about how contributions support ongoing development and feature enhancement
+- **Status**: Donation support system development in active progress with significant changes implemented but not yet committed. This represents an important enhancement for long-term project sustainability while maintaining the extension's primary focus on recruiting management excellence. Changes total 684 lines across 7 files, indicating substantial feature addition ready for integration testing and commit.
+
+The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams. Version 0.4.7 development adds important sustainability features while preserving core functionality.

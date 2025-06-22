@@ -1,15 +1,13 @@
 {
   "manifest_version": 3,
   "name": "GD Recruit Assistant",
-  "version": "0.3.4",
+  "version": "0.4.7",
   "description": "A browser extension for Gridiron Dynasty recruiting management",  "permissions": [
     "storage",
     "activeTab",
     "scripting",
     "cookies",
-    "tabs",
-    "declarativeNetRequest",
-    "declarativeNetRequestFeedback"
+    "declarativeNetRequest"
   ],
   "declarative_net_request": {
     "rule_resources": [
@@ -34,10 +32,6 @@
     {
       "matches": ["https://*.whatifsports.com/gd/recruiting/*"],
       "js": ["content/page-detector.js", "content/background-overlay.js"]
-    },
-    {
-      "matches": ["https://*.whatifsports.com/gd/office/*"],
-      "js": ["content/office-page-handler.js"]
     }
   ],
   "icons": {

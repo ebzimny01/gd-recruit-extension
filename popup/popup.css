@@ -2,18 +2,21 @@
 
 /* CSS Variables for consistent theming and easy maintenance */
 :root {
-  /* Color scheme */
-  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --primary-color: #667eea;
-  --secondary-color: #764ba2;
-  --background-color: #f5f5f5;
+  /* Football-themed color scheme */
+  --primary-gradient: linear-gradient(135deg, #2d5016 0%, #4a7c23 100%);
+  --primary-color: #2d5016; /* Deep forest green (field color) */
+  --secondary-color: #4a7c23; /* Lighter green */
+  --accent-color: #c17817; /* Golden yellow (goalpost/helmet accent) */
+  --leather-brown: #8b4513; /* Football leather color */
+  --field-green: #1e3a0e; /* Dark field green */
+  --background-color: #f8f6f0; /* Cream/off-white (stadium lights) */
   --surface-color: #ffffff;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --text-muted: #999999;
-  --border-color: #e0e0e0;
-  --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --text-primary: #1a1a1a; /* Nearly black for readability */
+  --text-secondary: #4a4a4a; /* Dark gray */
+  --text-muted: #888888;
+  --border-color: #d4d0c8; /* Lighter cream border */
+  --shadow-light: 0 2px 4px rgba(45, 80, 22, 0.1);
+  --shadow-medium: 0 4px 8px rgba(45, 80, 22, 0.15);
   
   /* Full-screen tab dimensions instead of popup */
   --container-max-width: 1400px;
@@ -54,6 +57,7 @@ body {
   line-height: 1.5;
   color: var(--text-primary);
   background-color: var(--background-color);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='stripes'%3E%3CfeTurbulence baseFrequency='.1 0.5'/%3E%3CfeColorMatrix values='.05 .1 0 0 0 .95 .4 0 0 0 .07 .1 .1 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Cpattern id='pattern' width='1' height='1'%3E%3Crect width='200%25' height='200%25' filter='url(%23stripes)'/%3E%3C/pattern%3E%3Cfilter id='filter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.09' numOctaves='2'/%3E%3CfeDisplacementMap in='SourceGraphic' scale='250'/%3E%3CfeComposite operator='in' in2='SourceGraphic' /%3E%3C/filter%3E%3Crect x='-50%25' y='-50%25' width='200%25' height='200%25' fill='url(%23pattern)' filter='url(%23filter)'/%3E%3C/svg%3E");
   margin: 0;
   padding: 0;
   min-height: var(--container-min-height);
@@ -420,7 +424,7 @@ body {
 
 #recruits-table th.dragging {
   opacity: 0.5;
-  background-color: rgba(102, 126, 234, 0.2);
+  background-color: rgba(45, 80, 22, 0.2);
   transform: scale(1.02);
   z-index: 1000;
   cursor: grabbing;
@@ -428,21 +432,21 @@ body {
 }
 
 #recruits-table th.drag-over {
-  background-color: rgba(102, 126, 234, 0.3);
+  background-color: rgba(45, 80, 22, 0.3);
   border-left: 3px solid var(--primary-color);
   border-right: 3px solid var(--primary-color);
   animation: dragPulse 0.5s ease-in-out infinite alternate;
 }
 
 #recruits-table th:not(.sortable):hover {
-  background-color: rgba(102, 126, 234, 0.1);
+  background-color: rgba(45, 80, 22, 0.1);
   cursor: move;
 }
 
 /* Drag animation */
 @keyframes dragPulse {
-  from { background-color: rgba(102, 126, 234, 0.3); }
-  to { background-color: rgba(102, 126, 234, 0.5); }
+  from { background-color: rgba(45, 80, 22, 0.3); }
+  to { background-color: rgba(45, 80, 22, 0.5); }
 }
 
 /* Enhanced drag indicator for all headers */
@@ -498,7 +502,7 @@ body {
 }
 
 #recruits-table th.sortable:hover {
-  background-color: rgba(102, 126, 234, 0.1);
+  background-color: rgba(45, 80, 22, 0.1);
 }
 
 /* Remove the old ::after pseudo-elements */
@@ -705,7 +709,7 @@ body {
 }
 
 #recruits-table tr:hover {
-  background-color: rgba(102, 126, 234, 0.05);
+  background-color: rgba(45, 80, 22, 0.05);
 }
 
 /* Pagination - both top and bottom */
@@ -1530,7 +1534,7 @@ textarea:focus-visible {
   outline-offset: -2px;
 }
 
-/* Role Ratings Modal Styles - Enhanced visual presentation */
+/* Role Ratings Modal Styles - Enhanced visual presentation with compact spacing */
 .role-ratings-modal-content {
   max-width: 95vw;
   max-height: 95vh;
@@ -1539,40 +1543,40 @@ textarea:focus-visible {
 }
 
 .role-ratings-modal-content .modal-body {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
 }
 
-/* Position header styling */
+/* Position header styling - compact version */
 .position-header {
   text-align: center;
-  margin-bottom: var(--spacing-xl);
-  padding-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
   border-bottom: 2px solid var(--border-color);
 }
 
 .position-header h3 {
-  font-size: var(--font-size-xxl);
+  font-size: var(--font-size-xl);
   color: var(--primary-color);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
   font-weight: 600;
 }
 
 .position-header p {
   color: var(--text-secondary);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   max-width: 600px;
   margin: 0 auto;
-  line-height: 1.6;
+  line-height: 1.4;
 }
 
-/* Enhanced position tabs */
+/* Enhanced position tabs - compact version */
 .position-tabs {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-xl);
-  padding: var(--spacing-md) 0;
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
   border-bottom: 2px solid var(--border-color);
 }
 
@@ -1622,20 +1626,20 @@ textarea:focus-visible {
   transform: translateY(-1px);
 }
 
-/* Roles grid layout */
+/* Roles grid layout - compact version for better screen utilization */
 .roles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: var(--spacing-xl);
-  margin-bottom: var(--spacing-xl);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
 }
 
-/* Enhanced role cards */
+/* Enhanced role cards - compact version */
 .role-card {
   background: var(--surface-color);
   border: 2px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -1677,28 +1681,54 @@ textarea:focus-visible {
   background: linear-gradient(135deg, #fff5f5, var(--surface-color));
 }
 
-/* Role card header */
+/* Role card header - compact version with enhanced role labeling */
 .role-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-lg);
-  padding-bottom: var(--spacing-md);
+  align-items: flex-start;
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
   border-bottom: 1px solid var(--border-color);
+  gap: var(--spacing-xs);
 }
 
+.role-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.role-main-label {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.role-description {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--text-secondary);
+  opacity: 0.8;
+  line-height: 1.1;
+}
+
+/* Maintain backward compatibility */
 .role-header h4 {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
 }
 
 .role-total {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--border-radius-md);
+  border-radius: var(--border-radius-sm);
   border: 1px solid var(--border-color);
   background: var(--background-color);
   transition: all 0.3s ease;
@@ -1721,39 +1751,39 @@ textarea:focus-visible {
   font-size: var(--font-size-base);
 }
 
-/* Attribute inputs grid */
+/* Attribute inputs grid - compact version */
 .attribute-inputs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: var(--spacing-sm);
 }
 
-/* Enhanced attribute input groups */
+/* Enhanced attribute input groups - compact version */
 .attribute-input-group {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 2px;
 }
 
 .attribute-input-group label {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   text-align: center;
 }
 
 .attribute-input {
-  padding: var(--spacing-sm);
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius-md);
-  font-size: var(--font-size-base);
+  padding: var(--spacing-xs);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
   font-weight: 500;
   text-align: center;
   transition: all 0.3s ease;
   background: var(--surface-color);
-  min-height: 44px; /* Better touch target */
+  min-height: 32px; /* Compact but still accessible */
 }
 
 .attribute-input:focus {
@@ -1788,13 +1818,13 @@ textarea:focus-visible {
   color: #6c757d;
 }
 
-/* Role actions styling */
+/* Role actions styling - compact version */
 .role-actions {
   display: flex;
   justify-content: center;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-xl);
-  padding-top: var(--spacing-lg);
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
   border-top: 1px solid var(--border-color);
   flex-wrap: wrap;
 }
@@ -1820,9 +1850,9 @@ textarea:focus-visible {
   background: linear-gradient(135deg, #6f42c1, #563d7c);
 }
 
-/* Enhanced modal footer for role ratings */
+/* Enhanced modal footer for role ratings - compact version */
 .role-ratings-modal-content .modal-footer {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
   background: var(--background-color);
   border-top: 2px solid var(--border-color);
 }
@@ -1877,6 +1907,18 @@ textarea:focus-visible {
     flex-direction: column;
     gap: var(--spacing-sm);
     align-items: flex-start;
+  }
+  
+  .role-title {
+    width: 100%;
+  }
+  
+  .role-main-label {
+    font-size: var(--font-size-sm);
+  }
+  
+  .role-description {
+    font-size: 0.65rem;
   }
   
   .role-actions {
@@ -1975,8 +2017,8 @@ textarea:focus-visible {
   user-select: none;
 }
 
-/* Collapsed state */
-.attribute-filters-grid.collapsed {
+/* Collapsed state - hide the entire container */
+#attribute-filters-container.collapsed {
   display: none;
 }
 
@@ -1985,11 +2027,18 @@ textarea:focus-visible {
   transform: rotate(180deg);
 }
 
+/* Main container for filter grids - force vertical stacking */
+#attribute-filters-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
 .attribute-filters-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
   gap: var(--spacing-sm);
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm);
   background: var(--surface-color);
 }
 
@@ -2074,7 +2123,7 @@ textarea:focus-visible {
 }
 
 .clear-filters-btn {
-  margin-top: var(--spacing-md);
+  margin-top: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-sm);
   background: var(--text-muted);
   color: white;
@@ -2085,8 +2134,8 @@ textarea:focus-visible {
   font-weight: 500;
   transition: background-color 0.2s ease;
   align-self: flex-start;
-  margin-left: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  margin-left: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
 }
 
 .clear-filters-btn:hover {
@@ -2964,4 +3013,402 @@ textarea:focus-visible {
 
 .clear-options {
   animation: clearDataFadeIn 0.3s ease 0.2s both;
+}
+
+/* Attribute Filters Grid Container */
+.attribute-filters-grid-container {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.attribute-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+/* Text Search Filters Grid Container */
+.text-search-filters-grid-container {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.text-search-filters-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-sm);
+}
+
+.text-search-filter-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.text-search-filter-label {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 140px;
+}
+
+.text-search-filter-input {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-sm);
+  flex: 1;
+  min-width: 300px;
+  max-width: 400px;
+  background-color: var(--surface-color);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.text-search-filter-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.text-search-filter-input:hover {
+  border-color: var(--primary-color);
+}
+
+.text-search-filter-input.filter-active {
+  border-color: var(--primary-color);
+  background-color: #e3f2fd;
+  box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+/* Donation Support Styles */
+.donation-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  padding: var(--spacing-md);
+  background: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  border-left: 4px solid var(--accent-color);
+}
+
+.donation-option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  transition: all 0.2s ease;
+}
+
+.donation-option:hover {
+  border-color: var(--accent-color);
+  box-shadow: var(--shadow-light);
+  transform: translateY(-1px);
+}
+
+.donation-option strong {
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.donation-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  word-break: break-all;
+}
+
+.donation-link:hover {
+  color: var(--secondary-color);
+  text-decoration: underline;
+}
+
+.donation-info {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: 'Courier New', Courier, monospace;
+  background: rgba(193, 120, 23, 0.1);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(193, 120, 23, 0.3);
+}
+
+.donation-note {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-style: italic;
+  text-align: center;
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border-color);
+}
+
+/* Donation Reminder Modal Styles */
+#donation-reminder-modal .modal-header {
+  background: var(--primary-gradient);
+  color: white;
+  text-align: center;
+}
+
+#donation-reminder-modal .modal-header h2 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin: 0;
+}
+
+#donation-reminder-modal .modal-body {
+  padding: var(--spacing-xl);
+  text-align: center;
+}
+
+#donation-reminder-modal .modal-body p {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-lg);
+}
+
+#donation-reminder-modal .donation-options {
+  margin: var(--spacing-lg) 0;
+  background: linear-gradient(135deg, rgba(193, 120, 23, 0.05), rgba(45, 80, 22, 0.05));
+  border-left: 4px solid var(--accent-color);
+}
+
+#donation-reminder-modal .donation-option {
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-md);
+  font-size: var(--font-size-base);
+}
+
+#donation-reminder-modal .donation-option strong {
+  min-width: 80px;
+  font-size: var(--font-size-lg);
+  color: var(--primary-color);
+}
+
+#donation-reminder-modal .donation-link {
+  font-size: var(--font-size-base);
+  word-break: break-all;
+}
+
+#donation-reminder-modal .donation-info {
+  font-size: var(--font-size-lg);
+  background: rgba(193, 120, 23, 0.15);
+  border: 2px solid rgba(193, 120, 23, 0.4);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+#donation-reminder-modal .donation-note {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 2px solid var(--border-color);
+}
+
+#donation-reminder-modal .modal-footer {
+  background: var(--background-color);
+  border-top: 2px solid var(--border-color);
+  padding: var(--spacing-lg);
+  justify-content: center;
+  gap: var(--spacing-lg);
+}
+
+#donation-reminder-modal .action-btn {
+  min-width: 160px;
+  font-weight: 600;
+  font-size: var(--font-size-base);
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+#donation-reminder-support {
+  background: linear-gradient(135deg, var(--accent-color), #d48806);
+  color: white;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+#donation-reminder-support::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+#donation-reminder-support:hover::before {
+  left: 100%;
+}
+
+#donation-reminder-support:hover {
+  background: linear-gradient(135deg, #d48806, var(--accent-color));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+#donation-reminder-later {
+  background: var(--surface-color);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+}
+
+#donation-reminder-later:hover {
+  background: var(--background-color);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+/* Responsive adjustments for donation elements */
+@media (max-width: 768px) {
+  #donation-reminder-modal .modal-content {
+    max-width: 95vw;
+    margin: var(--spacing-md);
+  }
+  
+  #donation-reminder-modal .modal-body {
+    padding: var(--spacing-lg);
+  }
+  
+  #donation-reminder-modal .donation-option {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    text-align: center;
+  }
+  
+  #donation-reminder-modal .donation-option strong {
+    min-width: auto;
+  }
+  
+  #donation-reminder-modal .modal-footer {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+  
+  #donation-reminder-modal .action-btn {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .donation-options {
+    gap: var(--spacing-sm);
+  }
+  
+  .donation-option {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--spacing-xs);
+  }
+  
+  .donation-option strong {
+    min-width: auto;
+  }
+}
+
+/* High contrast support for donation elements */
+@media (prefers-contrast: high) {
+  .donation-option {
+    border: 2px solid #000000;
+  }
+  
+  .donation-link {
+    color: #0000ff;
+    text-decoration: underline;
+  }
+  
+  .donation-info {
+    background: #ffff00;
+    border: 2px solid #000000;
+    color: #000000;
+  }
+  
+  #donation-reminder-support {
+    background: #008000;
+    border: 2px solid #000000;
+    color: #ffffff;
+  }
+  
+  #donation-reminder-later {
+    background: #ffffff;
+    border: 2px solid #000000;
+    color: #000000;
+  }
+}
+
+/* Animation for donation modal appearance */
+@keyframes donationModalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+#donation-reminder-modal:not(.hidden) .modal-content {
+  animation: donationModalSlideIn 0.4s ease;
+}
+
+/* Focus management for donation elements */
+.donation-link:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  background: rgba(45, 80, 22, 0.1);
+  border-radius: var(--border-radius-sm);
+}
+
+#donation-reminder-modal .action-btn:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Accessibility improvements */
+.donation-option {
+  cursor: default;
+}
+
+.donation-option:focus-within {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  #donation-reminder-modal:not(.hidden) .modal-content {
+    animation: none;
+  }
+  
+  #donation-reminder-support::before {
+    transition: none;
+  }
+  
+  #donation-reminder-support:hover::before {
+    display: none;
+  }
 }

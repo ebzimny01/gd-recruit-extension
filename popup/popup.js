@@ -2,7 +2,7 @@
 // Migrated from sidebar implementation with popup-specific optimizations
 
 // Import modules
-import { popupComms, sidebarComms } from './communications.js';
+import { popupComms } from './communications.js';
 import boldAttributesConfig from '../modules/bold-attributes-config.js';
 import { getFullVersionString } from '../lib/version.js';
 import { multiTeamStorage } from '../lib/multi-team-storage.js';
@@ -73,12 +73,31 @@ const ATTRIBUTE_COLUMNS = [
   { key: 'gi', label: 'GI', type: 'integer', min: 0, max: 100, step: 1 },
   { key: 'elu', label: 'Elu', type: 'integer', min: 0, max: 100, step: 1 },
   { key: 'tec', label: 'Tec', type: 'integer', min: 0, max: 100, step: 1 },
+  // Formation IQ attributes
+  { key: 'iq_threefour', label: '34', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_fourthree', label: '43', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_fourfour', label: '44', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_fivetwo', label: '52', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_nickel', label: 'Ni', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_dime', label: 'Di', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_iformation', label: 'IF', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_wishbone', label: 'WB', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_proset', label: 'Pro', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_ndbox', label: 'NDB', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_shotgun', label: 'Sh', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_trips', label: 'Tr', type: 'integer', min: 0, max: 100, step: 1 },
+  { key: 'iq_specialteams', label: 'ST', type: 'integer', min: 0, max: 100, step: 1 },
   { key: 'r1', label: 'R1', type: 'decimal', min: 0, max: 100, step: 0.1 },
   { key: 'r2', label: 'R2', type: 'decimal', min: 0, max: 100, step: 0.1 },
   { key: 'r3', label: 'R3', type: 'decimal', min: 0, max: 100, step: 0.1 },
   { key: 'r4', label: 'R4', type: 'decimal', min: 0, max: 100, step: 0.1 },
   { key: 'r5', label: 'R5', type: 'decimal', min: 0, max: 100, step: 0.1 },
   { key: 'r6', label: 'R6', type: 'decimal', min: 0, max: 100, step: 0.1 }
+];
+
+// Text search filter configuration - separate from numeric attribute filters
+const TEXT_SEARCH_COLUMNS = [
+  { key: 'considering_schools', label: 'Considering Schools', type: 'text', placeholder: 'Search...' }
 ];
 
 // Column configuration for recruit table
@@ -109,6 +128,20 @@ const COLUMNS = [
   { key: 'gi', label: 'GI', sortable: true },
   { key: 'elu', label: 'Elu', sortable: true },
   { key: 'tec', label: 'Tec', sortable: true },
+  // Formation IQ columns
+  { key: 'iq_threefour', label: '34', sortable: true },
+  { key: 'iq_fourthree', label: '43', sortable: true },
+  { key: 'iq_fourfour', label: '44', sortable: true },
+  { key: 'iq_fivetwo', label: '52', sortable: true },
+  { key: 'iq_nickel', label: 'Ni', sortable: true },
+  { key: 'iq_dime', label: 'Di', sortable: true },
+  { key: 'iq_iformation', label: 'IF', sortable: true },
+  { key: 'iq_wishbone', label: 'WB', sortable: true },
+  { key: 'iq_proset', label: 'Pro', sortable: true },
+  { key: 'iq_ndbox', label: 'NDB', sortable: true },
+  { key: 'iq_shotgun', label: 'Sh', sortable: true },
+  { key: 'iq_trips', label: 'Tr', sortable: true },
+  { key: 'iq_specialteams', label: 'ST', sortable: true },
   { key: 'r1', label: 'R1', sortable: true },
   { key: 'r2', label: 'R2', sortable: true },
   { key: 'r3', label: 'R3', sortable: true },
@@ -259,6 +292,9 @@ let state = {
       ath: '', spd: '', dur: '', we: '', sta: '', str: '',
       blk: '', tkl: '', han: '', gi: '', elu: '', tec: '',
       r1: '', r2: '', r3: '', r4: '', r5: '', r6: ''
+    },
+    text_search_filters: {
+      considering_schools: ''
     }
   },
   
@@ -298,6 +334,20 @@ let state = {
     gi: true,
     elu: true,
     tec: true,
+    // Formation IQ columns - hidden by default to avoid clutter
+    iq_threefour: true,
+    iq_fourthree: true,
+    iq_fourfour: true,
+    iq_fivetwo: true,
+    iq_nickel: true,
+    iq_dime: true,
+    iq_iformation: true,
+    iq_wishbone: true,
+    iq_proset: true,
+    iq_ndbox: true,
+    iq_shotgun: true,
+    iq_trips: true,
+    iq_specialteams: true,
     r1: true,
     r2: true,
     r3: true,
@@ -554,6 +604,9 @@ async function initializePopup() {
     
     // Load initial data
     await loadInitialData();
+    
+    // Check and show donation reminder if needed
+    await checkAndShowDonationReminder();
     
     state.popup_lifecycle = 'ready';
     setStatusMessage('Extension ready', 'success');
@@ -952,10 +1005,15 @@ async function loadVersionInfo() {
     const version = await getFullVersionString();
     const versionElement = document.getElementById('version-info');
     if (versionElement) {
-      versionElement.textContent = `v${version}`;
+      versionElement.textContent = version;
     }
   } catch (error) {
     console.warn('Could not load version info:', error);
+    // Fallback to displaying default version
+    const versionElement = document.getElementById('version-info');
+    if (versionElement) {
+      versionElement.textContent = 'GD Recruit Assistant v0.0.0';
+    }
   }
 }
 
@@ -973,11 +1031,37 @@ function initializeUIComponents() {
   applyColumnVisibility();
 }
 
+// Load role ratings data for tooltips (non-blocking)
+async function loadRoleRatingsForTooltips() {
+  try {
+    console.log('Loading role ratings data for tooltips...');
+    
+    const response = await sendMessageToBackground({ action: 'getRoleRatings' });
+    
+    if (response.success && response.ratings) {
+      // Store in state for tooltip generation
+      if (!state.role_ratings) {
+        state.role_ratings = {};
+      }
+      state.role_ratings.data = response.ratings;
+      console.log('Role ratings data loaded for tooltips');
+    } else {
+      console.warn('Could not load role ratings for tooltips, will use fallback');
+    }
+  } catch (error) {
+    console.warn('Failed to load role ratings for tooltips:', error);
+    // This is non-critical, tooltips will use fallback data
+  }
+}
+
 // Load initial data from background script
 async function loadInitialData() {
   setStatusMessage('Loading data...', 'info');
   
   try {
+    // Load role ratings data for tooltips
+    await loadRoleRatingsForTooltips();
+    
     // Get basic stats and school info
     await refreshDashboardData();
     
@@ -1036,6 +1120,51 @@ function handlePopupResize(dimensions) {
   }
 }
 
+// Function to get current team ID directly from IndexedDB master database
+async function getCurrentTeamIdFromMaster() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('gdRecruitDB_master', 1);
+    
+    request.onerror = () => {
+      console.error('Error opening master database:', request.error);
+      reject(request.error);
+    };
+    
+    request.onsuccess = () => {
+      const db = request.result;
+      
+      try {
+        const transaction = db.transaction(['globalConfig'], 'readonly');
+        const store = transaction.objectStore('globalConfig');
+        const getRequest = store.get('teamId');
+        
+        getRequest.onsuccess = () => {
+          const result = getRequest.result;
+          const teamId = result ? result.value : null;
+          console.log('🔍 DEBUG: Retrieved teamId from master DB globalConfig:', teamId);
+          db.close();
+          resolve(teamId);
+        };
+        
+        getRequest.onerror = () => {
+          console.error('Error getting teamId from globalConfig:', getRequest.error);
+          db.close();
+          reject(getRequest.error);
+        };
+      } catch (error) {
+        console.error('Error creating transaction:', error);
+        db.close();
+        reject(error);
+      }
+    };
+    
+    request.onupgradeneeded = () => {
+      console.log('Master database needs upgrade - this should not happen');
+      resolve(null);
+    };
+  });
+}
+
 // Clear all filters to reset the view
 function clearAllFilters() {
   console.log('🧹 Clearing all filters for team switch');
@@ -1056,6 +1185,9 @@ function clearAllFilters() {
       ath: '', spd: '', dur: '', we: '', sta: '', str: '',
       blk: '', tkl: '', han: '', gi: '', elu: '', tec: '',
       r1: '', r2: '', r3: '', r4: '', r5: '', r6: ''
+    },
+    text_search_filters: {
+      considering_schools: ''
     }
   };
   
@@ -1071,6 +1203,15 @@ function clearAllFilters() {
   
   // Clear attribute filter inputs
   ATTRIBUTE_COLUMNS.forEach(column => {
+    const input = document.getElementById(`filter-${column.key}`);
+    if (input) {
+      input.value = '';
+      input.classList.remove('filter-active');
+    }
+  });
+  
+  // Clear text search filter inputs
+  TEXT_SEARCH_COLUMNS.forEach(column => {
     const input = document.getElementById(`filter-${column.key}`);
     if (input) {
       input.value = '';
@@ -1543,13 +1684,30 @@ async function refreshDashboardData() {
 }
 
 // Update dashboard display with fresh data
-function updateDashboardDisplay(stats) {
+async function updateDashboardDisplay(stats) {
   console.log('Updating dashboard display with stats:', stats);
   
-  // Store team information in state for use in conditional formatting
-  if (stats.teamInfo) {
-    state.currentTeamId = stats.teamInfo.teamId;
-    console.log('Updated current team ID in state:', state.currentTeamId);
+  // Get current team ID directly from IndexedDB gdRecruitDB_master
+  try {
+    const teamId = await getCurrentTeamIdFromMaster();
+    if (teamId) {
+      state.currentTeamId = teamId;
+      console.log('🎯 Got current team ID from master DB:', state.currentTeamId);
+    } else {
+      console.warn('No current team ID found in master DB');
+      // Fallback to stats if available
+      if (stats.teamInfo && stats.teamInfo.teamId) {
+        state.currentTeamId = stats.teamInfo.teamId;
+        console.log('Fallback: Using team ID from stats:', state.currentTeamId);
+      }
+    }
+  } catch (error) {
+    console.error('Error getting team ID from master DB:', error);
+    // Fallback to stats if available
+    if (stats.teamInfo && stats.teamInfo.teamId) {
+      state.currentTeamId = stats.teamInfo.teamId;
+      console.log('Fallback: Using team ID from stats:', state.currentTeamId);
+    }
   }
   
   // Update school name displays
@@ -1986,7 +2144,13 @@ function setupAttributeFilters() {
   // Clear existing content
   elements.attribute_filters_container.innerHTML = '';
 
-  // Create attribute filter inputs dynamically
+  // Create attribute filters grid container for numeric filters
+  const attributeFiltersGridContainer = document.createElement('div');
+  attributeFiltersGridContainer.className = 'attribute-filters-grid-container';
+  
+  const attributeFiltersGrid = document.createElement('div');
+  attributeFiltersGrid.className = 'attribute-filters-grid';
+  
   ATTRIBUTE_COLUMNS.forEach(column => {
     // Create the filter group container
     const filterGroup = document.createElement('div');
@@ -2036,8 +2200,77 @@ function setupAttributeFilters() {
     // Assemble the filter group
     filterGroup.appendChild(label);
     filterGroup.appendChild(input);
-    elements.attribute_filters_container.appendChild(filterGroup);
+    attributeFiltersGrid.appendChild(filterGroup);
   });
+  
+  // Add the grid to its container
+  attributeFiltersGridContainer.appendChild(attributeFiltersGrid);
+  
+  // Add the attribute filters grid container to the main container
+  elements.attribute_filters_container.appendChild(attributeFiltersGridContainer);
+
+  // Create text search filters grid container
+  const textSearchFiltersGridContainer = document.createElement('div');
+  textSearchFiltersGridContainer.className = 'text-search-filters-grid-container';
+  
+  const textSearchFiltersGrid = document.createElement('div');
+  textSearchFiltersGrid.className = 'text-search-filters-grid';
+
+  TEXT_SEARCH_COLUMNS.forEach(column => {
+    // Create the filter group container
+    const filterGroup = document.createElement('div');
+    filterGroup.className = 'text-search-filter-group';
+
+    // Create the label
+    const label = document.createElement('label');
+    label.htmlFor = `filter-${column.key}`;
+    label.textContent = column.label;
+    label.className = 'text-search-filter-label';
+
+    // Create the input
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = `filter-${column.key}`;
+    input.className = 'text-search-filter-input';
+    input.placeholder = column.placeholder || 'Search...';
+    input.title = `Search in ${column.label}`;
+
+    // Add event listener
+    input.addEventListener('input', (event) => {
+      const value = event.target.value.trim();
+      state.filters.text_search_filters[column.key] = value;
+      
+      // Add visual indicator if filter is active
+      if (value) {
+        input.classList.add('filter-active');
+      } else {
+        input.classList.remove('filter-active');
+      }
+      
+      // Debounce the filter application
+      debounce(() => {
+        applyFilters();
+        updateFilterSummary();
+      }, 300, `text-search-filter-${column.key}`);
+    });
+
+    // Apply existing filter value if any
+    if (state.filters.text_search_filters[column.key]) {
+      input.value = state.filters.text_search_filters[column.key];
+      input.classList.add('filter-active');
+    }
+
+    // Assemble the filter group
+    filterGroup.appendChild(label);
+    filterGroup.appendChild(input);
+    textSearchFiltersGrid.appendChild(filterGroup);
+  });
+  
+  // Add the grid to its container
+  textSearchFiltersGridContainer.appendChild(textSearchFiltersGrid);
+  
+  // Add the text search filters grid container to the main container
+  elements.attribute_filters_container.appendChild(textSearchFiltersGridContainer);
 
   // Initialize filter summary
   updateFilterSummary();
@@ -2050,8 +2283,22 @@ function clearAttributeFilters() {
     state.filters.attribute_filters[key] = '';
   });
 
+  // Reset all text search filter values
+  Object.keys(state.filters.text_search_filters).forEach(key => {
+    state.filters.text_search_filters[key] = '';
+  });
+
   // Clear all input values and remove active indicators
   ATTRIBUTE_COLUMNS.forEach(column => {
+    const input = document.getElementById(`filter-${column.key}`);
+    if (input) {
+      input.value = '';
+      input.classList.remove('filter-active');
+    }
+  });
+
+  // Clear all text search input values and remove active indicators
+  TEXT_SEARCH_COLUMNS.forEach(column => {
     const input = document.getElementById(`filter-${column.key}`);
     if (input) {
       input.value = '';
@@ -2069,13 +2316,18 @@ function updateFilterSummary() {
   const toggleText = document.querySelector('.toggle-text');
   if (!toggleText) return;
 
-  const activeFilterCount = Object.values(state.filters.attribute_filters)
+  const activeAttributeFilterCount = Object.values(state.filters.attribute_filters)
     .filter(value => value && value.trim() !== '').length;
+  
+  const activeTextSearchFilterCount = Object.values(state.filters.text_search_filters)
+    .filter(value => value && value.trim() !== '').length;
+  
+  const totalActiveFilterCount = activeAttributeFilterCount + activeTextSearchFilterCount;
 
   // Update toggle text with count
-  const baseText = 'Attribute Filters (>= values)';
-  if (activeFilterCount > 0) {
-    toggleText.innerHTML = `${baseText} <span class="filter-summary-badge">${activeFilterCount}</span>`;
+  const baseText = 'Attribute & Text Filters';
+  if (totalActiveFilterCount > 0) {
+    toggleText.innerHTML = `${baseText} <span class="filter-summary-badge">${totalActiveFilterCount}</span>`;
   } else {
     toggleText.textContent = baseText;
   }
@@ -2101,6 +2353,35 @@ function matchesAttributeFilters(recruit) {
 
     // Filter should show recruits with values >= the filter value
     if (numericRecruitValue < numericFilterValue) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Check if recruit matches text search filters
+function matchesTextSearchFilters(recruit) {
+  for (const [filterKey, filterValue] of Object.entries(state.filters.text_search_filters)) {
+    if (!filterValue || filterValue.trim() === '') continue;
+
+    // Map filter keys to recruit data fields
+    let recruitValue = '';
+    switch (filterKey) {
+      case 'considering_schools':
+        recruitValue = recruit.considering || '';
+        break;
+      default:
+        console.warn(`Unknown text search filter key: ${filterKey}`);
+        continue;
+    }
+
+    // Convert both values to lowercase for case-insensitive search
+    const searchTerm = filterValue.toLowerCase().trim();
+    const recruitText = recruitValue.toLowerCase();
+
+    // Check if the recruit's text contains the search term
+    if (!recruitText.includes(searchTerm)) {
       return false;
     }
   }
@@ -2242,6 +2523,12 @@ function setupSettingsListeners() {
   const resetColumnOrderBtn = document.getElementById('btn-reset-column-order');
   if (resetColumnOrderBtn) {
     resetColumnOrderBtn.addEventListener('click', handleResetColumnOrder);
+  }
+  
+  // Show donation modal button in settings
+  const showDonationModalBtn = document.getElementById('btn-show-donation-modal');
+  if (showDonationModalBtn) {
+    showDonationModalBtn.addEventListener('click', handleShowDonationModal);
   }
 }
 
@@ -2966,6 +3253,43 @@ function sendMessageToBackground(message) {
   return popupComms.sendMessageToBackground(message);
 }
 
+/**
+ * Generate tooltip for role rating columns (R1-R6)
+ * @param {string} position - Recruit position (e.g., 'QB', 'RB')
+ * @param {string} roleColumn - Role column key (e.g., 'r1', 'r2')
+ * @param {number|string} rating - The rating value
+ * @returns {string} Tooltip text
+ */
+function getRoleRatingTooltip(position, roleColumn, rating) {
+  // Return basic tooltip if no position or rating
+  if (!position || !roleColumn || (rating === null || rating === undefined || rating === '')) {
+    return `${roleColumn.toUpperCase()} rating`;
+  }
+
+  // Try to get role information from loaded data
+  if (state.role_ratings && state.role_ratings.data) {
+    const positionKey = POSITION_MAP[position.toUpperCase()];
+    
+    if (positionKey && state.role_ratings.data[positionKey]) {
+      const positionData = state.role_ratings.data[positionKey];
+      const activeRoles = Object.entries(positionData).filter(([, roleData]) => roleData.isActive);
+      
+      // Map R1-R6 to role indices (R1 = first active role, R2 = second, etc.)
+      const roleIndex = parseInt(roleColumn.substring(1)) - 1; // r1 -> 0, r2 -> 1, etc.
+      
+      if (roleIndex >= 0 && roleIndex < activeRoles.length) {
+        const [roleKey, roleData] = activeRoles[roleIndex];
+        const roleLabel = roleData.roleLabel || roleKey;
+        
+        return `${roleColumn.toUpperCase()}: ${roleLabel} (${rating})`;
+      }
+    }
+  }
+  
+  // Fallback tooltip
+  return `${roleColumn.toUpperCase()}: ${rating} (${position} role rating)`;
+}
+
 // Setup column visibility modal listeners
 function setupColumnVisibilityModalListeners() {
   if (elements.column_visibility_save) {
@@ -3549,16 +3873,23 @@ function generatePositionContent(positionKey) {
     <div class="roles-grid">
   `;
 
-  // Create role cards
-  activeRoles.forEach(([roleKey, roleData]) => {
+  // Create role cards with enhanced role labels
+  activeRoles.forEach(([roleKey, roleData], index) => {
     const roleId = `${positionKey}.${roleKey}`;
     const total = calculateRoleTotal(roleData.attributes);
     const isValid = Math.abs(total - 100) < 0.1;
+    
+    // Generate custom role label (R1, R2, etc.) based on the role index
+    const customRoleLabel = `R${index + 1}`;
+    const genericRoleLabel = roleData.roleLabel;
 
     html += `
       <div class="role-card ${isValid ? 'valid' : 'invalid'}" data-role="${roleId}">
         <div class="role-header">
-          <h4>${roleData.roleLabel}</h4>
+          <div class="role-title">
+            <h4 class="role-main-label">${customRoleLabel} = ${genericRoleLabel}</h4>
+            <span class="role-description">${customRoleLabel} (${genericRoleLabel})</span>
+          </div>
           <div class="role-total ${isValid ? 'valid' : 'invalid'}">
             Total: <span class="total-value">${total.toFixed(1)}</span>
           </div>
@@ -4397,7 +4728,12 @@ function isNumericColumn(columnKey) {
   const numericColumns = [
     'height', 'weight', 'rating', 'rank', 'miles', 'gpa', 'priority',
     'ath', 'spd', 'dur', 'we', 'sta', 'str', 'blk', 'tkl',
-    'han', 'gi', 'elu', 'tec', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6'
+    'han', 'gi', 'elu', 'tec', 
+    // Formation IQ columns
+    'iq_threefour', 'iq_fourthree', 'iq_fourfour', 'iq_fivetwo', 
+    'iq_nickel', 'iq_dime', 'iq_iformation', 'iq_wishbone', 
+    'iq_proset', 'iq_ndbox', 'iq_shotgun', 'iq_trips', 'iq_specialteams',
+    'r1', 'r2', 'r3', 'r4', 'r5', 'r6'
   ];
   return numericColumns.includes(columnKey);
 }
@@ -4875,6 +5211,12 @@ function applyFilters() {
         return false;
       }
       
+      // Text search filters
+      if (!matchesTextSearchFilters(recruit)) {
+        filterFailReasons.text_search_filters = (filterFailReasons.text_search_filters || 0) + 1;
+        return false;
+      }
+      
       filterPassCount++;
       return true;
     });
@@ -5114,6 +5456,15 @@ function updateRecruitsListStandard(pageRecruits) {
     world: elements.team_world?.textContent || null
   };
   
+  // Debug logging to identify the issue
+  console.log('🔍 DEBUG: teamInfo in updateRecruitsListStandard:', teamInfo);
+  console.log('🔍 DEBUG: state.currentTeamId:', state.currentTeamId);
+  console.log('🔍 DEBUG: Elements check:', {
+    schoolName: elements.school_name?.textContent,
+    division: elements.team_division?.textContent,
+    world: elements.team_world?.textContent
+  });
+  
   // Create rows for recruits
   pageRecruits.forEach((recruit, index) => {
     try {
@@ -5298,12 +5649,26 @@ function createRecruitRow(recruit, teamInfo) {
       'gi': { content: recruit.gi || '', attribute: 'gi', tooltip: recruit.gi ? `Game Intelligence: ${recruit.gi}` : null },
       'elu': { content: recruit.elu || '', attribute: 'elu', tooltip: recruit.elu ? `Elusiveness: ${recruit.elu}` : null },
       'tec': { content: recruit.tec || '', attribute: 'tec', tooltip: recruit.tec ? `Technique: ${recruit.tec}` : null },
-      'r1': { content: recruit.r1 || '', attribute: null, tooltip: recruit.r1 ? `Rating 1: ${recruit.r1}` : null },
-      'r2': { content: recruit.r2 || '', attribute: null, tooltip: recruit.r2 ? `Rating 2: ${recruit.r2}` : null },
-      'r3': { content: recruit.r3 || '', attribute: null, tooltip: recruit.r3 ? `Rating 3: ${recruit.r3}` : null },
-      'r4': { content: recruit.r4 || '', attribute: null, tooltip: recruit.r4 ? `Rating 4: ${recruit.r4}` : null },
-      'r5': { content: recruit.r5 || '', attribute: null, tooltip: recruit.r5 ? `Rating 5: ${recruit.r5}` : null },
-      'r6': { content: recruit.r6 || '', attribute: null, tooltip: recruit.r6 ? `Rating 6: ${recruit.r6}` : null },
+      // Formation IQ columns
+      'iq_threefour': { content: recruit.iq_threefour || '', attribute: null, tooltip: recruit.iq_threefour ? `3-4 Formation IQ: ${recruit.iq_threefour}` : null },
+      'iq_fourthree': { content: recruit.iq_fourthree || '', attribute: null, tooltip: recruit.iq_fourthree ? `4-3 Formation IQ: ${recruit.iq_fourthree}` : null },
+      'iq_fourfour': { content: recruit.iq_fourfour || '', attribute: null, tooltip: recruit.iq_fourfour ? `4-4 Formation IQ: ${recruit.iq_fourfour}` : null },
+      'iq_fivetwo': { content: recruit.iq_fivetwo || '', attribute: null, tooltip: recruit.iq_fivetwo ? `5-2 Formation IQ: ${recruit.iq_fivetwo}` : null },
+      'iq_nickel': { content: recruit.iq_nickel || '', attribute: null, tooltip: recruit.iq_nickel ? `Nickel Formation IQ: ${recruit.iq_nickel}` : null },
+      'iq_dime': { content: recruit.iq_dime || '', attribute: null, tooltip: recruit.iq_dime ? `Dime Formation IQ: ${recruit.iq_dime}` : null },
+      'iq_iformation': { content: recruit.iq_iformation || '', attribute: null, tooltip: recruit.iq_iformation ? `I-Form Formation IQ: ${recruit.iq_iformation}` : null },
+      'iq_wishbone': { content: recruit.iq_wishbone || '', attribute: null, tooltip: recruit.iq_wishbone ? `Wishbone Formation IQ: ${recruit.iq_wishbone}` : null },
+      'iq_proset': { content: recruit.iq_proset || '', attribute: null, tooltip: recruit.iq_proset ? `Pro Set Formation IQ: ${recruit.iq_proset}` : null },
+      'iq_ndbox': { content: recruit.iq_ndbox || '', attribute: null, tooltip: recruit.iq_ndbox ? `ND Box Formation IQ: ${recruit.iq_ndbox}` : null },
+      'iq_shotgun': { content: recruit.iq_shotgun || '', attribute: null, tooltip: recruit.iq_shotgun ? `Shotgun Formation IQ: ${recruit.iq_shotgun}` : null },
+      'iq_trips': { content: recruit.iq_trips || '', attribute: null, tooltip: recruit.iq_trips ? `Trips Formation IQ: ${recruit.iq_trips}` : null },
+      'iq_specialteams': { content: recruit.iq_specialteams || '', attribute: null, tooltip: recruit.iq_specialteams ? `Special Teams IQ: ${recruit.iq_specialteams}` : null },
+      'r1': { content: recruit.r1 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r1', recruit.r1) },
+      'r2': { content: recruit.r2 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r2', recruit.r2) },
+      'r3': { content: recruit.r3 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r3', recruit.r3) },
+      'r4': { content: recruit.r4 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r4', recruit.r4) },
+      'r5': { content: recruit.r5 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r5', recruit.r5) },
+      'r6': { content: recruit.r6 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r6', recruit.r6) },
       'considering': {
         content: recruit.considering || '', 
         attribute: null, 
@@ -5314,18 +5679,33 @@ function createRecruitRow(recruit, teamInfo) {
           
           // Add conditional formatting based on current school status
           if (teamInfo && teamInfo.teamId && recruit.considering) {
+            console.log('🔍 DEBUG: About to check considering status for recruit:', recruit.name);
+            console.log('🔍 DEBUG: teamInfo.teamId:', teamInfo.teamId);
+            console.log('🔍 DEBUG: recruit.considering:', recruit.considering);
+            
             const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, teamInfo.teamId);
+            console.log('🔍 DEBUG: consideringStatus result:', consideringStatus);
+            
             switch (consideringStatus) {
               case 'only':
                 baseClasses.push('considering-only-school');
+                console.log('🔍 DEBUG: Added considering-only-school class');
                 break;
               case 'included':
                 baseClasses.push('considering-among-schools');
+                console.log('🔍 DEBUG: Added considering-among-schools class');
                 break;
               case 'not_included':
                 // No special formatting for not included
+                console.log('🔍 DEBUG: No special class - not included');
                 break;
             }
+          } else {
+            console.log('🔍 DEBUG: Conditional formatting skipped - missing data:', {
+              hasTeamInfo: !!teamInfo,
+              hasTeamId: teamInfo?.teamId,
+              hasConsidering: recruit.considering
+            });
           }
           
           return baseClasses;
@@ -6250,6 +6630,161 @@ if (typeof window !== 'undefined') {
     switchTab,
     handleError
   };
+}
+
+// Donation reminder functionality
+async function checkAndShowDonationReminder() {
+  try {
+    console.log('Checking if donation reminder should be shown...');
+    
+    // Check if we should show the donation reminder
+    const shouldShow = await multiTeamStorage.shouldShowDonationReminder();
+    
+    if (shouldShow) {
+      console.log('Showing donation reminder to user');
+      setTimeout(() => {
+        showDonationReminderModal();
+      }, 2000); // Show after 2 seconds to let the user settle in
+    } else {
+      console.log('Donation reminder not needed at this time');
+    }
+    
+  } catch (error) {
+    console.error('Error checking donation reminder:', error);
+    // Don't fail the entire initialization if this fails
+  }
+}
+
+// Show donation reminder modal
+function showDonationReminderModal() {
+  const modal = document.getElementById('donation-reminder-modal');
+  if (!modal) {
+    console.warn('Donation reminder modal not found in DOM');
+    return;
+  }
+  
+  // Setup event listeners if not already done
+  if (!modal.dataset.initialized) {
+    setupDonationReminderModalListeners();
+    modal.dataset.initialized = 'true';
+  }
+  
+  // Show the modal
+  modal.classList.remove('hidden');
+  
+  // Focus management for accessibility
+  const supportButton = document.getElementById('donation-reminder-support');
+  if (supportButton) {
+    supportButton.focus();
+  }
+}
+
+// Setup donation reminder modal event listeners
+function setupDonationReminderModalListeners() {
+  const modal = document.getElementById('donation-reminder-modal');
+  if (!modal) return;
+  
+  console.log('Setting up donation reminder modal listeners...');
+  
+  // Support button
+  const supportBtn = document.getElementById('donation-reminder-support');
+  if (supportBtn) {
+    supportBtn.addEventListener('click', handleDonationSupport);
+  }
+  
+  // Later button
+  const laterBtn = document.getElementById('donation-reminder-later');
+  if (laterBtn) {
+    laterBtn.addEventListener('click', handleDonationLater);
+  }
+  
+  // Close button (if exists)
+  const closeBtn = modal.querySelector('.close-button');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', handleDonationLater);
+  }
+  
+  // Close on backdrop click
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      handleDonationLater();
+    }
+  });
+  
+  // Handle escape key
+  const handleEscape = (event) => {
+    if (event.key === 'Escape' && !modal.classList.contains('hidden')) {
+      handleDonationLater();
+    }
+  };
+  
+  document.addEventListener('keydown', handleEscape);
+  
+  // Store the escape handler so we can remove it later
+  modal._escapeHandler = handleEscape;
+}
+
+// Handle donation support button click
+async function handleDonationSupport() {
+  try {
+    console.log('User clicked "I\'ve already supported"');
+    
+    // Record that the user has already supported
+    await multiTeamStorage.recordDonationAction('support');
+    
+    // Close the modal
+    hideDonationReminderModal();
+    
+    // Show thank you message
+    setStatusMessage('Thank you for your support! 🙏', 'success');
+    
+  } catch (error) {
+    console.error('Error handling donation support:', error);
+    // Still close the modal even if there's an error
+    hideDonationReminderModal();
+    setStatusMessage('Thank you for your support!', 'success');
+  }
+}
+
+// Handle donation later button click
+async function handleDonationLater() {
+  try {
+    console.log('User clicked donation later');
+    
+    // Mark reminder as shown and record later action
+    await multiTeamStorage.recordDonationAction('later');
+    
+    // Close the modal
+    hideDonationReminderModal();
+    
+  } catch (error) {
+    console.error('Error handling donation later:', error);
+    // Still close the modal even if there's an error
+    hideDonationReminderModal();
+  }
+}
+
+// Handle manual show donation modal button click
+function handleShowDonationModal() {
+  console.log('User manually requested donation modal');
+  showDonationReminderModal();
+}
+
+// Hide donation reminder modal
+function hideDonationReminderModal() {
+  const modal = document.getElementById('donation-reminder-modal');
+  if (!modal) return;
+  
+  // Hide the modal
+  modal.classList.add('hidden');
+  
+  // Clean up escape key handler if it exists
+  if (modal._escapeHandler) {
+    document.removeEventListener('keydown', modal._escapeHandler);
+    modal._escapeHandler = null;
+  }
+  
+  console.log('Donation reminder modal hidden');
 }
 
 // Handle scrape complete messages

@@ -36,8 +36,6 @@ Browser Extension (Manifest V3)
 - **page-detector.js**: Identifies GD recruiting pages and triggers appropriate handlers
 - **scraper.js**: Main data extraction logic for recruit information
 - **background-overlay.js**: UI overlays and page enhancement features
-- **office-page-handler.js**: Handles GD office pages specifically
-- **watchlist-scraper.js**: Specialized scraping for watchlist data
 
 #### 3. Background Processing (Service Worker)
 **Location**: `background.js`

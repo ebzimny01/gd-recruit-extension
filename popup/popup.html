@@ -223,7 +223,8 @@
                 id="btn-export-data"
                 class="setting-btn"
                 disabled
-                title="Export functionality not yet implemented">
+                title="Export functionality not yet implemented"
+                hidden>
                 Export Data
               </button>
               <button
@@ -231,6 +232,7 @@
                 class="setting-btn"
                 disabled
                 title="Import functionality not yet implemented"
+                hidden
               >
                 Import Data
               </button>
@@ -244,7 +246,7 @@
               </button>
             </div>
             <div class="setting-row">
-              <button id="btn-refresh-data" class="setting-btn">
+              <button id="btn-refresh-data" class="setting-btn" hidden>
                 Manual Refresh
               </button>
             </div>
@@ -294,9 +296,46 @@
 
           <div class="settings-group">
             <h3>About</h3>
-            <p id="version-display">GD Recruit Assistant v0.0.0</p>
+            <p id="version-info">GD Recruit Assistant v0.0.0</p>
             <p>
               A browser extension for Gridiron Dynasty recruiting management
+            </p>
+            <p>
+              This extension is not affiliated with Gridiron Dynasty or
+              WhatIfSports. It is an independent project created to enhance the
+              recruiting experience in Gridiron Dynasty.
+            </p>
+          </div>
+
+          <div class="settings-group">
+            <h3>Support the Project</h3>
+            <p>
+              If you find GD Recruit Assistant helpful for your recruiting efforts, 
+              consider supporting its continued development:
+            </p>
+            <div class="setting-row">
+              <button id="btn-show-donation-modal" class="setting-btn" hidden>
+                Show Donation Options
+              </button>
+            </div>
+            <div class="donation-options">
+              <div class="donation-option">
+                <strong>PayPal:</strong>
+                <span class="donation-info">
+                  <a href="https://www.paypal.com/paypalme/EdZimny" target="_blank" rel="noopener noreferrer" class="donation-link">
+                    EdZimny
+                  </a>
+                </span>
+              </div>
+              <div class="donation-option">
+                <strong>Venmo:</strong>
+                <span class="donation-info">
+                  <a href="https://venmo.com/u/Ed-Zimny" target="_blank" rel="noopener noreferrer" class="donation-link">@Ed-Zimny</a>
+                </span>
+              </div>
+            </div>
+            <p class="donation-note">
+              Your support helps maintain and improve the extension. Thank you!
             </p>
           </div>
         </section>
@@ -546,6 +585,49 @@
               </button>
               <button id="clear-data-cancel" class="action-btn secondary">
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Donation Reminder Modal -->
+        <div id="donation-reminder-modal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>Support GD Recruit Assistant</h2>
+              <span class="close-button" id="donation-reminder-modal-close">&times;</span>
+            </div>
+            <div class="modal-body">
+              <p>
+                Thanks for using GD Recruit Assistant! If this extension has 
+                helped with your recruiting efforts, consider supporting its development:
+              </p>
+              <div class="donation-options">
+                <div class="donation-option">
+                <strong>PayPal:</strong>
+                <span class="donation-info">
+                  <a href="https://www.paypal.com/paypalme/EdZimny" target="_blank" rel="noopener noreferrer" class="donation-link">
+                    EdZimny
+                  </a>
+                </span>
+              </div>
+              <div class="donation-option">
+                <strong>Venmo:</strong>
+                <span class="donation-info">
+                  <a href="https://venmo.com/u/Ed-Zimny" target="_blank" rel="noopener noreferrer" class="donation-link">@Ed-Zimny</a>
+                </span>
+              </div>
+              </div>
+              <p class="donation-note">
+                Your support helps maintain and improve the extension. Thank you!
+              </p>
+            </div>
+            <div class="modal-footer">
+              <button id="donation-reminder-support" class="action-btn">
+                I've already supported
+              </button>
+              <button id="donation-reminder-later" class="action-btn secondary">
+                Remind Me Later
               </button>
             </div>
           </div>

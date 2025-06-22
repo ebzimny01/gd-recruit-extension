@@ -207,6 +207,3 @@ export const popupComms = {
   handlePopupResize,
   isDatabaseError
 };
-
-// Maintain backward compatibility with sidebarComms
-export const sidebarComms = popupComms;

@@ -136,11 +136,28 @@ chrome.runtime.onInstalled.addListener(checkAllTabsForGDOffice);
 function checkAllTabsForGDOffice() {
   console.log('Scanning all open tabs for GD Office page');
   
-  chrome.tabs.query({}, (tabs) => {
-    console.log(`Checking ${tabs.length} open tabs`);
+  chrome.tabs.query({
+    // Filter to only include normal web pages
+    url: ['*://*/*']  // This excludes chrome://, about:, etc.
+  }, (tabs) => {
+    console.log(`Checking ${tabs.length} valid tabs (filtered from all tabs)`);
     
-    // Check each tab
-    tabs.forEach(tab => {
+    // Additional filtering and validation
+    const validTabs = tabs.filter(tab => {
+      return tab && 
+             tab.id && 
+             tab.url && 
+             tab.status === 'complete' &&  // Only check fully loaded tabs
+             !tab.url.startsWith('chrome://') &&
+             !tab.url.startsWith('chrome-extension://') &&
+             !tab.url.startsWith('about:') &&
+             !tab.url.startsWith('edge://') &&
+             !tab.url.startsWith('moz-extension://');
+    });
+    
+    console.log(`Processing ${validTabs.length} valid tabs`);
+    
+    validTabs.forEach(tab => {
       checkIfGDOfficePage(tab);
     });
   });
@@ -593,7 +610,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.warn('Error updating team counts after bulk save:', error);
     }
 
-    // Notify any listeners (such as the sidebar) that scraping is complete
+    // Notify any listeners (such as the popup) that scraping is complete
     chrome.runtime.sendMessage({
       action: 'scrapeComplete',
       success: true,
@@ -1483,7 +1500,12 @@ async function getStats() {
         recruitCount,
         currentSeason: currentSeason || null,
         schoolName,
-        teamInfo
+        teamInfo: {
+          ...teamInfo,
+          // Ensure teamId is always included for conditional formatting
+          teamId: teamInfo?.teamId || null,
+          schoolName: schoolName
+        }
       };
 
     } catch (error) {
@@ -1518,13 +1540,6 @@ async function getStats() {
     teamInfo: null,
     error: lastError.message
   };
-}
-
-// You can simplify or remove the updateWatchlist function since it won't be called directly anymore
-// However, if you're calling it elsewhere in the code, keep it but simplify it:
-async function updateWatchlist(watchlist) {
-  console.log('This function is deprecated. Watchlist is now calculated directly from recruit data.');
-  return { count: 0 };
 }
 
 // Inject a content script into a tab
@@ -2060,70 +2075,6 @@ function getUrlForSelectedDivisions(selectedDivisions) {
 // Module-level variable to store current scrape tab ID
 let currentScrapeTabId = null;
 
-// Check if the User-Agent rule was matched
-async function checkUserAgentRuleMatched(tabId) {
-  console.log(`Checking matched rules for tab ${tabId}`);
-
-  try {
-    const matchedRules = await chrome.declarativeNetRequest.getMatchedRules({
-      tabId: tabId
-    });
-
-    console.log('All matched rules:', matchedRules);
-
-    // Check if our User-Agent rule (ID: 1) was matched
-    const userAgentRuleMatched = matchedRules.rulesMatchedInfo.some(
-      rule => rule.rule.ruleId === 1
-    );
-
-    console.log(`User-Agent rule matched: ${userAgentRuleMatched}`);
-
-    // Return matched rule details
-    return {
-      matched: userAgentRuleMatched,
-      details: matchedRules
-    };
-  } catch (error) {
-    console.error('Error checking matched rules:', error);
-    return {
-      matched: false,
-      error: error.message
-    };
-  }
-}
-
-// Set up listener for rule matched debug events
-chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(
-  (info) => {
-    console.log('Rule matched debug event:', info);
-    console.log(`Rule ${info.rule.ruleId} matched for request: ${info.request.url}`);
-    console.log(`The request method was: ${info.request.method}`);
-
-    // Check if it's our User-Agent rule (ID: 1)
-    if (info.rule.ruleId === 1) {
-      console.log('🎯 User-Agent rule matched!');
-      console.log('Request details:', info.request);
-
-      // Store information about the match for later reference
-      // Use global variable instead of window.userAgentRuleMatches
-      if (!globalThis.userAgentRuleMatches) {
-        globalThis.userAgentRuleMatches = [];
-      }
-      globalThis.userAgentRuleMatches.push({
-        timestamp: new Date().toISOString(),
-        url: info.request.url,
-        tabId: info.tabId
-      });
-    }
-  }
-);
-
-// Check which rules have been matched
-chrome.declarativeNetRequest.getMatchedRules({}, function (details) {
-  console.log("Matched rules:", details);
-  // details.rulesMatchedInfo will contain information about matched rules
-});
-
 // Check database status for diagnostic purposes - using storage module only
 async function checkDatabaseStatus() {
   console.log('Checking database status using storage module');
@@ -2652,19 +2603,77 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 // Note: Cookie monitoring is now handled by TeamCookieMonitor class above
 
+// Add debouncing to prevent excessive calls during rapid navigation
+const tabUpdateDebounce = new Map();
+
 // Set up listener for GD Office page
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // Only run when the page is fully loaded
-  if (changeInfo.status === 'complete' && tab.url) {
-    checkIfGDOfficePage(tab);
+  // Only process when page is fully loaded and has required properties
+  if (changeInfo.status === 'complete' && tab && tab.url && tab.id) {
+    
+    // Clear any existing timeout for this tab
+    if (tabUpdateDebounce.has(tabId)) {
+      clearTimeout(tabUpdateDebounce.get(tabId));
+    }
+    
+    // Set a small delay to allow tab to fully stabilize
+    const timeoutId = setTimeout(() => {
+      checkIfGDOfficePage(tab);
+      tabUpdateDebounce.delete(tabId);
+    }, 100); // 100ms delay
+    
+    tabUpdateDebounce.set(tabId, timeoutId);
   }
 });
 
+// Clean up debounce map when tabs are closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabUpdateDebounce.has(tabId)) {
+    clearTimeout(tabUpdateDebounce.get(tabId));
+    tabUpdateDebounce.delete(tabId);
+  }
+});
+
+// Add tab state debugging function for better troubleshooting
+function debugTabState(tab, context = 'unknown') {
+  console.log(`🔍 Tab Debug [${context}]:`, {
+    id: tab?.id,
+    url: tab?.url ? tab.url.substring(0, 100) + (tab.url.length > 100 ? '...' : '') : 'No URL',
+    status: tab?.status,
+    title: tab?.title ? tab.title.substring(0, 50) + (tab.title.length > 50 ? '...' : '') : 'No title',
+    hasAllProperties: !!(tab && tab.id && tab.url),
+    allKeys: tab ? Object.keys(tab).join(', ') : 'No tab object'
+  });
+}
+
 // Function to check if a specific tab is the GD Office page
 function checkIfGDOfficePage(tab) {
-  // Validate tab object
-  if (!tab || !tab.url || !tab.id) {
-    console.warn('Invalid tab object passed to checkIfGDOfficePage');
+  // Enhanced validation with detailed logging
+  if (!tab) {
+    console.warn('checkIfGDOfficePage: tab object is null or undefined');
+    return;
+  }
+  
+  if (typeof tab.id === 'undefined') {
+    console.warn('checkIfGDOfficePage: tab.id is missing');
+    debugTabState(tab, 'missing-tab-id');
+    return;
+  }
+  
+  if (!tab.url) {
+    console.warn('checkIfGDOfficePage: tab.url is missing');
+    debugTabState(tab, 'missing-tab-url');
+    return;
+  }
+  
+  // Additional check for special Chrome pages that should be ignored
+  if (tab.url.startsWith('chrome://') || 
+      tab.url.startsWith('chrome-extension://') || 
+      tab.url.startsWith('about:') ||
+      tab.url === 'chrome://newtab/' ||
+      tab.url.startsWith('edge://') ||
+      tab.url.startsWith('moz-extension://')) {
+    console.log('checkIfGDOfficePage: Skipping browser internal page', tab.url.substring(0, 50) + '...');
     return;
   }
   

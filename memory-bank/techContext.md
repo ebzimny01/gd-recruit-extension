@@ -58,10 +58,6 @@
     "matches": ["https://*.whatifsports.com/gd/recruiting/*"],
     "js": ["content/page-detector.js", "content/background-overlay.js"]
   },
-  {
-    "matches": ["https://*.whatifsports.com/gd/office/*"],
-    "js": ["content/office-page-handler.js"]
-  }
 ]
 ```
 

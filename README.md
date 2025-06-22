@@ -96,7 +96,7 @@ The GD Recruit Assistant transforms the Gridiron Dynasty recruiting experience b
 ├── content/              # Page-specific scripts
 │   ├── page-detector.js  # Page type detection
 │   ├── scraper.js        # Data extraction
-│   └── office-page-handler.js
+│   └── background-overlay.js # UI overlay enhancements
 ├── modules/              # Reusable modules
 │   └── bold-attributes-config.js
 ├── lib/                  # Utility libraries

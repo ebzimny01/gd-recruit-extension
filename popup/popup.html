@@ -223,7 +223,8 @@
                 id="btn-export-data"
                 class="setting-btn"
                 disabled
-                title="Export functionality not yet implemented">
+                title="Export functionality not yet implemented"
+                hidden>
                 Export Data
               </button>
               <button
@@ -231,6 +232,7 @@
                 class="setting-btn"
                 disabled
                 title="Import functionality not yet implemented"
+                hidden
               >
                 Import Data
               </button>
@@ -244,7 +246,7 @@
               </button>
             </div>
             <div class="setting-row">
-              <button id="btn-refresh-data" class="setting-btn">
+              <button id="btn-refresh-data" class="setting-btn" hidden>
                 Manual Refresh
               </button>
             </div>
@@ -294,9 +296,14 @@
 
           <div class="settings-group">
             <h3>About</h3>
-            <p id="version-display">GD Recruit Assistant v0.0.0</p>
+            <p id="version-info">GD Recruit Assistant v0.0.0</p>
             <p>
               A browser extension for Gridiron Dynasty recruiting management
+            </p>
+            <p>
+              This extension is not affiliated with Gridiron Dynasty or
+              WhatIfSports. It is an independent project created to enhance the
+              recruiting experience in Gridiron Dynasty.
             </p>
           </div>
         </section>

@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// Listen for messages from popup or sidebar
+// Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Content script received message:', message);
   
@@ -43,12 +43,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       // Load the scraper script if not already loaded
       injectScript('content/scraper.js');
       sendResponse({ success: true });
-      break;
-      
-    // Remove this case or keep for backward compatibility with an empty implementation
-    case 'triggerWatchlistScrape':
-      console.log('Watchlist scrape is deprecated - using main scraper for all recruit data');
-      sendResponse({ success: false, message: 'Watchlist scraping deprecated' });
       break;
       
     case 'getPageInfo':

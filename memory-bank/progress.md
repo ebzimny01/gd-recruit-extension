@@ -93,8 +93,7 @@
 5. **Multi-Team Edge Cases**: Test complex team switching scenarios
 
 ### 🟠 Known Technical Debt
-1. **Legacy Sidebar Code**: `sidebar/` folder contains outdated implementation
-2. **Documentation Sync**: Some code comments may not reflect current architecture
+1. **Documentation Sync**: Some code comments may not reflect current architecture
 3. **Testing Coverage**: Manual testing only, no automated test suite
 4. **Performance Monitoring**: Limited real-world performance metrics
 5. **User Feedback Integration**: No built-in feedback or analytics system
@@ -124,22 +123,12 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
 ### 🚀 Future Enhancement Opportunities
 
 #### Phase 1: Stability and Polish
+- **CX Polish**: Refine the CX styling and formatting for usability and aesthetics
+- **Accept Donations**: Offer information on how to donate including a periodic donation reminder popup
 - **Enhanced Error Recovery**: More sophisticated error handling and recovery
 - **Performance Monitoring**: Built-in performance metrics and monitoring
 - **User Feedback System**: Integrated feedback collection mechanism
 - **Advanced Validation**: More comprehensive data validation and sanitization
-
-#### Phase 2: Advanced Multi-Team Features
-- **Team Comparison**: Compare recruiting between multiple teams
-- **Cross-Team Analytics**: Historical data analysis across all managed teams
-- **Team Templates**: Configuration templates specific to division/world combinations
-- **Bulk Team Operations**: Manage multiple teams simultaneously
-
-#### Phase 3: Community Features
-- **Configuration Sharing**: Share role ratings and configurations with community
-- **Best Practices**: Built-in recruiting strategy recommendations
-- **Community Templates**: Shared configuration templates for different strategies
-- **Advanced Reporting**: Comprehensive recruiting reports and analytics
 
 ## Evolution of Project Decisions
 
@@ -363,5 +352,25 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
 - **Multi-team context handling** ensures only the currently active team's data is affected
 - **Proper error handling** with user-friendly error messages and fallback mechanisms
 - **Status**: Clear team data functionality now works correctly, users can safely clear individual team data without affecting other teams
+
+### 2025-06-21 - Legacy Code Cleanup and Documentation Update Complete
+- **Identified and analyzed orphaned code files** throughout the codebase for cleanup opportunities
+- **Removed deprecated watchlist-scraper.js** which was no longer functional:
+  - Script sent `'updateWatchlist'` action that had no handler in background.js
+  - Functionality was replaced by direct calculation from recruit data
+  - Background function was already deprecated with warning message
+- **Identified office-page-handler.js as orphaned** with no essential functionality:
+  - Script sent `'gdOfficePageLoaded'` action that had no handler in background.js
+  - Functionality was redundant with existing `checkIfGDOfficePage()` in background.js
+  - Background script already handles office page detection and cookie extraction
+- **Updated all documentation** to reflect code cleanup:
+  - Removed references to orphaned files from `memory-bank/systemPatterns.md`
+  - Updated content script references in `memory-bank/techContext.md`
+  - Corrected project structure documentation in `README.md`
+  - Updated progress documentation to reflect cleanup completion
+- **Verified manifest.json was already clean** with no references to orphaned files
+- **Enhanced code maintainability** by removing unused functionality and updating documentation
+- **Improved project clarity** by ensuring documentation accurately reflects current codebase
+- **Status**: Legacy code cleanup complete, all documentation updated to reflect current implementation
 
 The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams.

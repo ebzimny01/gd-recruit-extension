@@ -593,7 +593,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       console.warn('Error updating team counts after bulk save:', error);
     }
 
-    // Notify any listeners (such as the sidebar) that scraping is complete
+    // Notify any listeners (such as the popup) that scraping is complete
     chrome.runtime.sendMessage({
       action: 'scrapeComplete',
       success: true,
@@ -1518,13 +1518,6 @@ async function getStats() {
     teamInfo: null,
     error: lastError.message
   };
-}
-
-// You can simplify or remove the updateWatchlist function since it won't be called directly anymore
-// However, if you're calling it elsewhere in the code, keep it but simplify it:
-async function updateWatchlist(watchlist) {
-  console.log('This function is deprecated. Watchlist is now calculated directly from recruit data.');
-  return { count: 0 };
 }
 
 // Inject a content script into a tab

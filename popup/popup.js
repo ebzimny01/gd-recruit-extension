@@ -2,7 +2,7 @@
 // Migrated from sidebar implementation with popup-specific optimizations
 
 // Import modules
-import { popupComms, sidebarComms } from './communications.js';
+import { popupComms } from './communications.js';
 import boldAttributesConfig from '../modules/bold-attributes-config.js';
 import { getFullVersionString } from '../lib/version.js';
 import { multiTeamStorage } from '../lib/multi-team-storage.js';
@@ -952,10 +952,15 @@ async function loadVersionInfo() {
     const version = await getFullVersionString();
     const versionElement = document.getElementById('version-info');
     if (versionElement) {
-      versionElement.textContent = `v${version}`;
+      versionElement.textContent = version;
     }
   } catch (error) {
     console.warn('Could not load version info:', error);
+    // Fallback to displaying default version
+    const versionElement = document.getElementById('version-info');
+    if (versionElement) {
+      versionElement.textContent = 'GD Recruit Assistant v0.0.0';
+    }
   }
 }
 

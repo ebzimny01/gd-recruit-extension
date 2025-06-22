@@ -136,11 +136,28 @@ chrome.runtime.onInstalled.addListener(checkAllTabsForGDOffice);
 function checkAllTabsForGDOffice() {
   console.log('Scanning all open tabs for GD Office page');
   
-  chrome.tabs.query({}, (tabs) => {
-    console.log(`Checking ${tabs.length} open tabs`);
+  chrome.tabs.query({
+    // Filter to only include normal web pages
+    url: ['*://*/*']  // This excludes chrome://, about:, etc.
+  }, (tabs) => {
+    console.log(`Checking ${tabs.length} valid tabs (filtered from all tabs)`);
     
-    // Check each tab
-    tabs.forEach(tab => {
+    // Additional filtering and validation
+    const validTabs = tabs.filter(tab => {
+      return tab && 
+             tab.id && 
+             tab.url && 
+             tab.status === 'complete' &&  // Only check fully loaded tabs
+             !tab.url.startsWith('chrome://') &&
+             !tab.url.startsWith('chrome-extension://') &&
+             !tab.url.startsWith('about:') &&
+             !tab.url.startsWith('edge://') &&
+             !tab.url.startsWith('moz-extension://');
+    });
+    
+    console.log(`Processing ${validTabs.length} valid tabs`);
+    
+    validTabs.forEach(tab => {
       checkIfGDOfficePage(tab);
     });
   });
@@ -2581,19 +2598,77 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 // Note: Cookie monitoring is now handled by TeamCookieMonitor class above
 
+// Add debouncing to prevent excessive calls during rapid navigation
+const tabUpdateDebounce = new Map();
+
 // Set up listener for GD Office page
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // Only run when the page is fully loaded
-  if (changeInfo.status === 'complete' && tab.url) {
-    checkIfGDOfficePage(tab);
+  // Only process when page is fully loaded and has required properties
+  if (changeInfo.status === 'complete' && tab && tab.url && tab.id) {
+    
+    // Clear any existing timeout for this tab
+    if (tabUpdateDebounce.has(tabId)) {
+      clearTimeout(tabUpdateDebounce.get(tabId));
+    }
+    
+    // Set a small delay to allow tab to fully stabilize
+    const timeoutId = setTimeout(() => {
+      checkIfGDOfficePage(tab);
+      tabUpdateDebounce.delete(tabId);
+    }, 100); // 100ms delay
+    
+    tabUpdateDebounce.set(tabId, timeoutId);
   }
 });
 
+// Clean up debounce map when tabs are closed
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabUpdateDebounce.has(tabId)) {
+    clearTimeout(tabUpdateDebounce.get(tabId));
+    tabUpdateDebounce.delete(tabId);
+  }
+});
+
+// Add tab state debugging function for better troubleshooting
+function debugTabState(tab, context = 'unknown') {
+  console.log(`🔍 Tab Debug [${context}]:`, {
+    id: tab?.id,
+    url: tab?.url ? tab.url.substring(0, 100) + (tab.url.length > 100 ? '...' : '') : 'No URL',
+    status: tab?.status,
+    title: tab?.title ? tab.title.substring(0, 50) + (tab.title.length > 50 ? '...' : '') : 'No title',
+    hasAllProperties: !!(tab && tab.id && tab.url),
+    allKeys: tab ? Object.keys(tab).join(', ') : 'No tab object'
+  });
+}
+
 // Function to check if a specific tab is the GD Office page
 function checkIfGDOfficePage(tab) {
-  // Validate tab object
-  if (!tab || !tab.url || !tab.id) {
-    console.warn('Invalid tab object passed to checkIfGDOfficePage');
+  // Enhanced validation with detailed logging
+  if (!tab) {
+    console.warn('checkIfGDOfficePage: tab object is null or undefined');
+    return;
+  }
+  
+  if (typeof tab.id === 'undefined') {
+    console.warn('checkIfGDOfficePage: tab.id is missing');
+    debugTabState(tab, 'missing-tab-id');
+    return;
+  }
+  
+  if (!tab.url) {
+    console.warn('checkIfGDOfficePage: tab.url is missing');
+    debugTabState(tab, 'missing-tab-url');
+    return;
+  }
+  
+  // Additional check for special Chrome pages that should be ignored
+  if (tab.url.startsWith('chrome://') || 
+      tab.url.startsWith('chrome-extension://') || 
+      tab.url.startsWith('about:') ||
+      tab.url === 'chrome://newtab/' ||
+      tab.url.startsWith('edge://') ||
+      tab.url.startsWith('moz-extension://')) {
+    console.log('checkIfGDOfficePage: Skipping browser internal page', tab.url.substring(0, 50) + '...');
     return;
   }
   

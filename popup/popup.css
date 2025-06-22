@@ -1534,7 +1534,7 @@ textarea:focus-visible {
   outline-offset: -2px;
 }
 
-/* Role Ratings Modal Styles - Enhanced visual presentation */
+/* Role Ratings Modal Styles - Enhanced visual presentation with compact spacing */
 .role-ratings-modal-content {
   max-width: 95vw;
   max-height: 95vh;
@@ -1543,40 +1543,40 @@ textarea:focus-visible {
 }
 
 .role-ratings-modal-content .modal-body {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
 }
 
-/* Position header styling */
+/* Position header styling - compact version */
 .position-header {
   text-align: center;
-  margin-bottom: var(--spacing-xl);
-  padding-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
   border-bottom: 2px solid var(--border-color);
 }
 
 .position-header h3 {
-  font-size: var(--font-size-xxl);
+  font-size: var(--font-size-xl);
   color: var(--primary-color);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
   font-weight: 600;
 }
 
 .position-header p {
   color: var(--text-secondary);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   max-width: 600px;
   margin: 0 auto;
-  line-height: 1.6;
+  line-height: 1.4;
 }
 
-/* Enhanced position tabs */
+/* Enhanced position tabs - compact version */
 .position-tabs {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-xl);
-  padding: var(--spacing-md) 0;
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
   border-bottom: 2px solid var(--border-color);
 }
 
@@ -1626,20 +1626,20 @@ textarea:focus-visible {
   transform: translateY(-1px);
 }
 
-/* Roles grid layout */
+/* Roles grid layout - compact version for better screen utilization */
 .roles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: var(--spacing-xl);
-  margin-bottom: var(--spacing-xl);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
 }
 
-/* Enhanced role cards */
+/* Enhanced role cards - compact version */
 .role-card {
   background: var(--surface-color);
   border: 2px solid var(--border-color);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -1681,28 +1681,54 @@ textarea:focus-visible {
   background: linear-gradient(135deg, #fff5f5, var(--surface-color));
 }
 
-/* Role card header */
+/* Role card header - compact version with enhanced role labeling */
 .role-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-lg);
-  padding-bottom: var(--spacing-md);
+  align-items: flex-start;
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-xs);
   border-bottom: 1px solid var(--border-color);
+  gap: var(--spacing-xs);
 }
 
+.role-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.role-main-label {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.role-description {
+  font-size: var(--font-size-xs);
+  font-weight: 400;
+  color: var(--text-secondary);
+  opacity: 0.8;
+  line-height: 1.1;
+}
+
+/* Maintain backward compatibility */
 .role-header h4 {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--text-primary);
   margin: 0;
 }
 
 .role-total {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--border-radius-md);
+  border-radius: var(--border-radius-sm);
   border: 1px solid var(--border-color);
   background: var(--background-color);
   transition: all 0.3s ease;
@@ -1725,39 +1751,39 @@ textarea:focus-visible {
   font-size: var(--font-size-base);
 }
 
-/* Attribute inputs grid */
+/* Attribute inputs grid - compact version */
 .attribute-inputs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: var(--spacing-md);
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: var(--spacing-sm);
 }
 
-/* Enhanced attribute input groups */
+/* Enhanced attribute input groups - compact version */
 .attribute-input-group {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: 2px;
 }
 
 .attribute-input-group label {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   text-align: center;
 }
 
 .attribute-input {
-  padding: var(--spacing-sm);
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius-md);
-  font-size: var(--font-size-base);
+  padding: var(--spacing-xs);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-sm);
   font-weight: 500;
   text-align: center;
   transition: all 0.3s ease;
   background: var(--surface-color);
-  min-height: 44px; /* Better touch target */
+  min-height: 32px; /* Compact but still accessible */
 }
 
 .attribute-input:focus {
@@ -1792,13 +1818,13 @@ textarea:focus-visible {
   color: #6c757d;
 }
 
-/* Role actions styling */
+/* Role actions styling - compact version */
 .role-actions {
   display: flex;
   justify-content: center;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-xl);
-  padding-top: var(--spacing-lg);
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
   border-top: 1px solid var(--border-color);
   flex-wrap: wrap;
 }
@@ -1824,9 +1850,9 @@ textarea:focus-visible {
   background: linear-gradient(135deg, #6f42c1, #563d7c);
 }
 
-/* Enhanced modal footer for role ratings */
+/* Enhanced modal footer for role ratings - compact version */
 .role-ratings-modal-content .modal-footer {
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
   background: var(--background-color);
   border-top: 2px solid var(--border-color);
 }
@@ -1881,6 +1907,18 @@ textarea:focus-visible {
     flex-direction: column;
     gap: var(--spacing-sm);
     align-items: flex-start;
+  }
+  
+  .role-title {
+    width: 100%;
+  }
+  
+  .role-main-label {
+    font-size: var(--font-size-sm);
+  }
+  
+  .role-description {
+    font-size: 0.65rem;
   }
   
   .role-actions {

@@ -986,11 +986,37 @@ function initializeUIComponents() {
   applyColumnVisibility();
 }
 
+// Load role ratings data for tooltips (non-blocking)
+async function loadRoleRatingsForTooltips() {
+  try {
+    console.log('Loading role ratings data for tooltips...');
+    
+    const response = await sendMessageToBackground({ action: 'getRoleRatings' });
+    
+    if (response.success && response.ratings) {
+      // Store in state for tooltip generation
+      if (!state.role_ratings) {
+        state.role_ratings = {};
+      }
+      state.role_ratings.data = response.ratings;
+      console.log('Role ratings data loaded for tooltips');
+    } else {
+      console.warn('Could not load role ratings for tooltips, will use fallback');
+    }
+  } catch (error) {
+    console.warn('Failed to load role ratings for tooltips:', error);
+    // This is non-critical, tooltips will use fallback data
+  }
+}
+
 // Load initial data from background script
 async function loadInitialData() {
   setStatusMessage('Loading data...', 'info');
   
   try {
+    // Load role ratings data for tooltips
+    await loadRoleRatingsForTooltips();
+    
     // Get basic stats and school info
     await refreshDashboardData();
     
@@ -3114,6 +3140,43 @@ function sendMessageToBackground(message) {
   return popupComms.sendMessageToBackground(message);
 }
 
+/**
+ * Generate tooltip for role rating columns (R1-R6)
+ * @param {string} position - Recruit position (e.g., 'QB', 'RB')
+ * @param {string} roleColumn - Role column key (e.g., 'r1', 'r2')
+ * @param {number|string} rating - The rating value
+ * @returns {string} Tooltip text
+ */
+function getRoleRatingTooltip(position, roleColumn, rating) {
+  // Return basic tooltip if no position or rating
+  if (!position || !roleColumn || (rating === null || rating === undefined || rating === '')) {
+    return `${roleColumn.toUpperCase()} rating`;
+  }
+
+  // Try to get role information from loaded data
+  if (state.role_ratings && state.role_ratings.data) {
+    const positionKey = POSITION_MAP[position.toUpperCase()];
+    
+    if (positionKey && state.role_ratings.data[positionKey]) {
+      const positionData = state.role_ratings.data[positionKey];
+      const activeRoles = Object.entries(positionData).filter(([, roleData]) => roleData.isActive);
+      
+      // Map R1-R6 to role indices (R1 = first active role, R2 = second, etc.)
+      const roleIndex = parseInt(roleColumn.substring(1)) - 1; // r1 -> 0, r2 -> 1, etc.
+      
+      if (roleIndex >= 0 && roleIndex < activeRoles.length) {
+        const [roleKey, roleData] = activeRoles[roleIndex];
+        const roleLabel = roleData.roleLabel || roleKey;
+        
+        return `${roleColumn.toUpperCase()}: ${roleLabel} (${rating})`;
+      }
+    }
+  }
+  
+  // Fallback tooltip
+  return `${roleColumn.toUpperCase()}: ${rating} (${position} role rating)`;
+}
+
 // Setup column visibility modal listeners
 function setupColumnVisibilityModalListeners() {
   if (elements.column_visibility_save) {
@@ -3697,16 +3760,23 @@ function generatePositionContent(positionKey) {
     <div class="roles-grid">
   `;
 
-  // Create role cards
-  activeRoles.forEach(([roleKey, roleData]) => {
+  // Create role cards with enhanced role labels
+  activeRoles.forEach(([roleKey, roleData], index) => {
     const roleId = `${positionKey}.${roleKey}`;
     const total = calculateRoleTotal(roleData.attributes);
     const isValid = Math.abs(total - 100) < 0.1;
+    
+    // Generate custom role label (R1, R2, etc.) based on the role index
+    const customRoleLabel = `R${index + 1}`;
+    const genericRoleLabel = roleData.roleLabel;
 
     html += `
       <div class="role-card ${isValid ? 'valid' : 'invalid'}" data-role="${roleId}">
         <div class="role-header">
-          <h4>${roleData.roleLabel}</h4>
+          <div class="role-title">
+            <h4 class="role-main-label">${customRoleLabel} = ${genericRoleLabel}</h4>
+            <span class="role-description">${customRoleLabel} (${genericRoleLabel})</span>
+          </div>
           <div class="role-total ${isValid ? 'valid' : 'invalid'}">
             Total: <span class="total-value">${total.toFixed(1)}</span>
           </div>
@@ -5452,12 +5522,12 @@ function createRecruitRow(recruit, teamInfo) {
       'gi': { content: recruit.gi || '', attribute: 'gi', tooltip: recruit.gi ? `Game Intelligence: ${recruit.gi}` : null },
       'elu': { content: recruit.elu || '', attribute: 'elu', tooltip: recruit.elu ? `Elusiveness: ${recruit.elu}` : null },
       'tec': { content: recruit.tec || '', attribute: 'tec', tooltip: recruit.tec ? `Technique: ${recruit.tec}` : null },
-      'r1': { content: recruit.r1 || '', attribute: null, tooltip: recruit.r1 ? `Rating 1: ${recruit.r1}` : null },
-      'r2': { content: recruit.r2 || '', attribute: null, tooltip: recruit.r2 ? `Rating 2: ${recruit.r2}` : null },
-      'r3': { content: recruit.r3 || '', attribute: null, tooltip: recruit.r3 ? `Rating 3: ${recruit.r3}` : null },
-      'r4': { content: recruit.r4 || '', attribute: null, tooltip: recruit.r4 ? `Rating 4: ${recruit.r4}` : null },
-      'r5': { content: recruit.r5 || '', attribute: null, tooltip: recruit.r5 ? `Rating 5: ${recruit.r5}` : null },
-      'r6': { content: recruit.r6 || '', attribute: null, tooltip: recruit.r6 ? `Rating 6: ${recruit.r6}` : null },
+      'r1': { content: recruit.r1 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r1', recruit.r1) },
+      'r2': { content: recruit.r2 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r2', recruit.r2) },
+      'r3': { content: recruit.r3 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r3', recruit.r3) },
+      'r4': { content: recruit.r4 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r4', recruit.r4) },
+      'r5': { content: recruit.r5 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r5', recruit.r5) },
+      'r6': { content: recruit.r6 || '', attribute: null, tooltip: getRoleRatingTooltip(recruit.pos, 'r6', recruit.r6) },
       'considering': {
         content: recruit.considering || '', 
         attribute: null, 

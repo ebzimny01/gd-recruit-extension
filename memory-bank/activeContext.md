@@ -331,6 +331,47 @@ The `sidebar/` folder contains older implementation code that serves as referenc
 
 **Status**: Clear team data functionality now works correctly with proper single-team vs multi-team clearing distinction. Users can now safely clear individual team data without affecting other teams they manage.
 
+### Enhanced Considering Schools Data Extraction ✅ (2025-06-22)
+**Major Enhancement**: Complete rewrite of considering schools data extraction to capture comprehensive recruiting intelligence
+**Objective**: Extract rich data from considering schools HTML structure to provide detailed recruiting context
+
+**Problem Addressed**: Previous considering schools data was limited to basic school name and interest level, missing critical recruiting intelligence like distance, coach information, and scholarship availability.
+
+**Solution Implemented**:
+- **Enhanced parseConsidering() Function**: Complete rewrite to parse complex nested HTML structure within `cells[42]`
+- **Rich Data Extraction**: Captures school name, school ID, distance, coach name, starting scholarships, and remaining scholarships
+- **Formatted Output**: Creates structured string format: `school name (schoolId), miles, coachName, scholarshipsStart | scholarshipsRemaining`
+- **Data Processing Rules**: 
+  - Miles rounded to whole numbers (1127.81 → 1128)
+  - Empty coach names replaced with "SIM AI"
+  - Multiple schools separated by semicolons
+- **Enhanced HTML Parsing**: Targets correct structure: `table.considering-subtable → tbody.considering → tr.considering`
+- **Robust Error Handling**: Comprehensive fallbacks for missing/malformed data
+- **Backward Compatibility**: Maintains existing school ID detection and highlighting systems
+
+**Technical Implementation**:
+- **HTML Structure Parsing**: Correctly handles nested table structure within recruit considering cell
+- **CSS Selector Usage**: Efficient extraction using `.considering-schoolname`, `.considering-miles span.considering-miles`, etc.
+- **Data Validation**: Comprehensive validation ensures data quality with graceful degradation
+- **Both Scraping Modes**: Enhanced data extraction works in both full scrape and refresh modes
+
+**Files Modified**:
+- `content/scraper.js` - Complete rewrite of parseConsidering() function and updated function calls
+- `CONSIDERING_SCHOOLS_ENHANCED_DATA.md` - Comprehensive documentation of enhancement
+
+**Example Output**:
+```
+Hofstra University (52672), 1128 miles, SIM AI, 14 | 14; Georgia Southern University (52678), 869 miles, SIM AI, 14 | 14; Texas Southern University (52697), 635 miles, SIM AI, 12 | 12
+```
+
+**Benefits Delivered**:
+- **Improved Recruiting Intelligence**: Distance analysis, scholarship tracking, coach identification
+- **Enhanced User Experience**: Richer information for recruiting decisions
+- **Strategic Planning**: Better data for recruiting strategy development
+- **Competitive Assessment**: Better understanding of recruiting landscape
+
+**Status**: Enhancement complete and fully functional. Provides comprehensive considering schools data while maintaining full backward compatibility with existing extension features.
+
 ### Code Quality Optimization - Version 0.4.4 ✅ (2025-06-22)
 **Objective**: Data integrity improvements and database access reliability for patch release v0.4.4
 

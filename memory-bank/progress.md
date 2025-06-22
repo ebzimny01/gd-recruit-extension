@@ -444,4 +444,32 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
 - **User Experience Enhancement**: Users can now hover over R1-R6 values to see exactly what each role rating represents for each position
 - **Status**: Role rating tooltips fully implemented and functional
 
+### 2025-06-22 - Enhanced Considering Schools Data Extraction Complete
+- **Status**: COMPLETED
+- **Major Enhancement**: Complete rewrite of considering schools data extraction to capture comprehensive recruiting intelligence
+- **Problem Addressed**: Previous considering schools data was limited to basic school name and interest level, missing critical recruiting intelligence like distance, coach information, and scholarship availability
+- **Implementation Summary**:
+  - **Enhanced parseConsidering() Function**: Complete rewrite to parse complex nested HTML structure within `cells[42]`
+  - **Rich Data Extraction**: Captures school name, school ID, distance, coach name, starting scholarships, and remaining scholarships
+  - **Formatted Output**: Creates structured string format: `school name (schoolId), miles, coachName, scholarshipsStart | scholarshipsRemaining`
+  - **Data Processing Rules**: Miles rounded to whole numbers, empty coach names replaced with "SIM AI", multiple schools separated by semicolons
+  - **Enhanced HTML Parsing**: Targets correct structure: `table.considering-subtable → tbody.considering → tr.considering`
+  - **Robust Error Handling**: Comprehensive fallbacks for missing/malformed data with graceful degradation
+  - **Backward Compatibility**: Maintains existing school ID detection and highlighting systems
+- **Technical Implementation**:
+  - **HTML Structure Parsing**: Correctly handles nested table structure within recruit considering cell
+  - **CSS Selector Usage**: Efficient extraction using `.considering-schoolname`, `.considering-miles span.considering-miles`, etc.
+  - **Data Validation**: Comprehensive validation ensures data quality with fallback mechanisms
+  - **Both Scraping Modes**: Enhanced data extraction works in both full scrape and refresh modes
+- **Files Modified**:
+  - `content/scraper.js` - Complete rewrite of parseConsidering() function and updated function calls
+  - `CONSIDERING_SCHOOLS_ENHANCED_DATA.md` - Comprehensive documentation of enhancement
+- **Example Output**: `Hofstra University (52672), 1128 miles, SIM AI, 14 | 14; Georgia Southern University (52678), 869 miles, SIM AI, 14 | 14; Texas Southern University (52697), 635 miles, SIM AI, 12 | 12`
+- **Benefits Delivered**:
+  - **Improved Recruiting Intelligence**: Distance analysis, scholarship tracking, coach identification
+  - **Enhanced User Experience**: Richer information for recruiting decisions
+  - **Strategic Planning**: Better data for recruiting strategy development
+  - **Competitive Assessment**: Better understanding of recruiting landscape
+- **Status**: Enhancement complete and fully functional, provides comprehensive considering schools data while maintaining full backward compatibility with existing extension features
+
 The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams.

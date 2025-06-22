@@ -168,8 +168,7 @@ function processRecruits(recruitRows) {
       
       // Parse considering schools if present
       if (cells[42] && cells[42].textContent.trim() !== "") {
-        const consideringRows = cells[42].querySelectorAll('tr');
-        recruit.considering = parseConsidering(consideringRows);
+        recruit.considering = parseConsidering(cells[42]);
       }
       
       // Calculate role ratings (will implement later)
@@ -342,8 +341,7 @@ function processRecruitsForRefresh(recruitRows, existingRecruits, fieldsToUpdate
       if (fieldsToUpdate.includes('considering')) {
         // Parse considering schools if present
         if (cells[42] && cells[42].textContent.trim() !== "") {
-          const consideringRows = cells[42].querySelectorAll('tr');
-          updatedRecruit.considering = parseConsidering(consideringRows);
+          updatedRecruit.considering = parseConsidering(cells[42]);
         } else {
           updatedRecruit.considering = "undecided";
         }
@@ -401,20 +399,40 @@ function mapPotential(potential) {
 }
 
 // Helper function to parse considering schools
-function parseConsidering(rows) {
-  if (!rows || rows.length === 0) return "undecided";
+function parseConsidering(cell) {
+  if (!cell || !cell.textContent.trim()) return "undecided";
+  
+  // Look for the considering subtable within the cell
+  const consideringTable = cell.querySelector('table.considering-subtable');
+  if (!consideringTable) return "undecided";
+  
+  const consideringRows = consideringTable.querySelectorAll('tbody.considering tr.considering');
+  if (!consideringRows || consideringRows.length === 0) return "undecided";
   
   const schools = [];
-  rows.forEach(row => {
-    const cells = row.querySelectorAll('td');
-    if (cells.length >= 2) {
-      const schoolName = cells[0].textContent.trim();
-      const interest = cells[1].textContent.trim();
-      schools.push(`${schoolName} (${interest})`);
+  
+  consideringRows.forEach(row => {
+    try {
+      const schoolName = row.querySelector('.considering-schoolname')?.textContent.trim() || '';
+      const schoolId = row.getAttribute('schoolid') || '';
+      const milesSpan = row.querySelector('.considering-miles span.considering-miles');
+      const miles = milesSpan ? Math.round(parseFloat(milesSpan.textContent)) : 0;
+      const coachName = row.querySelector('.considering-coachname')?.textContent.trim() || '';
+      const scholarshipsStart = row.querySelector('.considering-scholarships-start')?.textContent.trim() || '0';
+      const scholarshipsRemaining = row.querySelector('.considering-scholarships-remaining')?.textContent.trim() || '0';
+      
+      // Apply coach name rule: replace empty/null with "SIM AI"
+      const displayCoachName = (coachName === '' || coachName === null) ? 'SIM AI' : coachName;
+      
+      // Format: school name (schoolId), miles, coachName, scholarshipsStart | scholarshipsRemaining
+      const schoolEntry = `${schoolName} (${schoolId}), ${miles} miles, ${displayCoachName}, ${scholarshipsStart} | ${scholarshipsRemaining}`;
+      schools.push(schoolEntry);
+    } catch (error) {
+      console.error('Error parsing considering school row:', error);
     }
   });
   
-  return schools.join(', ');
+  return schools.length > 0 ? schools.join('; ') : "undecided";
 }
 
 // Helper function to show a notification

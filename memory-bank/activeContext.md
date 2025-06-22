@@ -331,4 +331,28 @@ The `sidebar/` folder contains older implementation code that serves as referenc
 
 **Status**: Clear team data functionality now works correctly with proper single-team vs multi-team clearing distinction. Users can now safely clear individual team data without affecting other teams they manage.
 
+### Code Quality Optimization - Version 0.4.2 ✅ (2025-06-22)
+**Objective**: Implement bug fixes and stability improvements for patch release v0.4.2
+
+**Changes Implemented**:
+- **Version bump**: Updated manifest.json from version 0.4.1 to 0.4.2
+- **Enhanced tab validation in background.js**:
+  - **URL filtering**: Added `['*://*/*']` filter to `chrome.tabs.query()` to exclude browser internal pages
+  - **Tab status validation**: Enhanced filtering to only process fully loaded tabs (`status === 'complete'`)
+  - **Property validation**: Added comprehensive checks for required tab properties (id, url)
+  - **Browser URL exclusion**: Enhanced filtering to exclude chrome://, chrome-extension://, about:, edge://, moz-extension:// URLs
+  - **Improved logging**: More descriptive console messages showing filtered vs total tab counts
+
+**Technical Impact**:
+- **Stability improvement**: Prevents extension from attempting to process invalid or browser-internal tabs
+- **Error reduction**: Enhanced validation prevents potential errors from accessing restricted tab contexts
+- **Performance optimization**: Reduces unnecessary processing by filtering out non-web pages
+- **Cross-browser compatibility**: Better handling of browser-specific internal URLs
+
+**Files Modified**:
+- `manifest.json` - Version bump from 0.4.1 to 0.4.2
+- `background.js` - Enhanced `checkAllTabsForGDOffice()` function with improved tab validation and filtering
+
+**Status**: Code quality optimization complete. Changes are ready for commit to version control. This represents routine maintenance and stability improvements typical of a patch release.
+
 This context provides the foundation for continuing development work on the GD Recruit Assistant browser extension, with clear understanding of the current multi-team architecture, implemented features, and development patterns in use. The extension is now feature-complete for v0.3.0 with comprehensive multi-team support and proper data architecture.

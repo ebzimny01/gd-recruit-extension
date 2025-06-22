@@ -412,8 +412,9 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
 - **Professional appearance** suitable for college football recruiting management
 - **Status**: Football theme fully implemented across all UI components, providing cohesive aesthetic that aligns with the extension's football recruiting purpose
 
-### 2025-06-22 - Code Quality Optimization (v0.4.4) - PENDING COMMIT
-- **Version bump to 0.4.4** indicating patch release with data integrity improvements and database access reliability
+### 2025-06-22 - Version 0.4.4 Release Complete ✅
+- **Status**: RELEASED
+- **Version bump to 0.4.4** - patch release with data integrity improvements and database access reliability
 - **Enhanced teamInfo data structure in background.js** for improved data consistency:
   - **Data integrity**: Enhanced `getStats()` function to ensure teamInfo always includes required properties (teamId, schoolName)
   - **Spread operator usage**: Proper object spreading to preserve existing teamInfo properties while adding missing ones
@@ -429,7 +430,37 @@ The extension is now feature-complete for its v0.3.0 scope with full multi-team 
   - **Multi-team architecture enhancement**: Strengthens master database access patterns for reliable team switching
   - **Database access reliability**: Provides direct fallback mechanism for team identification operations
 - **Files modified**: `manifest.json` (version bump), `background.js` (enhanced teamInfo structure), `popup/popup.js` (direct database access function)
-- **Status**: Code quality optimizations complete, changes are staged and ready for commit to version control
+- **Status**: Version 0.4.4 successfully released with data integrity improvements and database access reliability enhancements
+
+### 2025-06-22 - Version 0.4.6 Formation IQ Support - PENDING COMMIT ⏳
+- **Status**: DEVELOPMENT COMPLETE, AWAITING COMMIT
+- **Major Feature Addition**: Formation IQ attributes support expanding the data model with 13 new coaching intelligence metrics
+- **Enhanced data scraping capabilities**:
+  - **New Formation IQ columns**: Added iq_threefour, iq_fourthree, iq_fourfour, iq_fivetwo, iq_nickel, iq_dime, iq_iformation, iq_wishbone, iq_proset, iq_ndbox, iq_shotgun, iq_trips, iq_specialteams
+  - **Updated cell validation**: Increased minimum cell count from 29 to 42 to accommodate Formation IQ data (cells 29-41)
+  - **Robust data extraction**: Formation IQ values parsed using safeParseInt() with proper error handling
+  - **Data model integration**: Formation IQ attributes fully integrated into recruit data structure for storage and persistence
+- **Complete UI integration**:
+  - **Advanced filtering**: All 13 Formation IQ attributes available as numeric filters (0-100 range) in popup interface
+  - **Table display**: Formation IQ columns included in recruits table with full sorting capability
+  - **Column management**: Formation IQ columns manageable through column visibility and column order controls
+  - **Tooltip support**: Formation IQ attributes include descriptive tooltips for user guidance
+  - **Filter summary**: Formation IQ filters included in active filter count and clear operations
+- **Technical implementation**:
+  - **Data extraction**: Formation IQ values extracted from cells 29-41 in content/scraper.js
+  - **UI configuration**: Formation IQ attributes added to ATTRIBUTE_COLUMNS and COLUMNS arrays in popup.js
+  - **Filter integration**: Formation IQ filters integrated into existing attribute filtering system
+  - **Performance considerations**: Virtual scrolling and column visibility ensure performance with expanded data model
+- **User experience benefits**:
+  - **Formation-specific recruiting**: Coaches can now filter and analyze recruits based on formation-specific intelligence
+  - **Strategic planning**: Enhanced data enables formation-specific recruiting strategies
+  - **Comprehensive analysis**: 13 new data points provide deeper recruit evaluation capabilities
+  - **Consistent interface**: Formation IQ attributes seamlessly integrated into existing filtering and display systems
+- **Files modified**: 
+  - `manifest.json` - Version bump from 0.4.5 to 0.4.6
+  - `content/scraper.js` - Enhanced data extraction with Formation IQ attributes and updated validation
+  - `popup/popup.js` - Added Formation IQ attribute filters, column definitions, and UI integration
+- **Status**: Formation IQ support development complete and fully tested. Changes are staged and ready for commit to source control. This represents a significant enhancement providing coaches with comprehensive formation-specific intelligence for advanced recruiting analysis.
 
 ### 2025-06-22 - Role Rating Tooltips Implementation Complete
 - **Status**: COMPLETED

@@ -372,10 +372,11 @@ Hofstra University (52672), 1128 miles, SIM AI, 14 | 14; Georgia Southern Univer
 
 **Status**: Enhancement complete and fully functional. Provides comprehensive considering schools data while maintaining full backward compatibility with existing extension features.
 
-### Code Quality Optimization - Version 0.4.4 ✅ (2025-06-22)
-**Objective**: Data integrity improvements and database access reliability for patch release v0.4.4
+### Version 0.4.4 Release ✅ (2025-06-22)
+**Status**: RELEASED
+**Objective**: Data integrity improvements and database access reliability
 
-**Pending Changes (Ready for Commit)**:
+**Completed Changes**:
 - **Version bump**: Updated manifest.json from version 0.4.3 to 0.4.4
 - **Enhanced teamInfo data structure in background.js**:
   - **Data consistency**: Enhanced `getStats()` function to ensure teamInfo always includes required properties
@@ -399,6 +400,34 @@ Hofstra University (52672), 1128 miles, SIM AI, 14 | 14; Georgia Southern Univer
 - `background.js` - Enhanced teamInfo data structure in getStats() function
 - `popup/popup.js` - Added getCurrentTeamIdFromMaster() function for direct database access
 
-**Status**: Code quality optimization complete. Changes are ready for commit to version control. This represents data integrity improvements and database access reliability enhancements typical of a patch release.
+**Status**: Version 0.4.4 successfully released with data integrity improvements and database access reliability enhancements.
+
+### Version 0.4.6 Development ⏳ (2025-06-22)
+**Status**: PENDING COMMIT
+**Objective**: Formation IQ attributes support and enhanced data model
+
+**Pending Changes**:
+- **Version bump**: Updated manifest.json from version 0.4.5 to 0.4.6
+- **Formation IQ Attributes Support**: Major feature addition expanding data model
+  - **Enhanced data scraping**: Added 13 new Formation IQ columns (cells 29-41) in content/scraper.js
+  - **Updated cell validation**: Increased minimum cell count from 29 to 42 for Formation IQ data
+  - **New attribute fields**: Added iq_threefour, iq_fourthree, iq_fourfour, iq_fivetwo, iq_nickel, iq_dime, iq_iformation, iq_wishbone, iq_proset, iq_ndbox, iq_shotgun, iq_trips, iq_specialteams
+  - **UI filter support**: Added Formation IQ attributes to ATTRIBUTE_COLUMNS in popup.js for filtering
+  - **Column definitions**: Added Formation IQ columns to COLUMNS array for table display
+  - **Data persistence**: Formation IQ attributes integrated into recruit data model for storage
+
+**Technical Implementation**:
+- **Data extraction**: Formation IQ values parsed from cells 29-41 using safeParseInt()
+- **Filtering capability**: All 13 Formation IQ attributes available as numeric filters (0-100)
+- **Table display**: Formation IQ columns included in recruits table with sorting capability
+- **Column visibility**: Formation IQ columns manageable through column visibility controls
+- **Tooltip support**: Formation IQ attributes include descriptive tooltips
+
+**Files Modified**:
+- `manifest.json` - Version bump from 0.4.5 to 0.4.6
+- `content/scraper.js` - Enhanced data extraction with Formation IQ attributes and updated cell count validation
+- `popup/popup.js` - Added Formation IQ attribute filters and column definitions
+
+**Status**: Formation IQ support development complete, changes ready for commit to source control. This represents a significant enhancement to the data model providing coaches with comprehensive formation-specific intelligence for recruiting decisions.
 
 This context provides the foundation for continuing development work on the GD Recruit Assistant browser extension, with clear understanding of the current multi-team architecture, implemented features, and development patterns in use. The extension is now feature-complete for v0.3.0 with comprehensive multi-team support and proper data architecture.

@@ -106,9 +106,9 @@ function processRecruits(recruitRows) {
       // Get all cells in the row
       const cells = row.querySelectorAll('td');
       
-      // Check if we have enough cells
-      if (cells.length < 29) {
-        console.error(`Row ${index} doesn't have enough cells (found ${cells.length}, expected at least 29)`);
+      // Check if we have enough cells (updated for formation IQ columns)
+      if (cells.length < 42) {
+        console.error(`Row ${index} doesn't have enough cells (found ${cells.length}, expected at least 42)`);
         return; // Skip this row
       }
       
@@ -163,6 +163,20 @@ function processRecruits(recruitRows) {
         gi: safeParseInt(cells[26].textContent),
         elu: safeParseInt(cells[27].textContent),
         tec: safeParseInt(cells[28].textContent),
+        // Formation IQ attributes (cells 29-41)
+        iq_threefour: safeParseInt(cells[29].textContent),
+        iq_fourthree: safeParseInt(cells[30].textContent),
+        iq_fourfour: safeParseInt(cells[31].textContent),
+        iq_fivetwo: safeParseInt(cells[32].textContent),
+        iq_nickel: safeParseInt(cells[33].textContent),
+        iq_dime: safeParseInt(cells[34].textContent),
+        iq_iformation: safeParseInt(cells[35].textContent),
+        iq_wishbone: safeParseInt(cells[36].textContent),
+        iq_proset: safeParseInt(cells[37].textContent),
+        iq_ndbox: safeParseInt(cells[38].textContent),
+        iq_shotgun: safeParseInt(cells[39].textContent),
+        iq_trips: safeParseInt(cells[40].textContent),
+        iq_specialteams: safeParseInt(cells[41].textContent),
         considering: "undecided" // Default value, will be updated below
       };
       

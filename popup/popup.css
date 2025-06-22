@@ -2,18 +2,21 @@
 
 /* CSS Variables for consistent theming and easy maintenance */
 :root {
-  /* Color scheme */
-  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --primary-color: #667eea;
-  --secondary-color: #764ba2;
-  --background-color: #f5f5f5;
+  /* Football-themed color scheme */
+  --primary-gradient: linear-gradient(135deg, #2d5016 0%, #4a7c23 100%);
+  --primary-color: #2d5016; /* Deep forest green (field color) */
+  --secondary-color: #4a7c23; /* Lighter green */
+  --accent-color: #c17817; /* Golden yellow (goalpost/helmet accent) */
+  --leather-brown: #8b4513; /* Football leather color */
+  --field-green: #1e3a0e; /* Dark field green */
+  --background-color: #f8f6f0; /* Cream/off-white (stadium lights) */
   --surface-color: #ffffff;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --text-muted: #999999;
-  --border-color: #e0e0e0;
-  --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --text-primary: #1a1a1a; /* Nearly black for readability */
+  --text-secondary: #4a4a4a; /* Dark gray */
+  --text-muted: #888888;
+  --border-color: #d4d0c8; /* Lighter cream border */
+  --shadow-light: 0 2px 4px rgba(45, 80, 22, 0.1);
+  --shadow-medium: 0 4px 8px rgba(45, 80, 22, 0.15);
   
   /* Full-screen tab dimensions instead of popup */
   --container-max-width: 1400px;
@@ -420,7 +423,7 @@ body {
 
 #recruits-table th.dragging {
   opacity: 0.5;
-  background-color: rgba(102, 126, 234, 0.2);
+  background-color: rgba(45, 80, 22, 0.2);
   transform: scale(1.02);
   z-index: 1000;
   cursor: grabbing;
@@ -428,21 +431,21 @@ body {
 }
 
 #recruits-table th.drag-over {
-  background-color: rgba(102, 126, 234, 0.3);
+  background-color: rgba(45, 80, 22, 0.3);
   border-left: 3px solid var(--primary-color);
   border-right: 3px solid var(--primary-color);
   animation: dragPulse 0.5s ease-in-out infinite alternate;
 }
 
 #recruits-table th:not(.sortable):hover {
-  background-color: rgba(102, 126, 234, 0.1);
+  background-color: rgba(45, 80, 22, 0.1);
   cursor: move;
 }
 
 /* Drag animation */
 @keyframes dragPulse {
-  from { background-color: rgba(102, 126, 234, 0.3); }
-  to { background-color: rgba(102, 126, 234, 0.5); }
+  from { background-color: rgba(45, 80, 22, 0.3); }
+  to { background-color: rgba(45, 80, 22, 0.5); }
 }
 
 /* Enhanced drag indicator for all headers */
@@ -498,7 +501,7 @@ body {
 }
 
 #recruits-table th.sortable:hover {
-  background-color: rgba(102, 126, 234, 0.1);
+  background-color: rgba(45, 80, 22, 0.1);
 }
 
 /* Remove the old ::after pseudo-elements */
@@ -705,7 +708,7 @@ body {
 }
 
 #recruits-table tr:hover {
-  background-color: rgba(102, 126, 234, 0.05);
+  background-color: rgba(45, 80, 22, 0.05);
 }
 
 /* Pagination - both top and bottom */

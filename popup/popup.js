@@ -81,6 +81,11 @@ const ATTRIBUTE_COLUMNS = [
   { key: 'r6', label: 'R6', type: 'decimal', min: 0, max: 100, step: 0.1 }
 ];
 
+// Text search filter configuration - separate from numeric attribute filters
+const TEXT_SEARCH_COLUMNS = [
+  { key: 'considering_schools', label: 'Considering Schools', type: 'text', placeholder: 'Search...' }
+];
+
 // Column configuration for recruit table
 const COLUMNS = [
   { key: 'name', label: 'Name', sortable: true },
@@ -259,6 +264,9 @@ let state = {
       ath: '', spd: '', dur: '', we: '', sta: '', str: '',
       blk: '', tkl: '', han: '', gi: '', elu: '', tec: '',
       r1: '', r2: '', r3: '', r4: '', r5: '', r6: ''
+    },
+    text_search_filters: {
+      considering_schools: ''
     }
   },
   
@@ -1061,6 +1069,9 @@ function clearAllFilters() {
       ath: '', spd: '', dur: '', we: '', sta: '', str: '',
       blk: '', tkl: '', han: '', gi: '', elu: '', tec: '',
       r1: '', r2: '', r3: '', r4: '', r5: '', r6: ''
+    },
+    text_search_filters: {
+      considering_schools: ''
     }
   };
   
@@ -1076,6 +1087,15 @@ function clearAllFilters() {
   
   // Clear attribute filter inputs
   ATTRIBUTE_COLUMNS.forEach(column => {
+    const input = document.getElementById(`filter-${column.key}`);
+    if (input) {
+      input.value = '';
+      input.classList.remove('filter-active');
+    }
+  });
+  
+  // Clear text search filter inputs
+  TEXT_SEARCH_COLUMNS.forEach(column => {
     const input = document.getElementById(`filter-${column.key}`);
     if (input) {
       input.value = '';
@@ -1991,7 +2011,13 @@ function setupAttributeFilters() {
   // Clear existing content
   elements.attribute_filters_container.innerHTML = '';
 
-  // Create attribute filter inputs dynamically
+  // Create attribute filters grid container for numeric filters
+  const attributeFiltersGridContainer = document.createElement('div');
+  attributeFiltersGridContainer.className = 'attribute-filters-grid-container';
+  
+  const attributeFiltersGrid = document.createElement('div');
+  attributeFiltersGrid.className = 'attribute-filters-grid';
+  
   ATTRIBUTE_COLUMNS.forEach(column => {
     // Create the filter group container
     const filterGroup = document.createElement('div');
@@ -2041,8 +2067,77 @@ function setupAttributeFilters() {
     // Assemble the filter group
     filterGroup.appendChild(label);
     filterGroup.appendChild(input);
-    elements.attribute_filters_container.appendChild(filterGroup);
+    attributeFiltersGrid.appendChild(filterGroup);
   });
+  
+  // Add the grid to its container
+  attributeFiltersGridContainer.appendChild(attributeFiltersGrid);
+  
+  // Add the attribute filters grid container to the main container
+  elements.attribute_filters_container.appendChild(attributeFiltersGridContainer);
+
+  // Create text search filters grid container
+  const textSearchFiltersGridContainer = document.createElement('div');
+  textSearchFiltersGridContainer.className = 'text-search-filters-grid-container';
+  
+  const textSearchFiltersGrid = document.createElement('div');
+  textSearchFiltersGrid.className = 'text-search-filters-grid';
+
+  TEXT_SEARCH_COLUMNS.forEach(column => {
+    // Create the filter group container
+    const filterGroup = document.createElement('div');
+    filterGroup.className = 'text-search-filter-group';
+
+    // Create the label
+    const label = document.createElement('label');
+    label.htmlFor = `filter-${column.key}`;
+    label.textContent = column.label;
+    label.className = 'text-search-filter-label';
+
+    // Create the input
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = `filter-${column.key}`;
+    input.className = 'text-search-filter-input';
+    input.placeholder = column.placeholder || 'Search...';
+    input.title = `Search in ${column.label}`;
+
+    // Add event listener
+    input.addEventListener('input', (event) => {
+      const value = event.target.value.trim();
+      state.filters.text_search_filters[column.key] = value;
+      
+      // Add visual indicator if filter is active
+      if (value) {
+        input.classList.add('filter-active');
+      } else {
+        input.classList.remove('filter-active');
+      }
+      
+      // Debounce the filter application
+      debounce(() => {
+        applyFilters();
+        updateFilterSummary();
+      }, 300, `text-search-filter-${column.key}`);
+    });
+
+    // Apply existing filter value if any
+    if (state.filters.text_search_filters[column.key]) {
+      input.value = state.filters.text_search_filters[column.key];
+      input.classList.add('filter-active');
+    }
+
+    // Assemble the filter group
+    filterGroup.appendChild(label);
+    filterGroup.appendChild(input);
+    textSearchFiltersGrid.appendChild(filterGroup);
+  });
+  
+  // Add the grid to its container
+  textSearchFiltersGridContainer.appendChild(textSearchFiltersGrid);
+  
+  // Add the text search filters grid container to the main container
+  elements.attribute_filters_container.appendChild(textSearchFiltersGridContainer);
 
   // Initialize filter summary
   updateFilterSummary();
@@ -2055,8 +2150,22 @@ function clearAttributeFilters() {
     state.filters.attribute_filters[key] = '';
   });
 
+  // Reset all text search filter values
+  Object.keys(state.filters.text_search_filters).forEach(key => {
+    state.filters.text_search_filters[key] = '';
+  });
+
   // Clear all input values and remove active indicators
   ATTRIBUTE_COLUMNS.forEach(column => {
+    const input = document.getElementById(`filter-${column.key}`);
+    if (input) {
+      input.value = '';
+      input.classList.remove('filter-active');
+    }
+  });
+
+  // Clear all text search input values and remove active indicators
+  TEXT_SEARCH_COLUMNS.forEach(column => {
     const input = document.getElementById(`filter-${column.key}`);
     if (input) {
       input.value = '';
@@ -2074,13 +2183,18 @@ function updateFilterSummary() {
   const toggleText = document.querySelector('.toggle-text');
   if (!toggleText) return;
 
-  const activeFilterCount = Object.values(state.filters.attribute_filters)
+  const activeAttributeFilterCount = Object.values(state.filters.attribute_filters)
     .filter(value => value && value.trim() !== '').length;
+  
+  const activeTextSearchFilterCount = Object.values(state.filters.text_search_filters)
+    .filter(value => value && value.trim() !== '').length;
+  
+  const totalActiveFilterCount = activeAttributeFilterCount + activeTextSearchFilterCount;
 
   // Update toggle text with count
-  const baseText = 'Attribute Filters (>= values)';
-  if (activeFilterCount > 0) {
-    toggleText.innerHTML = `${baseText} <span class="filter-summary-badge">${activeFilterCount}</span>`;
+  const baseText = 'Attribute & Text Filters';
+  if (totalActiveFilterCount > 0) {
+    toggleText.innerHTML = `${baseText} <span class="filter-summary-badge">${totalActiveFilterCount}</span>`;
   } else {
     toggleText.textContent = baseText;
   }
@@ -2106,6 +2220,35 @@ function matchesAttributeFilters(recruit) {
 
     // Filter should show recruits with values >= the filter value
     if (numericRecruitValue < numericFilterValue) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Check if recruit matches text search filters
+function matchesTextSearchFilters(recruit) {
+  for (const [filterKey, filterValue] of Object.entries(state.filters.text_search_filters)) {
+    if (!filterValue || filterValue.trim() === '') continue;
+
+    // Map filter keys to recruit data fields
+    let recruitValue = '';
+    switch (filterKey) {
+      case 'considering_schools':
+        recruitValue = recruit.considering || '';
+        break;
+      default:
+        console.warn(`Unknown text search filter key: ${filterKey}`);
+        continue;
+    }
+
+    // Convert both values to lowercase for case-insensitive search
+    const searchTerm = filterValue.toLowerCase().trim();
+    const recruitText = recruitValue.toLowerCase();
+
+    // Check if the recruit's text contains the search term
+    if (!recruitText.includes(searchTerm)) {
       return false;
     }
   }
@@ -4877,6 +5020,12 @@ function applyFilters() {
       // Attribute filters
       if (!matchesAttributeFilters(recruit)) {
         filterFailReasons.attribute_filters = (filterFailReasons.attribute_filters || 0) + 1;
+        return false;
+      }
+      
+      // Text search filters
+      if (!matchesTextSearchFilters(recruit)) {
+        filterFailReasons.text_search_filters = (filterFailReasons.text_search_filters || 0) + 1;
         return false;
       }
       

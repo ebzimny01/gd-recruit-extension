@@ -5582,10 +5582,49 @@ function createRecruitRow(recruit, teamInfo) {
 
     // Create a map of all possible column data
     const allColumnData = {
-      'name': { content: recruit.name || '', attribute: null, isLink: true,
+      'name': { 
+        content: recruit.name || '', 
+        attribute: null, 
+        isLink: true,
         linkUrl: recruit.id ? `https://www.whatifsports.com/gd/RecruitProfile/Ratings.aspx?rid=${recruit.id}&section=Ratings` : null,
         tooltip: recruit.name ? `${recruit.name} - ${recruit.pos || 'No Position'}` : null,
-        isWatched: recruit.watched === 1
+        isWatched: recruit.watched === 1,
+        classes: (() => {
+          const baseClasses = [];
+          
+          // Apply the same conditional formatting as "Considering Schools" column
+          if (teamInfo && teamInfo.teamId && recruit.considering) {
+            console.log('🔍 DEBUG: Applying considering status formatting to Name column for recruit:', recruit.name);
+            console.log('🔍 DEBUG: teamInfo.teamId:', teamInfo.teamId);
+            console.log('🔍 DEBUG: recruit.considering:', recruit.considering);
+            
+            const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, teamInfo.teamId);
+            console.log('🔍 DEBUG: consideringStatus result for Name column:', consideringStatus);
+            
+            switch (consideringStatus) {
+              case 'only':
+                baseClasses.push('considering-only-school');
+                console.log('🔍 DEBUG: Added considering-only-school class to Name column');
+                break;
+              case 'included':
+                baseClasses.push('considering-among-schools');
+                console.log('🔍 DEBUG: Added considering-among-schools class to Name column');
+                break;
+              case 'not_included':
+                // No special formatting for not included
+                console.log('🔍 DEBUG: No special class for Name column - not included');
+                break;
+            }
+          } else {
+            console.log('🔍 DEBUG: Conditional formatting skipped for Name column - missing data:', {
+              hasTeamInfo: !!teamInfo,
+              hasTeamId: teamInfo?.teamId,
+              hasConsidering: recruit.considering
+            });
+          }
+          
+          return baseClasses;
+        })()
       },
       'pos': { content: recruit.pos || '', attribute: null, isLink: false,
         tooltip: recruit.pos ? `Position: ${recruit.pos}` : null

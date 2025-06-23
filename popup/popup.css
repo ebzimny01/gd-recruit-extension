@@ -1360,9 +1360,10 @@ select:focus {
 
 /* Enhanced cell styling */
 .recruits-table td.watched-indicator {
-  text-align: center;
+  text-align: right; /* Right-justify the watched icon */
   font-size: 1.2em;
   color: #007bff;
+  padding-right: var(--spacing-sm); /* Add some padding from the right edge */
 }
 
 .recruits-table td.signed-status {

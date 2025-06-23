@@ -137,7 +137,38 @@ filterInputs.addEventListener('input', debounce(applyFilters, 300));
 
 **Purpose**: Responsive UI without tight coupling
 
-### 5. Command Pattern for User Actions
+### 5. Conditional Formatting Pattern
+**Implementation**: Shared logic for consistent visual formatting across related columns
+```javascript
+// Reusable conditional formatting logic
+const getConsideringClasses = (recruit, teamInfo) => {
+    const baseClasses = [];
+    
+    if (teamInfo && teamInfo.teamId && recruit.considering) {
+        const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, teamInfo.teamId);
+        
+        switch (consideringStatus) {
+            case 'only':
+                baseClasses.push('considering-only-school');
+                break;
+            case 'included':
+                baseClasses.push('considering-among-schools');
+                break;
+            case 'not_included':
+                // No special formatting
+                break;
+        }
+    }
+    
+    return baseClasses;
+};
+
+// Applied consistently to both Name and Considering Schools columns
+```
+
+**Purpose**: Visual consistency and DRY principle adherence for related UI elements
+
+### 6. Command Pattern for User Actions
 **Implementation**: Action-based user interaction handling
 ```javascript
 const actions = {
@@ -153,7 +184,7 @@ document.addEventListener('click', (event) => {
 });
 ```
 
-### 6. Strategy Pattern for Data Processing
+### 7. Strategy Pattern for Data Processing
 **Implementation**: Configurable data processing pipelines
 ```javascript
 // Role rating calculation strategies

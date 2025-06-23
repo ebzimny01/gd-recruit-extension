@@ -29,10 +29,9 @@
 {
   "manifest_version": 3,
   "name": "GD Recruit Assistant",
-  "version": "0.3.0",
+  "version": "0.4.8",
   "permissions": [
-    "storage", "activeTab", "scripting", "cookies", 
-    "tabs", "declarativeNetRequest", "declarativeNetRequestFeedback"
+    "storage", "activeTab", "scripting", "cookies", "declarativeNetRequest"
   ],
   "host_permissions": ["https://*.whatifsports.com/*"],
   "background": {

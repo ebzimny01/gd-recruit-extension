@@ -2,6 +2,23 @@
 
 ## Current Work Focus
 
+### Name Column Formatting Enhancement (Completed) ✅
+**Status**: Complete  
+**Objective**: Apply consistent conditional formatting between Name and Considering Schools columns for visual consistency
+
+**Implementation**: Successfully added conditional background formatting to the Name column that mirrors the Considering Schools column formatting:
+- **Green Background** (`considering-only-school`): When recruit is only considering your school
+- **Yellow Background** (`considering-among-schools`): When recruit is considering your school among others
+- **No Special Formatting**: When recruit is not considering your school
+
+**Technical Details**:
+- Reuses existing `checkCurrentSchoolInConsidering()` function for consistency
+- Applied same CSS classes as Considering Schools column
+- Maintains all existing Name column functionality (links, tooltips, watched indicators)
+- Includes comprehensive debug logging for verification
+
+**Code Location**: `popup/popup.js` lines 5585-5618 in `createRecruitRow()` function
+
 ### Multi-Team Storage Architecture Implementation (Completed) ✅
 **Status**: Complete  
 **Objective**: Full multi-team support with proper data architecture and automatic team switching
@@ -18,6 +35,22 @@
 **Recent Achievement**: Successfully resolved critical data architecture issues where division and world information was being lost during team switching. The system now properly preserves and displays team metadata across all team operations.
 
 ## Recent Key Discoveries
+
+### Name Column Formatting Implementation Complete ✅ (2025-06-23)
+**Major Achievement**: Enhanced visual consistency between Name and Considering Schools columns
+**Problem Solved**: Users needed immediate visual indication of recruit interest directly in the Name column
+**Implementation**: Applied conditional background formatting to Name column matching Considering Schools formatting
+
+**Technical Solution**:
+- **Code Reuse**: Leveraged existing `checkCurrentSchoolInConsidering()` function for consistency
+- **CSS Classes Applied**: Same classes as Considering Schools (`considering-only-school`, `considering-among-schools`)
+- **Debug Integration**: Comprehensive debug logging to verify formatting application
+- **Maintained Functionality**: All existing Name column features preserved (links, tooltips, watched indicators)
+
+**User Experience Impact**:
+- Immediate visual scanning - both Name and Considering Schools columns show recruit interest
+- Consistent color coding across related columns
+- Enhanced decision-making speed for coaches
 
 ### MultiTeamStorage Data Architecture Fixes Complete ✅ (2025-06-21)
 **Major Achievement**: Fixed critical data separation and teamInfo null issues

@@ -3285,9 +3285,66 @@ function getRoleRatingTooltip(position, roleColumn, rating) {
       }
     }
   }
-  
-  // Fallback tooltip
+    // Fallback tooltip
   return `${roleColumn.toUpperCase()}: ${rating} (${position} role rating)`;
+}
+
+/**
+ * Calculate background color for miles column based on distance thresholds
+ * Color transitions: Light Bluish-Green (0) → Light Green (180) → Light Yellow (360) → Light Orange (1400) → Light Red (2000+)
+ * Uses lighter, more pleasant colors with intuitive progression for better readability and visual appeal
+ * @param {number} miles - Distance in miles
+ * @returns {string} - RGB color string
+ */
+function calculateMilesBackgroundColor(miles) {
+  // Clamp miles to reasonable range
+  const clampedMiles = Math.max(0, Math.min(miles, 2000));
+  
+  let r, g, b;
+  
+  if (clampedMiles <= 179) {
+    // 0-179 miles: Light Bluish-Green to Light Green
+    // Light Bluish-Green (175, 238, 238) to Light Green (144, 238, 144)
+    const ratio = clampedMiles / 179;
+    r = Math.round(175 + (144 - 175) * ratio);
+    g = Math.round(238 + (238 - 238) * ratio); // Stays at 238
+    b = Math.round(238 + (144 - 238) * ratio);
+  } else if (clampedMiles <= 359) {
+    // 180-359 miles: Light Green to Light Yellow
+    // Light Green (144, 238, 144) to Light Yellow (255, 255, 224)
+    const ratio = (clampedMiles - 180) / (359 - 180);
+    r = Math.round(144 + (255 - 144) * ratio);
+    g = Math.round(238 + (255 - 238) * ratio);
+    b = Math.round(144 + (224 - 144) * ratio);
+  } else if (clampedMiles <= 1399) {
+    // 360-1399 miles: Light Yellow to Light Orange
+    // Light Yellow (255, 255, 224) to Light Orange (255, 218, 185)
+    const ratio = (clampedMiles - 360) / (1399 - 360);
+    r = 255; // Stays at 255
+    g = Math.round(255 + (218 - 255) * ratio);
+    b = Math.round(224 + (185 - 224) * ratio);
+  } else {
+    // 1400+ miles: Light Orange to Light Red
+    // Light Orange (255, 218, 185) to Light Red (255, 204, 204)
+    const ratio = Math.min((clampedMiles - 1400) / 600, 1); // Cap transition at 2000 miles
+    r = 255; // Stays at 255
+    g = Math.round(218 + (204 - 218) * ratio);
+    b = Math.round(185 + (204 - 185) * ratio);
+  }
+  
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
+ * Calculate appropriate text color for contrast against background
+ * Always returns dark text for consistent readability
+ * @param {string} backgroundColor - RGB color string (parameter kept for consistency)
+ * @returns {string} - Text color (always dark)
+ */
+function getContrastTextColor(backgroundColor) {
+  // Always return dark text for consistent appearance
+  // This ensures all miles column text is dark regardless of background color
+  return '#1a1a1a'; // Use the same dark color as --text-primary
 }
 
 // Setup column visibility modal listeners
@@ -5632,9 +5689,42 @@ function createRecruitRow(recruit, teamInfo) {
       'watched': { content: recruit.watched === 1 ? '👁' : '', attribute: null, isLink: false,
         tooltip: recruit.watched === 1 ? 'On Watchlist' : 'Not Watched',
         classes: recruit.watched === 1 ? ['watched-indicator'] : []
-      },
-      'potential': { content: recruit.potential || '', attribute: null, isLink: false,
-        tooltip: recruit.potential ? `Potential: ${recruit.potential}` : null
+      },      'potential': { 
+        content: recruit.potential || '', 
+        attribute: null, 
+        isLink: false,
+        tooltip: recruit.potential ? `Potential: ${recruit.potential}` : null,
+        classes: (() => {
+          const baseClasses = [];
+          const potentialValue = recruit.potential;
+          
+          // Apply custom styling based on potential value
+          if (potentialValue) {
+            switch (potentialValue) {
+              case '4-VH':
+                baseClasses.push('potential-vh');
+                break;
+              case '3-H':
+                baseClasses.push('potential-h');
+                break;
+              case '2-A':
+                baseClasses.push('potential-a');
+                break;
+              case '1-L':
+                baseClasses.push('potential-l');
+                break;
+              case '0-VL':
+                baseClasses.push('potential-vl');
+                break;
+              case '?':
+              default:
+                // No special styling for '?' or unknown values
+                break;
+            }
+          }
+          
+          return baseClasses;
+        })()
       },
       'priority': { content: recruit.priority || '', attribute: null, isLink: false,
         tooltip: recruit.priority ? `Priority: ${recruit.priority}` : null
@@ -5665,9 +5755,38 @@ function createRecruitRow(recruit, teamInfo) {
       },
       'division': { content: recruit.division || '', attribute: null, isLink: false,
         tooltip: recruit.division ? `High School Division: ${recruit.division}` : null
-      },
-      'miles': { content: recruit.miles || '', attribute: null, isLink: false,
-        tooltip: recruit.miles ? `Distance: ${recruit.miles} miles from campus` : null
+      },      'miles': { 
+        content: recruit.miles || '', 
+        attribute: null, 
+        isLink: false,
+        tooltip: recruit.miles ? `Distance: ${recruit.miles} miles from campus` : null,
+        classes: (() => {
+          const baseClasses = [];
+          const milesValue = recruit.miles ? parseInt(recruit.miles, 10) : null;
+          
+          // Add distance-based styling class
+          if (milesValue !== null && !isNaN(milesValue)) {
+            baseClasses.push('miles-distance');
+          }
+          
+          return baseClasses;
+        })(),
+        // Add custom style property for dynamic background color
+        customStyle: (() => {
+          const milesValue = recruit.miles ? parseInt(recruit.miles, 10) : null;
+          
+          if (milesValue !== null && !isNaN(milesValue)) {
+            const backgroundColor = calculateMilesBackgroundColor(milesValue);
+            const textColor = getContrastTextColor(backgroundColor);
+            
+            return {
+              backgroundColor: backgroundColor,
+              color: textColor
+            };
+          }
+          
+          return {};
+        })()
       },
       'signed': { content: recruit.signed || '', attribute: null, isLink: false,
         tooltip: recruit.signed ? `Signed Status: ${recruit.signed}` : null,
@@ -5750,15 +5869,20 @@ function createRecruitRow(recruit, teamInfo) {
           return baseClasses;
         })()
       }
-    };
-
-    // Use the column order to create cells in the correct sequence
+    };    // Use the column order to create cells in the correct sequence
     state.column_order.forEach((columnKey, index) => {
-      const { content, attribute, tooltip, classes = [], isLink, linkUrl, isWatched } = allColumnData[columnKey] || { content: '', classes: [] };
+      const columnData = allColumnData[columnKey] || { content: '', classes: [] };
+      const { content, attribute, tooltip, classes = [], isLink, linkUrl, isWatched, customStyle = {} } = columnData;
+    
     const cell = document.createElement('td');
     
     // Add data attribute for column alignment
     cell.setAttribute('data-column', columnKey);
+    
+    // Apply custom inline styles if they exist
+    if (customStyle && Object.keys(customStyle).length > 0) {
+      Object.assign(cell.style, customStyle);
+    }
     
     // Create link or plain text content
     if (isLink && linkUrl && content) {

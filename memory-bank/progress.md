@@ -23,6 +23,7 @@
 - **Enhanced Tables**: Sortable columns, filtering controls, and pagination
 - **Modal Dialogs**: Configuration dialogs and confirmation prompts
 - **Conditional Formatting**: Name and Considering Schools columns with consistent background formatting for recruit interest visualization
+- **Custom Table Cell Styling**: Advanced "Potential" and "Miles" column styling with color-coding and dynamic backgrounds
 
 ### ✅ Advanced Filtering System
 - **Multi-Criteria Filtering**: Position, potential, division, priority, distance, and custom filters
@@ -101,9 +102,9 @@
 
 ## What's Left to Build
 
-### 🎯 Current Status: Production Ready with Recent Enhancements
+### 🎯 Current Status: Production Ready with Enhanced Visual Features
 
-The extension is fully production-ready with comprehensive multi-team support and enhanced visual formatting. Recent Name column formatting enhancement (v0.4.8) completes the visual consistency improvements.
+The extension is fully production-ready with comprehensive multi-team support and advanced table styling. Recent custom cell styling implementation (v0.5.0) adds sophisticated visual enhancements for "Potential" and "Miles" columns, completing the data visualization improvements.
 
 ### 🔧 Minor Refinements (Optional)
 
@@ -415,7 +416,28 @@ The extension is fully production-ready with comprehensive multi-team support an
 - **Professional appearance** suitable for college football recruiting management
 - **Status**: Football theme fully implemented across all UI components, providing cohesive aesthetic that aligns with the extension's football recruiting purpose
 
-### 2025-06-22 - Version 0.4.4 Release Complete ✅
+### Version 0.5.0 Release ✅ (2025-01-14)
+**Custom Table Cell Styling Implementation**: Advanced visual enhancements for key recruiting data columns
+**Features Delivered**:
+- **Potential Column Styling**: Bold, color-coded text based on recruit potential values (VH=green, H=blue, A=black, L=orange, VL=red)
+- **Miles Column Styling**: Dynamic background color gradient using distance thresholds with intuitive color progression
+- **Color Algorithm**: Linear interpolation for smooth color transitions with accessibility-compliant contrast
+- **Performance Optimization**: Efficient color calculations with minimal DOM impact
+- **Accessibility Compliance**: WCAG-compliant design with proper contrast ratios for readability
+
+**Technical Implementation**:
+- Enhanced `popup/popup.js` with `classes` function for Potential column and `customStyle` function for Miles column
+- Added CSS classes in `popup/popup.css` for potential values (potential-vh, potential-h, potential-a, potential-l, potential-vl)
+- Implemented `calculateMilesBackgroundColor()` and `getContrastTextColor()` helper functions
+- Color gradient progression: light bluish-green → light green → light yellow → light orange → light red
+
+**User Experience Impact**:
+- Immediate visual identification of high-potential recruits through color coding
+- Intuitive geographic recruiting patterns through distance-based background colors
+- Enhanced strategic decision-making support for recruiting coaches
+- Maintained accessibility with dark text on all backgrounds
+
+### Version 0.4.4 Release ✅ (2025-06-22)
 - **Status**: RELEASED
 - **Version bump to 0.4.4** - patch release with data integrity improvements and database access reliability
 - **Enhanced teamInfo data structure in background.js** for improved data consistency:

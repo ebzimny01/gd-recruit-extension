@@ -63,8 +63,8 @@
 ### Popup Interface Architecture
 **Implementation**: Full-screen tab interface (popup-based)
 - **Entry Point**: `popup/popup.html`
-- **Main Logic**: `popup/popup.js`
-- **Styling**: `popup/popup.css`
+- **Main Logic**: `popup/popup.js` with advanced table styling functions
+- **Styling**: `popup/popup.css` with custom cell styling classes
 - **Communication**: `popup/communications.js`
 - **Error Handling**: `popup/error-handler.js`
 
@@ -681,5 +681,14 @@ class DatabaseManager {
     }
 }
 ```
+
+### Custom Table Cell Styling System (v0.5.0)
+**Files**: `popup/popup.js`, `popup/popup.css`
+- **Potential Column Styling**: Bold, color-coded text based on recruit potential values
+- **Miles Column Styling**: Dynamic background color gradient based on distance thresholds
+- **Color Calculation Functions**: `calculateMilesBackgroundColor()`, `getContrastTextColor()`
+- **CSS Classes**: Potential value classes (potential-vh, potential-h, etc.)
+- **Accessibility**: WCAG-compliant contrast ratios and readable text
+- **Performance**: Efficient color calculations with minimal DOM operations
 
 This enhanced technical context documentation reflects the current multi-team architecture with comprehensive storage isolation, automatic team switching, and robust debugging capabilities implemented in the GD Recruit Assistant browser extension.

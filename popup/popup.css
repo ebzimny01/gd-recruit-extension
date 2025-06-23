@@ -1391,6 +1391,60 @@ td.considering-among-schools {
   border: 1px solid #ffeaa7;
 }
 
+/* Potential value conditional formatting */
+td.potential-vh {
+  color: #28a745; /* Green */
+  font-weight: bold;
+}
+
+td.potential-h {
+  color: #007bff; /* Blue */
+  font-weight: bold;
+}
+
+td.potential-a {
+  color: #000000; /* Black */
+  font-weight: bold;
+}
+
+td.potential-l {
+  color: #fd7e14; /* Orange */
+  font-weight: bold;
+}
+
+td.potential-vl {
+  color: #dc3545; /* Red */
+  font-weight: bold;
+}
+
+/* Miles Distance Column Dynamic Styling */
+.miles-distance {
+  font-weight: 600;
+  text-align: center;
+  border-radius: 4px;
+  padding: 4px 8px;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+}
+
+.miles-distance:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Ensure text remains readable with dynamic backgrounds */
+.miles-distance::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  border-radius: inherit;
+  z-index: -1;
+}
+
 .recruits-table td.has-tooltip {
   cursor: help;
   position: relative;

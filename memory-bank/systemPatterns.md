@@ -26,8 +26,8 @@ Browser Extension (Manifest V3)
 #### 1. Popup Interface (Primary UI)
 **Location**: `popup/`
 - **popup.html**: Main UI structure with tabbed interface
-- **popup.css**: Responsive styling with accessibility features
-- **popup.js**: Core application logic and state management
+- **popup.css**: Responsive styling with accessibility features and custom table cell styling
+- **popup.js**: Core application logic, state management, and advanced column styling functions
 - **communications.js**: Background script communication layer
 - **error-handler.js**: Centralized error handling and user feedback
 
@@ -196,6 +196,50 @@ const ratingStrategies = {
 
 const rating = ratingStrategies[position](recruitAttributes);
 ```
+
+### 8. Custom Table Cell Styling Pattern (v0.5.0)
+**Implementation**: Dynamic column styling in `popup/popup.js`
+```javascript
+// Potential column with classes function
+{
+    data: 'potential',
+    title: 'Potential',
+    classes: function(cellData, type, rowData) {
+        const potentialClasses = {
+            '4': 'potential-vh',    // Very High - Green
+            '3': 'potential-h',     // High - Blue  
+            '2': 'potential-a',     // Average - Black
+            '1': 'potential-l',     // Low - Orange
+            '0': 'potential-vl'     // Very Low - Red
+        };
+        return potentialClasses[cellData] || '';
+    }
+}
+
+// Miles column with customStyle function
+{
+    data: 'miles',
+    title: 'Miles',
+    customStyle: function(cellData, type, rowData) {
+        if (type === 'display' && cellData !== null && cellData !== undefined) {
+            const miles = parseFloat(cellData);
+            if (!isNaN(miles)) {
+                const bgColor = calculateMilesBackgroundColor(miles);
+                const textColor = getContrastTextColor(bgColor);
+                return `<span style="background-color: ${bgColor}; color: ${textColor}; padding: 2px 4px; border-radius: 3px;">${cellData}</span>`;
+            }
+        }
+        return cellData;
+    }
+}
+```
+
+**Benefits**:
+- Enhanced visual data scanning and identification
+- Intuitive color-coding based on data values
+- Accessibility-compliant contrast ratios
+- Performance-optimized styling calculations
+- Consistent styling architecture across columns
 
 ## Data Flow Architecture
 

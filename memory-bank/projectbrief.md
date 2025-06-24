@@ -3,7 +3,7 @@
 ## Core Project Definition
 
 **Project Name**: GD Recruit Assistant Browser Extension  
-**Version**: 0.4.8  
+**Version**: 0.5.0  
 **Target Platform**: Chrome/Chromium-based browsers (Chrome 88+, Edge 88+), Firefox 89+  
 **Domain**: Gridiron Dynasty recruiting management
 
@@ -14,6 +14,7 @@ Transform the Gridiron Dynasty recruiting experience by providing comprehensive 
 ## Core Requirements
 
 ### Functional Requirements
+
 1. **Data Extraction**: Scrape recruit data from Gridiron Dynasty recruiting pages
 2. **Data Management**: Store, organize, and manage recruit information locally
 3. **Advanced Filtering**: Multi-criteria filtering with real-time updates
@@ -23,6 +24,7 @@ Transform the Gridiron Dynasty recruiting experience by providing comprehensive 
 7. **User Interface**: Full-screen tab interface (migrated from sidebar)
 
 ### Technical Requirements
+
 1. **Manifest V3**: Modern Chrome extension architecture
 2. **Local Storage**: All data stored locally in browser
 3. **Performance**: Handle large datasets (1000+ recruits) efficiently
@@ -31,6 +33,7 @@ Transform the Gridiron Dynasty recruiting experience by providing comprehensive 
 6. **Security**: Input validation, XSS prevention, CSP compliance
 
 ### User Experience Requirements
+
 1. **Responsive Design**: Desktop, tablet, and mobile optimization
 2. **Keyboard Shortcuts**: Full functionality without mouse
 3. **Visual Indicators**: Color-coded rows, status indicators, tooltips
@@ -39,7 +42,8 @@ Transform the Gridiron Dynasty recruiting experience by providing comprehensive 
 
 ## Target Domain
 
-**Gridiron Dynasty** (https://whatifsports.com/gd/recruiting/*)
+**Gridiron Dynasty** (<https://whatifsports.com/gd/recruiting/*>)
+
 - Sports simulation game focused on college football recruiting
 - Complex recruiting workflows requiring data organization
 - Multiple recruiting pages and data sources to manage
@@ -56,6 +60,7 @@ Transform the Gridiron Dynasty recruiting experience by providing comprehensive 
 ## Project Scope
 
 ### In Scope
+
 - Gridiron Dynasty recruiting page integration
 - Local data storage and management
 - Advanced filtering and visualization
@@ -64,6 +69,7 @@ Transform the Gridiron Dynasty recruiting experience by providing comprehensive 
 - Full accessibility support
 
 ### Out of Scope
+
 - External API integrations
 - Data transmission to external servers
 - Other sports or gaming platforms

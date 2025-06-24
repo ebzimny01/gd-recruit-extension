@@ -29,7 +29,7 @@
 {
   "manifest_version": 3,
   "name": "GD Recruit Assistant",
-  "version": "0.4.8",
+  "version": "0.5.0",
   "permissions": [
     "storage", "activeTab", "scripting", "cookies", "declarativeNetRequest"
   ],

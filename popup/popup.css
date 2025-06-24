@@ -228,7 +228,7 @@ body {
 /* Status box */
 .status-box {
   background: var(--background-color);
-  border: 1px solid var(--border-color);
+  border: 
   border-radius: var(--border-radius-md);
   padding: var(--spacing-sm);
   text-align: center;
@@ -381,6 +381,86 @@ body {
 .table-controls .setting-btn:hover {
   background: var(--secondary-color);
   transform: translateY(-1px);
+}
+
+/* Recruitment Summary - Professional styling */
+.recruitment-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: var(--border-radius-md);
+  border: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: white;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  min-width: 65px;
+}
+
+.summary-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.summary-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.summary-value {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  text-align: center;
+  min-width: 24px;
+  line-height: 1;
+}
+
+/* Color coding for summary values */
+#summary-signed {
+  color: #0066cc;
+  text-shadow: 0 1px 2px rgba(0, 102, 204, 0.2);
+}
+
+#summary-green {
+  color: #22c55e;
+  text-shadow: 0 1px 2px rgba(34, 197, 94, 0.2);
+}
+
+#summary-yellow {
+  color: #f59e0b;
+  text-shadow: 0 1px 2px rgba(245, 158, 11, 0.2);
+}
+
+/* Enhanced background colors for each summary type */
+.summary-item:has(#summary-signed) {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+  border-color: rgba(0, 102, 204, 0.15);
+}
+
+.summary-item:has(#summary-green) {
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  border-color: rgba(34, 197, 94, 0.15);
+}
+
+.summary-item:has(#summary-yellow) {
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+  border-color: rgba(245, 158, 11, 0.15);
 }
 
 /* Table container with horizontal scroll */

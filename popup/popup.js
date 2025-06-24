@@ -187,8 +187,12 @@ const elements = {
   prev_page_btn_top: document.getElementById('prev-page-top'),
   next_page_btn_top: document.getElementById('next-page-top'),
   page_info_top: document.getElementById('page-info-top'),
-  
-  page_size_select: document.getElementById('page-size-select'),
+    page_size_select: document.getElementById('page-size-select'),
+
+  // Recruitment summary elements
+  summary_signed: document.getElementById('summary-signed'),
+  summary_green: document.getElementById('summary-green'),
+  summary_yellow: document.getElementById('summary-yellow'),
 
   // Column visibility elements
   btn_column_visibility: document.getElementById('btn-column-visibility'),
@@ -356,9 +360,8 @@ let state = {
     r6: true,
     considering: true
   },
-  
-  // Column order state - stores custom column ordering
-  column_order: null, // Will be initialized with default order or loaded from storage
+    // Column order state - stores custom column ordering
+  column_order: COLUMNS.map(col => col.key), // Initialize with default order instead of null
     // Popup specific state
   is_popup_focused: true,
   last_data_refresh: null,
@@ -1747,9 +1750,13 @@ async function updateDashboardDisplay(stats) {
       elements.current_season.textContent = 'N/A';
     }
   }
-  
-  // Update button states based on season initialization status
+    // Update button states based on season initialization status
   updateDashboardButtonStates(stats);
+  
+  // Update recruitment summary if data is available
+  if (state.filtered_recruits && state.filtered_recruits.length > 0) {
+    updateRecruitmentSummary();
+  }
 }
 
 // Update school name displays with proper fallbacks
@@ -2432,11 +2439,11 @@ function changePage(direction) {
   
   const totalPages = Math.ceil(state.filtered_recruits.length / state.items_per_page);
   const newPage = state.current_page + direction;
-  
-  if (newPage >= 1 && newPage <= totalPages) {
+    if (newPage >= 1 && newPage <= totalPages) {
     state.current_page = newPage;
     updateRecruitsList();
     updatePaginationDisplay();
+    updateRecruitmentSummary();
   }
 }
 
@@ -4454,6 +4461,12 @@ function getPositionDisplayName(positionKey) {
 // Apply column visibility to recruits table
 function applyColumnVisibility() {
   try {
+    // Check if column order is initialized
+    if (!state.column_order || !Array.isArray(state.column_order)) {
+      console.warn('Column order not yet initialized, skipping column visibility');
+      return;
+    }
+    
     const table = document.getElementById('recruits-table');
     if (!table) {
       console.warn('Recruits table not found for column visibility');
@@ -4607,6 +4620,12 @@ function refreshRecruitsDisplay() {
 
 // Enhanced table sorting functionality with accessibility and validation plus drag-and-drop
 function setupTableSorting() {
+  // Check if column order is initialized
+  if (!state.column_order || !Array.isArray(state.column_order)) {
+    console.warn('Column order not yet initialized, skipping table sorting setup');
+    return;
+  }
+  
   const table = document.getElementById('recruits-table');
   if (!table) {
     console.warn('Recruits table not found for sorting setup');
@@ -4818,6 +4837,12 @@ function parseHeightToInches(height) {
 
 // Update sort indicators in table headers with enhanced accessibility
 function updateSortIndicators() {
+  // Check if column order is initialized
+  if (!state.column_order || !Array.isArray(state.column_order)) {
+    console.warn('Column order not yet initialized, skipping sort indicators update');
+    return;
+  }
+  
   const table = document.getElementById('recruits-table');
   if (!table) return;
   
@@ -5338,12 +5363,12 @@ function applyFilters() {
     if (endTime - startTime > 50) {
       console.log(`Filter performance: ${state.filtered_recruits.length} results in ${(endTime - startTime).toFixed(2)}ms`);
     }
-    
-    // Reset to first page when filters change
+      // Reset to first page when filters change
     state.current_page = 1;
     
     updateRecruitsList();
     updatePaginationDisplay();
+    updateRecruitmentSummary();
     
   } catch (error) {
     console.error('Error in applyFilters:', error);
@@ -5379,6 +5404,12 @@ function matchesDistanceFilter(miles, distanceFilter) {
 // Ensure table header matches the current column order
 function ensureTableHeaderMatchesColumnOrder() {
   try {
+    // Check if column order is initialized
+    if (!state.column_order || !Array.isArray(state.column_order)) {
+      console.warn('Column order not yet initialized, skipping header verification');
+      return;
+    }
+    
     const table = document.getElementById('recruits-table');
     if (!table) {
       console.warn('Table not found for header verification');
@@ -5589,6 +5620,12 @@ function createRecruitRow(recruit, teamInfo) {
   try {
     if (!recruit) {
       console.error('createRecruitRow called with null/undefined recruit');
+      return null;
+    }
+    
+    // Check if column order is initialized
+    if (!state.column_order || !Array.isArray(state.column_order)) {
+      console.warn('Column order not yet initialized, cannot create recruit row');
       return null;
     }
     
@@ -6105,10 +6142,78 @@ function updatePaginationDisplay() {
     if (elements.next_page_btn_top) {
       elements.next_page_btn_top.disabled = isLastPage;
     }
-    
-  } catch (error) {
+      } catch (error) {
     console.error('Error in updatePaginationDisplay:', error);
     handleError(error, 'updating pagination');
+  }
+}
+
+/**
+ * Calculate and update recruitment summary statistics
+ */
+function updateRecruitmentSummary() {
+  try {
+    let signed_count = 0;
+    let green_count = 0;
+    let yellow_count = 0;
+
+    const currentTeamId = state.currentTeamId;
+    
+    if (!currentTeamId || !state.filtered_recruits || !Array.isArray(state.filtered_recruits)) {
+      updateSummaryDisplay(0, 0, 0);
+      return;
+    }
+
+    state.filtered_recruits.forEach(recruit => {
+      if (!recruit) return;
+
+      const signedStatus = checkSignedStatus(recruit, currentTeamId);
+      
+      if (signedStatus === 'signed_to_school') {
+        signed_count++;
+      } else if (signedStatus === 'not_signed') {
+        const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, currentTeamId);
+        
+        if (consideringStatus === 'only') {
+          green_count++;
+        } else if (consideringStatus === 'included') {
+          yellow_count++;
+        }
+      }
+    });
+
+    updateSummaryDisplay(signed_count, green_count, yellow_count);
+
+  } catch (error) {
+    console.error('Error in updateRecruitmentSummary:', error);
+    updateSummaryDisplay(0, 0, 0);
+  }
+}
+
+/**
+ * Update the recruitment summary display elements
+ */
+function updateSummaryDisplay(signedCount, greenCount, yellowCount) {
+  try {
+    const signed = Number.isInteger(signedCount) ? signedCount : 0;
+    const green = Number.isInteger(greenCount) ? greenCount : 0;
+    const yellow = Number.isInteger(yellowCount) ? yellowCount : 0;    if (elements.summary_signed) {
+      elements.summary_signed.textContent = signed.toString();
+      elements.summary_signed.title = `${signed} recruit${signed !== 1 ? 's' : ''} signed to your school`;
+    }
+
+    if (elements.summary_green) {
+      elements.summary_green.textContent = green.toString();
+      elements.summary_green.title = `${green} unsigned recruit${green !== 1 ? 's' : ''} considering only your school`;
+    }
+
+    if (elements.summary_yellow) {
+      elements.summary_yellow.textContent = yellow.toString();
+      elements.summary_yellow.title = `${yellow} unsigned recruit${yellow !== 1 ? 's' : ''} considering your school among others`;
+    }
+
+  } catch (error) {
+    console.error('Error in updateSummaryDisplay:', error);
   }
 }
 
@@ -6611,6 +6716,12 @@ function rebuildTableWithNewOrder() {
 // Rebuild table header in the correct column order
 function rebuildTableHeader() {
   try {
+    // Check if column order is initialized
+    if (!state.column_order || !Array.isArray(state.column_order)) {
+      console.warn('Column order not yet initialized, skipping header rebuild');
+      return;
+    }
+    
     const table = document.getElementById('recruits-table');
     if (!table) {
       console.warn('Table not found for header rebuild');

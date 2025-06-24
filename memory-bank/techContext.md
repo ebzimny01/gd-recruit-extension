@@ -42,7 +42,9 @@
 ```
 
 ### Service Worker Pattern
+
 **File**: `background.js`
+
 - **Type**: ES6 Module
 - **Purpose**: Multi-team management, cookie monitoring, data transformation, message routing
 - **Lifecycle**: Event-driven, dormant when inactive
@@ -50,6 +52,7 @@
 - **Team Management**: Cookie-based team detection and automatic switching
 
 ### Content Script Integration
+
 **Injection Strategy**: Conditional based on URL patterns
 ```json
 "content_scripts": [

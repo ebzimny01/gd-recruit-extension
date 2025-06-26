@@ -193,6 +193,9 @@ const elements = {
   summary_signed: document.getElementById('summary-signed'),
   summary_green: document.getElementById('summary-green'),
   summary_yellow: document.getElementById('summary-yellow'),
+  dashboard_summary_signed: document.getElementById('dashboard-summary-signed'),
+  dashboard_summary_green: document.getElementById('dashboard-summary-green'),
+  dashboard_summary_yellow: document.getElementById('dashboard-summary-yellow'),
 
   // Column visibility elements
   btn_column_visibility: document.getElementById('btn-column-visibility'),
@@ -6197,7 +6200,10 @@ function updateSummaryDisplay(signedCount, greenCount, yellowCount) {
   try {
     const signed = Number.isInteger(signedCount) ? signedCount : 0;
     const green = Number.isInteger(greenCount) ? greenCount : 0;
-    const yellow = Number.isInteger(yellowCount) ? yellowCount : 0;    if (elements.summary_signed) {
+    const yellow = Number.isInteger(yellowCount) ? yellowCount : 0;
+    
+    // Update recruitment tab summary
+    if (elements.summary_signed) {
       elements.summary_signed.textContent = signed.toString();
       elements.summary_signed.title = `${signed} recruit${signed !== 1 ? 's' : ''} signed to your school`;
     }
@@ -6210,6 +6216,22 @@ function updateSummaryDisplay(signedCount, greenCount, yellowCount) {
     if (elements.summary_yellow) {
       elements.summary_yellow.textContent = yellow.toString();
       elements.summary_yellow.title = `${yellow} unsigned recruit${yellow !== 1 ? 's' : ''} considering your school among others`;
+    }
+    
+    // Update dashboard summary
+    if (elements.dashboard_summary_signed) {
+      elements.dashboard_summary_signed.textContent = signed.toString();
+      elements.dashboard_summary_signed.title = `${signed} recruit${signed !== 1 ? 's' : ''} signed to your school`;
+    }
+
+    if (elements.dashboard_summary_green) {
+      elements.dashboard_summary_green.textContent = green.toString();
+      elements.dashboard_summary_green.title = `${green} unsigned recruit${green !== 1 ? 's' : ''} considering only your school`;
+    }
+
+    if (elements.dashboard_summary_yellow) {
+      elements.dashboard_summary_yellow.textContent = yellow.toString();
+      elements.dashboard_summary_yellow.title = `${yellow} unsigned recruit${yellow !== 1 ? 's' : ''} considering your school among others`;
     }
 
   } catch (error) {

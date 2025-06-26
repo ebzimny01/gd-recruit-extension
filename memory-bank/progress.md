@@ -24,6 +24,7 @@
 - **Modal Dialogs**: Configuration dialogs and confirmation prompts
 - **Conditional Formatting**: Name and Considering Schools columns with consistent background formatting for recruit interest visualization
 - **Custom Table Cell Styling**: Advanced "Potential" and "Miles" column styling with color-coding and dynamic backgrounds
+- **Recruitment Summary**: Color-coded recruitment status indicators (Signed, Green, Yellow) in both dashboard and recruits tabs
 
 ### ✅ Advanced Filtering System
 - **Multi-Criteria Filtering**: Position, potential, division, priority, distance, and custom filters

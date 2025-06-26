@@ -3547,3 +3547,54 @@ textarea:focus-visible {
     display: none;
   }
 }
+
+/* Dashboard recruitment summary styling */
+.recruitment-card h3 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.dashboard-recruitment-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.dashboard-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-xs);
+  flex: 1;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-light);
+  min-width: 50px;
+}
+
+.dashboard-summary-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.dashboard-summary-value {
+  font-weight: bold;
+  font-size: var(--font-size-lg);
+}
+
+/* Color-coded summary values */
+#dashboard-summary-signed,
+#summary-signed {
+  color: #0d6efd; /* Blue for signed */
+}
+
+#dashboard-summary-green,
+#summary-green {
+  color: #198754; /* Green for considering only user's school */
+}
+
+#dashboard-summary-yellow,
+#summary-yellow {
+  color: #ffc107; /* Yellow for considering among others */

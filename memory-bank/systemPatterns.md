@@ -234,6 +234,47 @@ const rating = ratingStrategies[position](recruitAttributes);
 }
 ```
 
+### 9. Shared Component Update Pattern (v0.5.1)
+**Implementation**: Multi-location component updates with shared data calculation in `popup/popup.js`
+```javascript
+// Shared data calculation function
+function updateRecruitmentSummary() {
+  try {
+    let signed_count = 0;
+    let green_count = 0;
+    let yellow_count = 0;
+
+    const currentTeamId = state.currentTeamId;
+    
+    // Data calculation logic to determine counts
+    state.filtered_recruits.forEach(recruit => {
+      // ... calculation logic ...
+    });
+
+    // Single function updates multiple UI locations
+    updateSummaryDisplay(signed_count, green_count, yellow_count);
+  } catch (error) {
+    console.error('Error in updateRecruitmentSummary:', error);
+    updateSummaryDisplay(0, 0, 0);
+  }
+}
+
+// Single function to update multiple UI components
+function updateSummaryDisplay(signedCount, greenCount, yellowCount) {
+  // Update recruits tab summary
+  if (elements.summary_signed) {
+    elements.summary_signed.textContent = signed.toString();
+    // ...more update code...
+  }
+  
+  // Update dashboard summary with the same data
+  if (elements.dashboard_summary_signed) {
+    elements.dashboard_summary_signed.textContent = signed.toString();
+    // ...more update code...
+  }
+}
+```
+
 **Benefits**:
 - Enhanced visual data scanning and identification
 - Intuitive color-coding based on data values

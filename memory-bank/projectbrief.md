@@ -3,7 +3,7 @@
 ## Core Project Definition
 
 **Project Name**: GD Recruit Assistant Browser Extension  
-**Version**: 0.5.1  
+**Version**: 0.5.2  
 **Target Platform**: Chrome/Chromium-based browsers (Chrome 88+, Edge 88+), Firefox 89+  
 **Domain**: Gridiron Dynasty recruiting management
 

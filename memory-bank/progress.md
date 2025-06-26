@@ -25,6 +25,7 @@
 - **Conditional Formatting**: Name and Considering Schools columns with consistent background formatting for recruit interest visualization
 - **Custom Table Cell Styling**: Advanced "Potential" and "Miles" column styling with color-coding and dynamic backgrounds
 - **Recruitment Summary**: Color-coded recruitment status indicators (Signed, Green, Yellow) in both dashboard and recruits tabs
+- **Optimized Control Placement**: Logically positioned UI elements for improved user workflow, such as the refresh button in the recruits tab pagination controls
 
 ### ✅ Advanced Filtering System
 - **Multi-Criteria Filtering**: Position, potential, division, priority, distance, and custom filters
@@ -230,6 +231,20 @@ The extension is fully production-ready with comprehensive multi-team support an
 - ⏳ **User Adoption**: Success depends on real-world user feedback
 
 ## Recent Progress Updates
+
+### 2025-06-25 - Version 0.5.2 Release ✅
+- **Status**: RELEASED
+- **Version Bump**: Updated from version 0.5.1 to 0.5.2
+- **Key Improvements**:
+  - UI enhancements for improved user experience
+  - Logical component placement for better workflow
+  - Optimized screen real estate usage
+  - Maintained full backward compatibility
+- **Files Modified**:
+  - `manifest.json` - Version bump to 0.5.2
+  - `popup/popup.html` - Button relocation
+  - `popup/popup.css` - Enhanced styling for integrated controls
+- **Status**: Successfully released with all improvements fully tested
 
 ### 2025-01-19 - Attribute Filters Interface Redesign
 - **Redesigned UX for attribute filters** from collapsible panel to always-visible grid layout
@@ -541,6 +556,27 @@ The extension is fully production-ready with comprehensive multi-team support an
   - **Strategic Planning**: Better data for recruiting strategy development
   - **Competitive Assessment**: Better understanding of recruiting landscape
 - **Status**: Enhancement complete and fully functional, provides comprehensive considering schools data while maintaining full backward compatibility with existing extension features
+
+### 2025-06-25 - UI Enhancement: Refresh Button Relocation
+- **Status**: COMPLETED
+- **Goal**: Improve user experience by placing the "Refresh Recruit Data" button in a more logical location
+- **Implementation Summary**:
+  - Relocated the button from Dashboard tab to Recruits tab pagination controls
+  - Positioned between "Results per page" dropdown and recruitment summary
+  - Renamed to more concise "Refresh Data" with descriptive tooltip
+  - Added "compact-btn" class for proper integration within controls
+  - Preserved existing functionality via unchanged button ID and event handlers
+  - Updated CSS with new "refresh-button-control" container
+- **User Experience Benefits**:
+  - Button now logically placed with the data it affects
+  - Better screen space utilization by integrating into existing controls
+  - Improved workflow with more intuitive UI organization
+  - Maintained complete functional consistency with previous implementation
+- **Technical Implementation**:
+  - HTML changes to `popup/popup.html` to relocate button
+  - CSS enhancements in `popup/popup.css` for proper styling and layout
+  - No JavaScript changes required as event handlers use element IDs
+- **Status**: Successfully implemented in version 0.5.2
 
 ### 2025-06-22 - Version 0.4.7 Donation Support System - IN PROGRESS ⏳
 - **Status**: DEVELOPMENT IN PROGRESS, PENDING COMMIT

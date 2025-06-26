@@ -360,6 +360,18 @@ body {
   font-size: var(--font-size-xs);
 }
 
+.refresh-button-control {
+  display: flex;
+  align-items: center;
+  margin: 0 var(--spacing-md);
+}
+
+.compact-btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
 .table-controls {
   display: flex;
   align-items: center;

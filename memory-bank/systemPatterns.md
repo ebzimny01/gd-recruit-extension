@@ -275,6 +275,37 @@ function updateSummaryDisplay(signedCount, greenCount, yellowCount) {
 }
 ```
 
+### 10. Logical UI Element Placement Pattern (v0.5.2)
+**Implementation**: Strategic component placement based on functional relationship in `popup/popup.html`
+```html
+<!-- Pagination controls with integrated refresh button -->
+<div class="pagination-controls">
+  <div class="page-size-control">
+    <label for="page-size-select">Results per page</label>
+    <select id="page-size-select">
+      <!-- ... options ... -->
+    </select>
+  </div>
+  <div class="refresh-button-control">
+    <button id="btn-update-considering" class="action-btn compact-btn" 
+      title="Refresh current recruit data from the recruiting page">
+      Refresh Data
+    </button>
+  </div>
+  <div class="recruitment-summary">
+    <!-- ... summary items ... -->
+  </div>
+</div>
+```
+
+**Benefits**:
+- UI controls positioned based on logical relationship to affected data
+- Improved user workflow through intuitive component placement
+- Better screen space utilization by integrating related controls
+- Preserves functionality while enhancing usability
+- Maintains consistent UI design language and accessibility
+```
+
 **Benefits**:
 - Enhanced visual data scanning and identification
 - Intuitive color-coding based on data values

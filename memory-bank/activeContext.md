@@ -2,6 +2,15 @@
 
 ## Latest Developments
 
+### UI Enhancement: Column Order Button Relocation (2025-06-26) ✅
+
+**Completed Task**: Moved the "Column Order Reset" button from the Settings tab to the Recruits tab for improved user experience and logical placement.
+
+**Implementation Details**:
+
+- **Button Relocation**: Moved the "Column Order Reset" button from the Settings tab to the Recruits tab 
+- **Strategic Placement**: Positioned between "Recruit Summary" section and the Show/Hide Columns button
+
 ### UI Enhancement: Refresh Button Relocation (2025-06-25) ✅
 
 **Completed Task**: Moved the "Refresh Recruit Data" button from the Dashboard tab to the Recruits tab for improved user experience and logical placement.

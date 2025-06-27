@@ -25,7 +25,7 @@
 - **Conditional Formatting**: Name and Considering Schools columns with consistent background formatting for recruit interest visualization
 - **Custom Table Cell Styling**: Advanced "Potential" and "Miles" column styling with color-coding and dynamic backgrounds
 - **Recruitment Summary**: Color-coded recruitment status indicators (Signed, Green, Yellow) in both dashboard and recruits tabs
-- **Optimized Control Placement**: Logically positioned UI elements for improved user workflow, such as the refresh button in the recruits tab pagination controls
+- **Optimized Control Placement**: Logically positioned UI elements for improved user workflow, such as the refresh button in the recruits tab pagination controls and column order reset moved to recruits tab
 
 ### ✅ Advanced Filtering System
 - **Multi-Criteria Filtering**: Position, potential, division, priority, distance, and custom filters
@@ -130,7 +130,7 @@ The extension is fully production-ready with comprehensive multi-team support an
 
 2. **Code Quality Maintenance**
    - Review and optimize existing implementations
-   - Remove legacy sidebar code (`sidebar/` folder) if any remains
+   - ✅ Remove legacy sidebar code (`sidebar/` folder) if any remains (DONE)
    - Ensure coding standards compliance
    - Performance profiling and optimization
 
@@ -246,7 +246,7 @@ The extension is fully production-ready with comprehensive multi-team support an
   - `popup/popup.css` - Enhanced styling for integrated controls
 - **Status**: Successfully released with all improvements fully tested
 
-### 2025-01-19 - Attribute Filters Interface Redesign
+### 2025-06-19 - Attribute Filters Interface Redesign
 - **Redesigned UX for attribute filters** from collapsible panel to always-visible grid layout
 - **Improved accessibility** with cleaner navigation and immediate visibility of all filter options
 - **Enhanced visual design** with label-above-input layout for 22 attribute filters (GPA, Ath, Spd, Dur, WE, Sta, Str, Blk, Tkl, Han, GI, Elu, Tec, R1-R6)
@@ -612,5 +612,17 @@ The extension is fully production-ready with comprehensive multi-team support an
   - **Non-intrusive design**: Donation reminders designed to be helpful without being disruptive to recruiting workflow
   - **Transparency**: Clear information about how contributions support ongoing development and feature enhancement
 - **Status**: Donation support system development in active progress with significant changes implemented but not yet committed. This represents an important enhancement for long-term project sustainability while maintaining the extension's primary focus on recruiting management excellence. Changes total 684 lines across 7 files, indicating substantial feature addition ready for integration testing and commit.
+
+### 2025-06-26 - Version 0.5.3 Release ✅
+- **Status**: RELEASED
+- **Version Bump**: Updated from version 0.5.2 to 0.5.3
+- **Key Improvements**:
+  - Moved Column Order Reset button from the Settings Tab to the Recruits Tab next to the Show/Hide Columns Button
+  - Resized the Refresh Recruits button on Recruits Tab
+  
+- **Files Modified**:
+  - `manifest.json` - Version bump to 0.5.3
+  - `popup/popup.html` - Button relocation
+- **Status**: Successfully released with all improvements fully tested
 
 The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams. Version 0.4.7 development adds important sustainability features while preserving core functionality.

@@ -163,6 +163,9 @@ const elements = {
   team_division: document.getElementById('team-division'),
   team_world: document.getElementById('team-world'),
   recruit_count: document.getElementById('recruit-count'),
+  recruit_unsigned_count: document.getElementById('recruit-unsigned-count'),
+  recruit_signed_count: document.getElementById('recruit-signed-count'),
+  recruit_signed_percentage: document.getElementById('recruit-signed-percentage'),
   watchlist_count: document.getElementById('watchlist-count'),
   last_updated: document.getElementById('last-updated'),
   current_season: document.getElementById('current-season'),
@@ -1730,9 +1733,42 @@ async function updateDashboardDisplay(stats) {
   
   // Update recruit counts - use stats data first, then fall back to state
   if (elements.recruit_count) {
-    const recruitCount = stats.recruitCount || state.recruits.length || 0;
-    elements.recruit_count.textContent = recruitCount;
-    console.log('Updated dashboard recruit count:', recruitCount, 'from stats:', stats.recruitCount, 'from state:', state.recruits.length);
+    const totalCount = stats.recruitCount || state.recruits.length || 0;
+    let signedCount = 0;
+    let unsignedCount = 0;
+    
+    // Calculate signed/unsigned counts from actual recruit data
+    if (state.recruits && Array.isArray(state.recruits)) {
+      state.recruits.forEach(recruit => {
+        if (recruit && (recruit.signed === 1 || recruit.signed === 'Y' || recruit.signed === 'Yes')) {
+          signedCount++;
+        } else {
+          unsignedCount++;
+        }
+      });
+    }
+    
+    // Calculate percentage
+    const signedPercentage = totalCount > 0 ? Math.round((signedCount / totalCount) * 100) : 0;
+    
+    // Update all recruit count displays
+    elements.recruit_count.textContent = totalCount;
+    if (elements.recruit_signed_count) {
+      elements.recruit_signed_count.textContent = signedCount;
+    }
+    if (elements.recruit_unsigned_count) {
+      elements.recruit_unsigned_count.textContent = unsignedCount;
+    }
+    if (elements.recruit_signed_percentage) {
+      elements.recruit_signed_percentage.textContent = `${signedPercentage}%`;
+    }
+    
+    console.log('Updated dashboard recruit counts:', {
+      total: totalCount,
+      signed: signedCount,
+      unsigned: unsignedCount,
+      percentage: signedPercentage
+    });
   }
   
   if (elements.watchlist_count) {
@@ -5019,6 +5055,10 @@ async function loadRecruitsData() {
     console.log('Setting up table sorting...');
     setupTableSorting();
     
+    // Refresh dashboard display now that recruit data is loaded
+    console.log('Refreshing dashboard display with recruit data...');
+    await refreshDashboardData();
+    
     state.last_data_refresh = Date.now();
     console.log('=== DEBUGGING loadRecruitsData END ===');
     
@@ -6227,6 +6267,7 @@ function updatePaginationDisplay() {
 
 /**
  * Calculate and update recruitment summary statistics
+ * Note: Always uses the complete unfiltered dataset (state.recruits) regardless of table filters
  */
 function updateRecruitmentSummary() {
   try {
@@ -6236,12 +6277,12 @@ function updateRecruitmentSummary() {
 
     const currentTeamId = state.currentTeamId;
     
-    if (!currentTeamId || !state.filtered_recruits || !Array.isArray(state.filtered_recruits)) {
+    if (!currentTeamId || !state.recruits || !Array.isArray(state.recruits)) {
       updateSummaryDisplay(0, 0, 0);
       return;
     }
 
-    state.filtered_recruits.forEach(recruit => {
+    state.recruits.forEach(recruit => {
       if (!recruit) return;
 
       const signedStatus = checkSignedStatus(recruit, currentTeamId);

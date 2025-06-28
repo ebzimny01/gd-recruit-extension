@@ -186,6 +186,46 @@ body {
   color: var(--primary-color);
 }
 
+/* Enhanced recruit breakdown card */
+.recruit-breakdown-card {
+  min-height: auto;
+}
+
+.recruit-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.recruit-stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid rgba(212, 208, 200, 0.3);
+}
+
+.recruit-stat-item:last-child {
+  border-bottom: none;
+}
+
+.recruit-stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.recruit-stat-value {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.recruit-percentage .recruit-stat-value {
+  color: var(--accent-color);
+  font-weight: 800;
+}
+
 /* Action buttons */
 .action-buttons {
   display: flex;

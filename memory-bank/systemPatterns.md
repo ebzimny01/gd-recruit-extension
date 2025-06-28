@@ -304,14 +304,76 @@ function updateSummaryDisplay(signedCount, greenCount, yellowCount) {
 - Better screen space utilization by integrating related controls
 - Preserves functionality while enhancing usability
 - Maintains consistent UI design language and accessibility
+
+### 11. SIM AI Coaching Detection Pattern (v0.5.4)
+**Implementation**: Strategic recruiting opportunity identification through coach analysis in `popup/popup.js`
+```javascript
+// Check if all schools in considering list have "SIM AI" as coach
+function checkAllSchoolsHaveSimAI(considering) {
+  if (!considering || considering === 'undecided') {
+    return false;
+  }
+  
+  // Split by semicolon to get individual school entries
+  const schoolEntries = considering.split(';').map(entry => entry.trim()).filter(entry => entry.length > 0);
+  
+  // Check each school entry for "SIM AI" as coach
+  for (const entry of schoolEntries) {
+    // Find the last occurrence of a pattern like "XX | XX" (rankings)
+    const rankingsMatch = entry.match(/, (\d+) \| (\d+)$/);
+    if (!rankingsMatch) {
+      return false;
+    }
+    
+    // Remove the rankings part and parse from end
+    const withoutRankings = entry.substring(0, entry.lastIndexOf(rankingsMatch[0]));
+    const parts = withoutRankings.split(',').map(part => part.trim());
+    
+    // The coach name should be the last part (after removing rankings)
+    const coachName = parts[parts.length - 1];
+    if (coachName !== 'SIM AI') {
+      return false;
+    }
+  }
+  
+  return true; // All schools have SIM AI as coach
+}
+
+// Applied in both Name and Considering Schools columns
+classes: (() => {
+  const baseClasses = [];
+  
+  // Check for SIM AI coaching styling (recruit not signed and all schools have SIM AI)
+  if (recruit.considering && (recruit.signed !== 'Y' && recruit.signed !== 'Yes' && recruit.signed !== 1)) {
+    const allSchoolsHaveSimAI = checkAllSchoolsHaveSimAI(recruit.considering);
+    if (allSchoolsHaveSimAI) {
+      baseClasses.push('sim-ai-schools');
+    }
+  }
+  
+  return baseClasses;
+})()
+```
+
+**CSS Styling**:
+```css
+/* SIM AI schools formatting - for recruits not signed with all schools having SIM AI coaches */
+td.sim-ai-schools {
+  background-color: #e7f3ff;
+  color: #004085;
+  font-weight: 600;
+  border: 1px solid #b8daff;
+  font-style: italic;
+}
 ```
 
 **Benefits**:
-- Enhanced visual data scanning and identification
-- Intuitive color-coding based on data values
-- Accessibility-compliant contrast ratios
-- Performance-optimized styling calculations
-- Consistent styling architecture across columns
+- Strategic recruiting opportunity identification
+- Immediate visual feedback for computer-controlled competition scenarios
+- Robust parsing handles school names with commas (e.g., "University of Maine, Orono")
+- Enhanced competitive analysis for recruiting strategy
+- Professional, accessible styling for clear visual differentiation
+- Applied consistently to both Name and Considering Schools columns
 
 ## Data Flow Architecture
 

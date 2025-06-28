@@ -2026,6 +2026,64 @@ function checkCurrentSchoolInConsidering(considering, currentTeamId) {
   }
 }
 
+// Check if all schools in considering list have "SIM AI" as coach
+function checkAllSchoolsHaveSimAI(considering) {
+  if (!considering || considering === 'undecided') {
+    return false;
+  }
+  
+  // Split by semicolon to get individual school entries
+  const schoolEntries = considering.split(';').map(entry => entry.trim()).filter(entry => entry.length > 0);
+  
+  if (schoolEntries.length === 0) {
+    return false;
+  }
+  
+  console.log('🔍 DEBUG: Checking SIM AI for considering:', considering);
+  console.log('🔍 DEBUG: School entries:', schoolEntries);
+  
+  // Check each school entry for "SIM AI" as coach
+  for (const entry of schoolEntries) {
+    // Pattern: School Name (ID), miles, COACH_NAME, rankings
+    // Note: School names can contain commas, so we need to parse from the end
+    // Examples: 
+    // "Indiana State University (53517), 1011 miles, SIM AI, 15 | 15"
+    // "University of Maine, Orono (53286), 1239 miles, SIM AI, 18 | 18"
+    
+    // Find the last occurrence of a pattern like "XX | XX" (rankings)
+    const rankingsMatch = entry.match(/, (\d+) \| (\d+)$/);
+    if (!rankingsMatch) {
+      console.log('🔍 DEBUG: No rankings pattern found in entry:', entry);
+      return false;
+    }
+    
+    // Remove the rankings part to get the rest
+    const withoutRankings = entry.substring(0, entry.lastIndexOf(rankingsMatch[0]));
+    
+    // Now split by comma and take the last part as coach name
+    const parts = withoutRankings.split(',').map(part => part.trim());
+    console.log('🔍 DEBUG: Entry parts (without rankings):', parts);
+    
+    if (parts.length < 3) {
+      // Should have at least: school name with (ID), miles, coach
+      console.log('🔍 DEBUG: Not enough parts in entry:', entry);
+      return false;
+    }
+    
+    // The coach name should be the last part (after removing rankings)
+    const coachName = parts[parts.length - 1];
+    console.log('🔍 DEBUG: Coach name found:', coachName);
+    if (coachName !== 'SIM AI') {
+      console.log('🔍 DEBUG: Coach is not SIM AI:', coachName);
+      return false;
+    }
+  }
+  
+  // All schools have SIM AI as coach
+  console.log('🔍 DEBUG: All schools have SIM AI as coach!');
+  return true;
+}
+
 /**
  * Determine the signed status of a recruit relative to the current school
  * 
@@ -5689,6 +5747,14 @@ function createRecruitRow(recruit, teamInfo) {
         classes: (() => {
           const baseClasses = [];
           
+          // Check for SIM AI coaching styling (recruit not signed and all schools have SIM AI)
+          if (recruit.considering && (recruit.signed !== 'Y' && recruit.signed !== 'Yes' && recruit.signed !== 1)) {
+            const allSchoolsHaveSimAI = checkAllSchoolsHaveSimAI(recruit.considering);
+            if (allSchoolsHaveSimAI) {
+              baseClasses.push('sim-ai-schools');
+            }
+          }
+          
           // Apply the same conditional formatting as "Considering Schools" column
           if (teamInfo && teamInfo.teamId && recruit.considering) {
             console.log('🔍 DEBUG: Applying considering status formatting to Name column for recruit:', recruit.name);
@@ -5874,6 +5940,14 @@ function createRecruitRow(recruit, teamInfo) {
         tooltip: recruit.considering ? `Considering Schools: ${recruit.considering}` : null,
         classes: (() => {
           const baseClasses = recruit.considering ? ['considering-schools'] : [];
+          
+          // Check for SIM AI coaching styling (recruit not signed and all schools have SIM AI)
+          if (recruit.considering && (recruit.signed !== 'Y' && recruit.signed !== 'Yes' && recruit.signed !== 1)) {
+            const allSchoolsHaveSimAI = checkAllSchoolsHaveSimAI(recruit.considering);
+            if (allSchoolsHaveSimAI) {
+              baseClasses.push('sim-ai-schools');
+            }
+          }
           
           // Add conditional formatting based on current school status
           if (teamInfo && teamInfo.teamId && recruit.considering) {

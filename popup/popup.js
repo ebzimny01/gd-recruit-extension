@@ -95,10 +95,6 @@ const ATTRIBUTE_COLUMNS = [
   { key: 'r6', label: 'R6', type: 'decimal', min: 0, max: 100, step: 0.1 }
 ];
 
-// Text search filter configuration - separate from numeric attribute filters
-const TEXT_SEARCH_COLUMNS = [
-  { key: 'considering_schools', label: 'Considering Schools', type: 'text', placeholder: 'Search...' }
-];
 
 // Column configuration for recruit table
 const COLUMNS = [
@@ -180,7 +176,10 @@ const elements = {
   filter_division: document.getElementById('filter-division'),
   filter_priority: document.getElementById('filter-priority'),
   filter_distance: document.getElementById('filter-distance'),
+  filter_school_input: document.getElementById('filter-school-input'),
+  filter_school_list: document.getElementById('filter-school-list'),
   filter_hide_signed: document.getElementById('filter-hide-signed'),
+  clear_filters_btn: document.getElementById('clear-filters-btn'),
   recruits_list: document.getElementById('recruits-list'),
   
   // Dual pagination elements
@@ -199,6 +198,13 @@ const elements = {
   dashboard_summary_signed: document.getElementById('dashboard-summary-signed'),
   dashboard_summary_green: document.getElementById('dashboard-summary-green'),
   dashboard_summary_yellow: document.getElementById('dashboard-summary-yellow'),
+
+  // School-specific summary elements
+  school_specific_summary: document.getElementById('school-specific-summary'),
+  school_summary_title: document.getElementById('school-summary-title'),
+  school_summary_signed: document.getElementById('school-summary-signed'),
+  school_summary_green: document.getElementById('school-summary-green'),
+  school_summary_yellow: document.getElementById('school-summary-yellow'),
 
   // Column visibility elements
   btn_column_visibility: document.getElementById('btn-column-visibility'),
@@ -295,6 +301,7 @@ let state = {
     division: '',
     priority: '',
     distance: '',
+    school: '',
     hide_signed: false,
     undecided: false,
     attribute_filters: {
@@ -302,9 +309,6 @@ let state = {
       ath: '', spd: '', dur: '', we: '', sta: '', str: '',
       blk: '', tkl: '', han: '', gi: '', elu: '', tec: '',
       r1: '', r2: '', r3: '', r4: '', r5: '', r6: ''
-    },
-    text_search_filters: {
-      considering_schools: ''
     }
   },
   
@@ -366,7 +370,11 @@ let state = {
     r6: true,
     considering: true
   },
-    // Column order state - stores custom column ordering
+  
+  // School dropdown data
+  schoolsData: null,
+  
+  // Column order state - stores custom column ordering
   column_order: COLUMNS.map(col => col.key), // Initialize with default order instead of null
     // Popup specific state
   is_popup_focused: true,
@@ -1187,6 +1195,7 @@ function clearAllFilters() {
     division: '',
     priority: '',
     distance: '',
+    school: '',
     hide_signed: false,
     undecided: false,
     attribute_filters: {
@@ -1194,9 +1203,6 @@ function clearAllFilters() {
       ath: '', spd: '', dur: '', we: '', sta: '', str: '',
       blk: '', tkl: '', han: '', gi: '', elu: '', tec: '',
       r1: '', r2: '', r3: '', r4: '', r5: '', r6: ''
-    },
-    text_search_filters: {
-      considering_schools: ''
     }
   };
   
@@ -1207,6 +1213,7 @@ function clearAllFilters() {
   if (elements.filter_division) elements.filter_division.value = '';
   if (elements.filter_priority) elements.filter_priority.value = '';
   if (elements.filter_distance) elements.filter_distance.value = '';
+  if (elements.filter_school_input) elements.filter_school_input.value = '';
   if (elements.filter_hide_signed) elements.filter_hide_signed.checked = false;
   if (elements.filter_undecided) elements.filter_undecided.checked = false;
   
@@ -1219,19 +1226,50 @@ function clearAllFilters() {
     }
   });
   
-  // Clear text search filter inputs
-  TEXT_SEARCH_COLUMNS.forEach(column => {
-    const input = document.getElementById(`filter-${column.key}`);
-    if (input) {
-      input.value = '';
-      input.classList.remove('filter-active');
-    }
-  });
   
   // Update filter summary
   updateFilterSummary();
+  updateSchoolSpecificSummary();
   
   console.log('✅ All filters cleared successfully');
+}
+
+// Clear main filters specifically requested by user (Position, Potential, Priority, Division, Distance, School, Watched Only, Hide Signed, Undecided Only)
+function clearAllMainFilters() {
+  console.log('🧹 Clearing main filters');
+  
+  // Reset specific main filter state
+  state.filters.position = '';
+  state.filters.potential = '';
+  state.filters.priority = '';
+  state.filters.division = '';
+  state.filters.distance = '';
+  state.filters.school = '';
+  state.filters.watched = '';
+  state.filters.hide_signed = false;
+  state.filters.undecided = false;
+  
+  // Reset UI elements to match cleared filters
+  if (elements.filter_position) elements.filter_position.value = '';
+  if (elements.filter_potential) elements.filter_potential.value = '';
+  if (elements.filter_priority) elements.filter_priority.value = '';
+  if (elements.filter_division) elements.filter_division.value = '';
+  if (elements.filter_distance) elements.filter_distance.value = '';
+  if (elements.filter_school_input) elements.filter_school_input.value = '';
+  if (elements.filter_watched) elements.filter_watched.checked = false;
+  if (elements.filter_hide_signed) elements.filter_hide_signed.checked = false;
+  if (elements.filter_undecided) elements.filter_undecided.checked = false;
+  
+  // Close school dropdown if open
+  if (elements.filter_school_list) {
+    elements.filter_school_list.classList.add('hidden');
+  }
+  
+  // Update summary and apply filters
+  updateSchoolSpecificSummary();
+  applyFilters();
+  
+  console.log('✅ Main filters cleared successfully');
 }
 
 // Check for team changes when popup gains focus
@@ -2200,6 +2238,113 @@ function setupFilterListeners() {
       applyFilters();
     });
   }
+
+  // Searchable school filter
+  if (elements.filter_school_input) {
+    let dropdownVisible = false;
+    let highlightedIndex = -1;
+    
+    // Input event for search filtering
+    elements.filter_school_input.addEventListener('input', (event) => {
+      const searchTerm = event.target.value;
+      populateSchoolDropdownOptions(searchTerm);
+      showDropdown();
+      highlightedIndex = -1;
+    });
+    
+    // Focus event to show dropdown
+    elements.filter_school_input.addEventListener('focus', () => {
+      populateSchoolDropdownOptions(elements.filter_school_input.value);
+      showDropdown();
+    });
+    
+    // Keyboard navigation
+    elements.filter_school_input.addEventListener('keydown', (event) => {
+      if (!dropdownVisible) return;
+      
+      const options = elements.filter_school_list.querySelectorAll('.dropdown-option:not(.separator)');
+      
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          highlightedIndex = Math.min(highlightedIndex + 1, options.length - 1);
+          updateHighlight(options);
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          highlightedIndex = Math.max(highlightedIndex - 1, -1);
+          updateHighlight(options);
+          break;
+        case 'Enter':
+          event.preventDefault();
+          if (highlightedIndex >= 0 && options[highlightedIndex]) {
+            selectOption(options[highlightedIndex]);
+          }
+          break;
+        case 'Escape':
+          hideDropdown();
+          break;
+      }
+    });
+    
+    // Click outside to close dropdown
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.searchable-dropdown-container')) {
+        hideDropdown();
+      }
+    });
+    
+    function showDropdown() {
+      if (elements.filter_school_list) {
+        elements.filter_school_list.classList.remove('hidden');
+        dropdownVisible = true;
+      }
+    }
+    
+    function hideDropdown() {
+      if (elements.filter_school_list) {
+        elements.filter_school_list.classList.add('hidden');
+        dropdownVisible = false;
+        highlightedIndex = -1;
+      }
+    }
+    
+    function updateHighlight(options) {
+      options.forEach((option, index) => {
+        option.classList.toggle('highlighted', index === highlightedIndex);
+      });
+    }
+    
+    function selectOption(option) {
+      const value = option.dataset.value;
+      const text = option.textContent;
+      
+      elements.filter_school_input.value = text;
+      state.filters.school = value;
+      updateSchoolSpecificSummary();
+      applyFilters();
+      hideDropdown();
+    }
+  }
+  
+  // School dropdown option clicks
+  if (elements.filter_school_list) {
+    elements.filter_school_list.addEventListener('click', (event) => {
+      if (event.target.classList.contains('dropdown-option') && !event.target.classList.contains('separator')) {
+        const value = event.target.dataset.value;
+        const text = event.target.textContent;
+        
+        elements.filter_school_input.value = text;
+        state.filters.school = value;
+        updateSchoolSpecificSummary();
+        applyFilters();
+        
+        elements.filter_school_list.classList.add('hidden');
+      }
+    });
+  }
+
+
   // Watched only checkbox
   if (elements.filter_watched) {
     elements.filter_watched.addEventListener('change', (event) => {
@@ -2235,6 +2380,11 @@ function setupFilterListeners() {
   // Clear attribute filters button
   if (elements.clear_attribute_filters) {
     elements.clear_attribute_filters.addEventListener('click', clearAttributeFilters);
+  }
+
+  // Clear all filters button
+  if (elements.clear_filters_btn) {
+    elements.clear_filters_btn.addEventListener('click', clearAllMainFilters);
   }
 
   // Setup attribute filter inputs
@@ -2313,68 +2463,6 @@ function setupAttributeFilters() {
   // Add the attribute filters grid container to the main container
   elements.attribute_filters_container.appendChild(attributeFiltersGridContainer);
 
-  // Create text search filters grid container
-  const textSearchFiltersGridContainer = document.createElement('div');
-  textSearchFiltersGridContainer.className = 'text-search-filters-grid-container';
-  
-  const textSearchFiltersGrid = document.createElement('div');
-  textSearchFiltersGrid.className = 'text-search-filters-grid';
-
-  TEXT_SEARCH_COLUMNS.forEach(column => {
-    // Create the filter group container
-    const filterGroup = document.createElement('div');
-    filterGroup.className = 'text-search-filter-group';
-
-    // Create the label
-    const label = document.createElement('label');
-    label.htmlFor = `filter-${column.key}`;
-    label.textContent = column.label;
-    label.className = 'text-search-filter-label';
-
-    // Create the input
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.id = `filter-${column.key}`;
-    input.className = 'text-search-filter-input';
-    input.placeholder = column.placeholder || 'Search...';
-    input.title = `Search in ${column.label}`;
-
-    // Add event listener
-    input.addEventListener('input', (event) => {
-      const value = event.target.value.trim();
-      state.filters.text_search_filters[column.key] = value;
-      
-      // Add visual indicator if filter is active
-      if (value) {
-        input.classList.add('filter-active');
-      } else {
-        input.classList.remove('filter-active');
-      }
-      
-      // Debounce the filter application
-      debounce(() => {
-        applyFilters();
-        updateFilterSummary();
-      }, 300, `text-search-filter-${column.key}`);
-    });
-
-    // Apply existing filter value if any
-    if (state.filters.text_search_filters[column.key]) {
-      input.value = state.filters.text_search_filters[column.key];
-      input.classList.add('filter-active');
-    }
-
-    // Assemble the filter group
-    filterGroup.appendChild(label);
-    filterGroup.appendChild(input);
-    textSearchFiltersGrid.appendChild(filterGroup);
-  });
-  
-  // Add the grid to its container
-  textSearchFiltersGridContainer.appendChild(textSearchFiltersGrid);
-  
-  // Add the text search filters grid container to the main container
-  elements.attribute_filters_container.appendChild(textSearchFiltersGridContainer);
 
   // Initialize filter summary
   updateFilterSummary();
@@ -2387,10 +2475,6 @@ function clearAttributeFilters() {
     state.filters.attribute_filters[key] = '';
   });
 
-  // Reset all text search filter values
-  Object.keys(state.filters.text_search_filters).forEach(key => {
-    state.filters.text_search_filters[key] = '';
-  });
 
   // Clear all input values and remove active indicators
   ATTRIBUTE_COLUMNS.forEach(column => {
@@ -2401,14 +2485,6 @@ function clearAttributeFilters() {
     }
   });
 
-  // Clear all text search input values and remove active indicators
-  TEXT_SEARCH_COLUMNS.forEach(column => {
-    const input = document.getElementById(`filter-${column.key}`);
-    if (input) {
-      input.value = '';
-      input.classList.remove('filter-active');
-    }
-  });
 
   // Update filter summary and apply filters
   updateFilterSummary();
@@ -2423,15 +2499,10 @@ function updateFilterSummary() {
   const activeAttributeFilterCount = Object.values(state.filters.attribute_filters)
     .filter(value => value && value.trim() !== '').length;
   
-  const activeTextSearchFilterCount = Object.values(state.filters.text_search_filters)
-    .filter(value => value && value.trim() !== '').length;
-  
-  const totalActiveFilterCount = activeAttributeFilterCount + activeTextSearchFilterCount;
-
   // Update toggle text with count
-  const baseText = 'Attribute & Text Filters';
-  if (totalActiveFilterCount > 0) {
-    toggleText.innerHTML = `${baseText} <span class="filter-summary-badge">${totalActiveFilterCount}</span>`;
+  const baseText = 'Attribute Filters';
+  if (activeAttributeFilterCount > 0) {
+    toggleText.innerHTML = `${baseText} <span class="filter-summary-badge">${activeAttributeFilterCount}</span>`;
   } else {
     toggleText.textContent = baseText;
   }
@@ -2464,34 +2535,6 @@ function matchesAttributeFilters(recruit) {
   return true;
 }
 
-// Check if recruit matches text search filters
-function matchesTextSearchFilters(recruit) {
-  for (const [filterKey, filterValue] of Object.entries(state.filters.text_search_filters)) {
-    if (!filterValue || filterValue.trim() === '') continue;
-
-    // Map filter keys to recruit data fields
-    let recruitValue = '';
-    switch (filterKey) {
-      case 'considering_schools':
-        recruitValue = recruit.considering || '';
-        break;
-      default:
-        console.warn(`Unknown text search filter key: ${filterKey}`);
-        continue;
-    }
-
-    // Convert both values to lowercase for case-insensitive search
-    const searchTerm = filterValue.toLowerCase().trim();
-    const recruitText = recruitValue.toLowerCase();
-
-    // Check if the recruit's text contains the search term
-    if (!recruitText.includes(searchTerm)) {
-      return false;
-    }
-  }
-
-  return true;
-}
 
 // Setup pagination event listeners
 function setupPaginationListeners() {
@@ -5098,6 +5141,7 @@ function populateFilterOptions() {
   populateDivisionFilter();
   populatePriorityFilter();
   populateDistanceFilter();
+  populateSchoolFilter();
 }
 
 // Populate position filter dropdown
@@ -5258,6 +5302,174 @@ function populateDistanceFilter() {
   });
 }
 
+// Populate searchable school filter dropdown
+function populateSchoolFilter() {
+  if (!elements.filter_school_list) return;
+  
+  try {
+    // Get current team info for prioritizing current school
+    const teamInfo = state.currentTeamInfo;
+    const currentTeamId = teamInfo ? teamInfo.teamId : null;
+    let currentSchoolName = teamInfo ? teamInfo.schoolName : null;
+    
+    // Fallback: try to get school name from DOM if teamInfo is not available
+    if (!currentSchoolName && elements.school_name) {
+      currentSchoolName = elements.school_name.textContent?.trim();
+    }
+    
+    
+    // Extract unique schools from considering schools data
+    const schoolsSet = new Set();
+    const schoolCounts = new Map();
+    
+    if (state.recruits && Array.isArray(state.recruits)) {
+      state.recruits.forEach(recruit => {
+        if (recruit.considering && recruit.considering !== 'undecided') {
+          // Parse semicolon-separated school entries
+          const schoolEntries = recruit.considering.split(';').map(entry => entry.trim());
+          
+          schoolEntries.forEach(entry => {
+            if (entry.length > 0) {
+              // Parse format: "School Name (School ID), miles, Coach Name, scholarships"
+              const match = entry.match(/^(.+?)\s*\((\d+)\),\s*\d+\s*miles,\s*(.+?),\s*\d+\s*\|\s*\d+$/);
+              
+              if (match) {
+                const schoolName = match[1].trim();
+                const schoolId = match[2].trim();
+                const coachName = match[3].trim();
+                
+                // Format: "School Name - coachId"
+                const schoolKey = `${schoolName} - ${coachName}`;
+                const schoolValue = schoolId; // Use school ID as the filter value
+                
+                schoolsSet.add(JSON.stringify({ key: schoolKey, value: schoolValue, name: schoolName, id: schoolId, coach: coachName }));
+                
+                // Count recruits considering this school
+                if (schoolCounts.has(schoolKey)) {
+                  schoolCounts.set(schoolKey, schoolCounts.get(schoolKey) + 1);
+                } else {
+                  schoolCounts.set(schoolKey, 1);
+                }
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    // Convert Set back to objects and sort
+    const schoolsList = Array.from(schoolsSet).map(item => JSON.parse(item));
+    
+    // Separate current school from others
+    let currentSchoolEntry = null;
+    const otherSchools = [];
+    
+    
+    schoolsList.forEach(school => {
+      if (currentSchoolName && school.name === currentSchoolName) {
+        currentSchoolEntry = school;
+      } else {
+        otherSchools.push(school);
+      }
+    });
+    
+    
+    // Sort other schools alphabetically by school name
+    otherSchools.sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Store schools data for filtering
+    state.schoolsData = {
+      all: schoolsList,
+      current: currentSchoolEntry,
+      others: otherSchools,
+      counts: schoolCounts
+    };
+    
+    // Populate dropdown list
+    populateSchoolDropdownOptions();
+    
+    console.log(`Populated school filter with ${schoolsList.length} unique schools`);
+    
+  } catch (error) {
+    console.error('Error populating school filter:', error);
+    // Fallback: clear the dropdown list
+    if (elements.filter_school_list) {
+      elements.filter_school_list.innerHTML = '<div class="dropdown-option" data-value="">All Schools</div>';
+    }
+  }
+}
+
+// Populate dropdown options based on current filter
+function populateSchoolDropdownOptions(searchTerm = '') {
+  if (!elements.filter_school_list || !state.schoolsData) return;
+  
+  const { current, others, counts } = state.schoolsData;
+  const filteredOptions = [];
+  
+  
+  // Always add "All Schools" option
+  if (!searchTerm || 'all schools'.includes(searchTerm.toLowerCase())) {
+    filteredOptions.push({
+      value: '',
+      text: 'All Schools',
+      isDefault: true
+    });
+  }
+  
+  // Add current school first if it matches search
+  if (current) {
+    const schoolText = `${current.key} (${counts.get(current.key) || 0})`;
+    if (!searchTerm || schoolText.toLowerCase().includes(searchTerm.toLowerCase())) {
+      filteredOptions.push({
+        value: current.value,
+        text: schoolText,
+        isCurrent: true
+      });
+    }
+  }
+  
+  // Add separator before other schools if current school is shown and we have other matching schools
+  let needsSeparator = false;
+  if (current && filteredOptions.some(opt => opt.isCurrent)) {
+    // Check if there are any other schools that match the search
+    const hasMatchingOthers = others.some(school => {
+      const schoolText = `${school.key} (${counts.get(school.key) || 0})`;
+      return !searchTerm || schoolText.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+    needsSeparator = hasMatchingOthers;
+  }
+  
+  // Add other schools that match search
+  others.forEach(school => {
+    const schoolText = `${school.key} (${counts.get(school.key) || 0})`;
+    if (!searchTerm || schoolText.toLowerCase().includes(searchTerm.toLowerCase())) {
+      if (needsSeparator) {
+        filteredOptions.push({ isSeparator: true });
+        needsSeparator = false;
+      }
+      filteredOptions.push({
+        value: school.value,
+        text: schoolText,
+        isOther: true
+      });
+    }
+  });
+  
+  // Update dropdown HTML
+  let html = '';
+  filteredOptions.forEach(option => {
+    if (option.isSeparator) {
+      html += '<div class="dropdown-option separator"></div>';
+    } else {
+      let classes = 'dropdown-option';
+      if (option.isCurrent) classes += ' active-school';
+      html += `<div class="${classes}" data-value="${option.value}">${option.text}</div>`;
+    }
+  });
+  
+  elements.filter_school_list.innerHTML = html;
+}
+
 // Apply filters to recruit data with performance optimization
 function applyFilters() {
   try {
@@ -5370,6 +5582,12 @@ function applyFilters() {
         return false;
       }
       
+      // School filter
+      if (state.filters.school && !matchesSchoolFilter(recruit.considering, state.filters.school)) {
+        filterFailReasons.school = (filterFailReasons.school || 0) + 1;
+        return false;
+      }
+      
       // Watched filter
       if (state.filters.watched === 'true' && recruit.watched !== 1) {
         filterFailReasons.watched = (filterFailReasons.watched || 0) + 1;
@@ -5394,11 +5612,6 @@ function applyFilters() {
         return false;
       }
       
-      // Text search filters
-      if (!matchesTextSearchFilters(recruit)) {
-        filterFailReasons.text_search_filters = (filterFailReasons.text_search_filters || 0) + 1;
-        return false;
-      }
       
       filterPassCount++;
       return true;
@@ -5470,6 +5683,7 @@ function applyFilters() {
     updateRecruitsList();
     updatePaginationDisplay();
     updateRecruitmentSummary();
+    updateSchoolSpecificSummary();
     
   } catch (error) {
     console.error('Error in applyFilters:', error);
@@ -5499,6 +5713,34 @@ function matchesDistanceFilter(miles, distanceFilter) {
       return numMiles < 1400;
     default:
       return true; // 'Any Distance' case
+  }
+}
+
+// Check if recruit's considering schools matches school filter
+function matchesSchoolFilter(consideringSchools, schoolFilter) {
+  if (!consideringSchools || !schoolFilter) return true;
+  
+  // Handle 'undecided' case
+  if (consideringSchools === 'undecided') return false;
+  
+  try {
+    // Check if the selected school ID appears anywhere in the considering schools string
+    // This handles the format: "School Name (School ID), miles, Coach Name, scholarships"
+    
+    // Use a regex to find school IDs in parentheses
+    const schoolIdMatches = consideringSchools.match(/\((\d+)\)/g);
+    
+    if (!schoolIdMatches) return false;
+    
+    // Extract just the school IDs
+    const schoolIds = schoolIdMatches.map(match => match.slice(1, -1)); // Remove parentheses
+    
+    // Check if the selected school ID is in the list
+    return schoolIds.includes(schoolFilter);
+    
+  } catch (error) {
+    console.error('Error matching school filter:', error);
+    return true; // Fail safe - include recruit if there's an error
   }
 }
 
@@ -6351,6 +6593,100 @@ function updateSummaryDisplay(signedCount, greenCount, yellowCount) {
 
   } catch (error) {
     console.error('Error in updateSummaryDisplay:', error);
+  }
+}
+
+// Update school-specific recruit summary display
+function updateSchoolSpecificSummary() {
+  try {
+    const selectedSchool = state.filters.school;
+    const summarySection = elements.school_specific_summary;
+    
+    if (!summarySection) {
+      console.warn('School-specific summary section not found');
+      return;
+    }
+    
+    // Hide summary if no school is selected
+    if (!selectedSchool) {
+      summarySection.classList.add('hidden');
+      return;
+    }
+    
+    // Show summary section
+    summarySection.classList.remove('hidden');
+    
+    // Get school name from dropdown for display
+    let schoolDisplayName = 'Selected School';
+    if (elements.filter_school && elements.filter_school.selectedIndex >= 0) {
+      const selectedOption = elements.filter_school.options[elements.filter_school.selectedIndex];
+      if (selectedOption && selectedOption.textContent) {
+        // Extract school name from "School Name - Coach (count)" format
+        const match = selectedOption.textContent.match(/^(.+?)\s*\(\d+\)/);
+        schoolDisplayName = match ? match[1] : selectedOption.textContent;
+      }
+    }
+    
+    // Update summary title
+    if (elements.school_summary_title) {
+      elements.school_summary_title.textContent = `${schoolDisplayName} - Recruiting Summary`;
+    }
+    
+    // Initialize counters
+    let signedCount = 0;
+    let greenCount = 0;
+    let yellowCount = 0;
+    
+    // Calculate counts from current recruit data
+    if (state.recruits && Array.isArray(state.recruits)) {
+      state.recruits.forEach(recruit => {
+        // Check if this recruit is considering the selected school
+        if (recruit.considering && matchesSchoolFilter(recruit.considering, selectedSchool)) {
+          if (recruit.signed === 'Yes' || recruit.signed === 'Y' || recruit.signed === 1) {
+            signedCount++;
+          } else {
+            // For unsigned recruits, determine if it's green (only) or yellow (among others)
+            const teamInfo = state.currentTeamInfo;
+            const currentTeamId = teamInfo ? teamInfo.teamId : null;
+            
+            if (currentTeamId && selectedSchool === currentTeamId) {
+              // If we're looking at our own school
+              const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, currentTeamId);
+              if (consideringStatus === 'only') {
+                greenCount++;
+              } else if (consideringStatus === 'included') {
+                yellowCount++;
+              }
+            } else {
+              // For other schools, we can't easily determine green vs yellow without more analysis
+              // For now, count all unsigned as yellow (considering among others)
+              yellowCount++;
+            }
+          }
+        }
+      });
+    }
+    
+    // Update display elements
+    if (elements.school_summary_signed) {
+      elements.school_summary_signed.textContent = signedCount.toString();
+    }
+    if (elements.school_summary_green) {
+      elements.school_summary_green.textContent = greenCount.toString();
+    }
+    if (elements.school_summary_yellow) {
+      elements.school_summary_yellow.textContent = yellowCount.toString();
+    }
+    
+    console.log(`School summary updated: ${schoolDisplayName} - Signed: ${signedCount}, Green: ${greenCount}, Yellow: ${yellowCount}`);
+    
+  } catch (error) {
+    console.error('Error updating school-specific summary:', error);
+    
+    // Hide summary on error
+    if (elements.school_specific_summary) {
+      elements.school_specific_summary.classList.add('hidden');
+    }
   }
 }
 

@@ -145,6 +145,45 @@
               </div>
             </div>
 
+            <!-- School Filters Row -->
+            <div class="filter-row-schools">
+              <div class="filter-item">
+                <label for="filter-school-input">School:</label>
+                <div class="searchable-dropdown-container">
+                  <input type="text" id="filter-school-input" placeholder="Search schools..." title="Search and select school" autocomplete="off" />
+                  <div class="searchable-dropdown-list hidden" id="filter-school-list">
+                    <div class="dropdown-option" data-value="">All Schools</div>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <button type="button" id="clear-filters-btn" class="clear-filters-button" title="Reset all filters to defaults">
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+
+            <!-- School-Specific Summary (hidden by default) -->
+            <div class="school-specific-summary hidden" id="school-specific-summary">
+              <div class="summary-header">
+                <h4 id="school-summary-title">School Recruiting Summary</h4>
+              </div>
+              <div class="school-summary-stats">
+                <div class="summary-item" title="Recruits who have signed with this school">
+                  <span class="summary-label">Signed</span>
+                  <span id="school-summary-signed" class="summary-value">0</span>
+                </div>
+                <div class="summary-item" title="Unsigned recruits considering only this school">
+                  <span class="summary-label">Green</span>
+                  <span id="school-summary-green" class="summary-value">0</span>
+                </div>
+                <div class="summary-item" title="Unsigned recruits considering this school among others">
+                  <span class="summary-label">Yellow</span>
+                  <span id="school-summary-yellow" class="summary-value">0</span>
+                </div>
+              </div>
+            </div>
+
             <!-- Collapsible Attribute Filters Section -->
             <div class="attribute-filters-section">
               <div class="attribute-filters-header">

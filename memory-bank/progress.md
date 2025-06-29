@@ -695,4 +695,46 @@ The extension is fully production-ready with comprehensive multi-team support an
   - **Professional Presentation**: Clean, organized display of key recruiting metrics
 - **Status**: Enhanced Dashboard recruit breakdown successfully implemented with initialization fix. Users now see comprehensive recruiting statistics immediately upon opening the extension, providing valuable insights into their recruiting pipeline performance.
 
+### 2025-06-29 - School Filtering System Overhaul ✅
+- **Status**: COMPLETED  
+- **Major Feature Enhancement**: Complete redesign of school filtering system for improved usability and functionality
+- **Implementation Summary**:
+  - **Searchable School Dropdown**: Replaced traditional HTML select dropdown with custom searchable input field
+  - **Active School Prioritization**: Current user's school appears first in dropdown list with special highlighting
+  - **Redundant Filter Removal**: Eliminated duplicate "Considering Schools" text filter to prevent confusion
+  - **Clear Filters Button**: Added dedicated button to reset all main filters to default values
+  - **Enhanced User Experience**: Single, unified school filtering interface with improved search capabilities
+- **Technical Implementation**:
+  - **HTML Structure**: Replaced `<select>` with searchable dropdown container using input field and custom option list
+  - **CSS Styling**: Added comprehensive styling for searchable dropdown with hover, focus, and keyboard navigation states
+  - **JavaScript Logic**: Implemented event handlers for search filtering, keyboard navigation (arrows, enter, escape), and click selection
+  - **Active School Detection**: Enhanced school detection with fallback to DOM element when team info unavailable
+  - **Filter Cleanup**: Removed TEXT_SEARCH_COLUMNS configuration and all related text search filter logic
+- **Key Features Delivered**:
+  - **Searchable Interface**: Users can type to filter school options in real-time
+  - **Keyboard Navigation**: Full arrow key navigation with Enter to select and Escape to close
+  - **Active School First**: Current school appears first with green highlighting and bold text
+  - **Visual Feedback**: Hover effects, selection highlighting, and clear visual hierarchy
+  - **Clear Filters**: Dedicated button resets Position, Potential, Priority, Division, Distance, School, Watched Only, Hide Signed, Undecided Only
+- **Files Modified**:
+  - `popup/popup.html` - Replaced school select with searchable dropdown structure and added clear filters button
+  - `popup/popup.css` - Added comprehensive searchable dropdown styling and clear button styling (+70 lines)
+  - `popup/popup.js` - Removed TEXT_SEARCH_COLUMNS system, enhanced school filtering logic, added searchable dropdown functionality (+120 lines)
+- **Dropdown Display Order**:
+  1. **All Schools** (default option)
+  2. **[Current School]** (highlighted in green with bold text and special background)
+  3. **──────────** (visual separator)
+  4. **Other schools alphabetically** (with recruit counts)
+- **User Experience Benefits**:
+  - **Simplified Interface**: Single school filter eliminates confusion between multiple school filters
+  - **Improved Efficiency**: Type-to-search functionality speeds up school selection
+  - **Clear Hierarchy**: Active school prioritization helps users understand their context
+  - **Quick Reset**: Clear filters button provides easy way to start fresh
+  - **Professional Look**: Polished dropdown interface with football-themed styling
+- **Bug Fixes**:
+  - **Active School Detection**: Fixed issue where current school wasn't prioritized due to null teamInfo
+  - **DOM Fallback**: Added fallback to read school name from DOM when multi-team context unavailable
+  - **Filter State Management**: Proper state management for searchable dropdown selection
+- **Status**: School filtering system overhaul successfully completed. Users now have a streamlined, efficient school filtering experience with active school prioritization and enhanced search capabilities, eliminating previous confusion from multiple competing filters.
+
 The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams. Version 0.5.5 development enhances dashboard analytics while maintaining core functionality and performance.

@@ -2699,7 +2699,7 @@ function setupModalListeners() {
 // Handle export data functionality
 async function handleExportData() {
   try {
-    setStatusMessage('Preparing data export...', 'info');
+    setStatusMessage('Preparing CSV export...', 'info');
     
     // Get all data from background script
     const response = await popupComms.sendMessageToBackground({
@@ -2710,32 +2710,29 @@ async function handleExportData() {
       throw new Error(response.error);
     }
     
-    // Create export data structure
-    const exportData = {
-      exportDate: new Date().toISOString(),
-      version: await getFullVersionString(),
-      recruits: response.recruits || [],
-      settings: {
-        roleRatings: response.roleRatings || {},
-        boldAttributes: response.boldAttributes || {},
-        columnVisibility: state.column_visibility,
-        pageSize: state.items_per_page
-      },
-      metadata: {
-        totalRecruits: response.recruits ? response.recruits.length : 0,
-        currentSeason: response.currentSeason || null
-      }
-    };
+    if (!response.success) {
+      throw new Error('Export failed: ' + (response.error || 'Unknown error'));
+    }
     
-    // Create and download file
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json'
+    const recruits = response.data?.recruits || [];
+    
+    if (recruits.length === 0) {
+      setStatusMessage('No recruit data to export', 'warning');
+      return;
+    }
+    
+    // Generate CSV content
+    const csvContent = generateCSV(recruits);
+    
+    // Create and download CSV file
+    const blob = new Blob([csvContent], {
+      type: 'text/csv;charset=utf-8;'
     });
     
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `gd-recruit-data-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `gd-recruit-export-${new Date().toISOString().split('T')[0]}.csv`;
     
     // Trigger download
     document.body.appendChild(link);
@@ -2743,11 +2740,53 @@ async function handleExportData() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    setStatusMessage('Data exported successfully', 'success');
+    setStatusMessage(`Successfully exported ${recruits.length} recruits to CSV`, 'success');
     
   } catch (error) {
-    handleError(error, 'data export');
+    handleError(error, 'CSV export');
   }
+}
+
+// Generate CSV content from recruit data
+function generateCSV(recruits) {
+  if (!recruits || recruits.length === 0) {
+    return 'No data available';
+  }
+  
+  // Define CSV headers based on COLUMNS configuration
+  const headers = COLUMNS.map(col => col.label);
+  
+  // Convert data to CSV rows
+  const csvRows = [];
+  
+  // Add header row
+  csvRows.push(headers.join(','));
+  
+  // Add data rows
+  recruits.forEach(recruit => {
+    const row = COLUMNS.map(col => {
+      const value = recruit[col.key];
+      
+      // Handle different data types and ensure CSV safety
+      if (value === null || value === undefined) {
+        return '';
+      }
+      
+      // Convert value to string and escape CSV special characters
+      let cellValue = String(value);
+      
+      // If the value contains comma, newline, or quotes, wrap in quotes and escape quotes
+      if (cellValue.includes(',') || cellValue.includes('\n') || cellValue.includes('"')) {
+        cellValue = '"' + cellValue.replace(/"/g, '""') + '"';
+      }
+      
+      return cellValue;
+    });
+    
+    csvRows.push(row.join(','));
+  });
+  
+  return csvRows.join('\n');
 }
 
 // Handle import data functionality

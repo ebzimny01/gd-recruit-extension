@@ -181,7 +181,7 @@ body {
 }
 
 .stat-value {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--primary-color);
 }
@@ -522,6 +522,9 @@ body {
   border-radius: var(--border-radius-md);
   padding: var(--spacing-sm);
   margin-bottom: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* Align children to the right */
 }
 
 .school-specific-summary.hidden {

@@ -58,15 +58,15 @@
             </div>
             <div class="stat-card">
               <h3>Season</h3>
-              <p id="current-season">N/A</p>
+              <p id="current-season" class="stat-value">N/A</p>
             </div>
             <div class="stat-card">
               <h3>Last Updated</h3>
-              <p id="last-updated">Never</p>
+              <p id="last-updated" class="stat-value">Never</p>
             </div>
             <div class="stat-card">
               <h3>Watchlist</h3>
-              <p id="watchlist-count">0</p>
+              <p id="watchlist-count" class="stat-value">0</p>
             </div>
             <div class="stat-card recruitment-card">
               <h3>Recruitment Status</h3>
@@ -121,6 +121,20 @@
                 <label for="filter-distance">Distance:</label>
                 <select id="filter-distance" title="Filter by distance"></select>
               </div>
+              <div class="filter-item">
+                <label for="filter-school-input">Considering School:</label>
+                <div class="searchable-dropdown-container">
+                  <input type="text" id="filter-school-input" placeholder="Search considering schools..." title="Search and select school" autocomplete="off" />
+                  <div class="searchable-dropdown-list hidden" id="filter-school-list">
+                    <div class="dropdown-option" data-value="">All Schools</div>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <button type="button" id="clear-filters-btn" class="clear-filters-button" title="Reset all filters to defaults">
+                  Clear Filters
+                </button>
+              </div>
             </div>
 
             <!-- Checkbox Filters Row -->
@@ -147,20 +161,7 @@
 
             <!-- School Filters Row -->
             <div class="filter-row-schools">
-              <div class="filter-item">
-                <label for="filter-school-input">School:</label>
-                <div class="searchable-dropdown-container">
-                  <input type="text" id="filter-school-input" placeholder="Search schools..." title="Search and select school" autocomplete="off" />
-                  <div class="searchable-dropdown-list hidden" id="filter-school-list">
-                    <div class="dropdown-option" data-value="">All Schools</div>
-                  </div>
-                </div>
-              </div>
-              <div class="filter-item">
-                <button type="button" id="clear-filters-btn" class="clear-filters-button" title="Reset all filters to defaults">
-                  Clear Filters
-                </button>
-              </div>
+              
             </div>
 
             <!-- School-Specific Summary (hidden by default) -->

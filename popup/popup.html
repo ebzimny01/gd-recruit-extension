@@ -35,29 +35,60 @@
               <h3>World</h3>
               <p id="team-world" class="stat-value">-</p>
             </div>
-            <div class="stat-card">
+            <div class="stat-card recruit-breakdown-card">
               <h3>Recruits</h3>
-              <p id="recruit-count">0</p>
-            </div>
-            <div class="stat-card">
-              <h3>Watchlist</h3>
-              <p id="watchlist-count">0</p>
+              <div class="recruit-breakdown">
+                <div class="recruit-stat-item">
+                  <span class="recruit-stat-label">Total</span>
+                  <span id="recruit-count" class="recruit-stat-value">0</span>
+                </div>
+                <div class="recruit-stat-item">
+                  <span class="recruit-stat-label">Unsigned</span>
+                  <span id="recruit-unsigned-count" class="recruit-stat-value">0</span>
+                </div>
+                <div class="recruit-stat-item">
+                  <span class="recruit-stat-label">Signed</span>
+                  <span id="recruit-signed-count" class="recruit-stat-value">0</span>
+                </div>
+                <div class="recruit-stat-item recruit-percentage">
+                  <span class="recruit-stat-label">Signed %</span>
+                  <span id="recruit-signed-percentage" class="recruit-stat-value">0%</span>
+                </div>
+              </div>
             </div>
             <div class="stat-card">
               <h3>Season</h3>
-              <p id="current-season">N/A</p>
+              <p id="current-season" class="stat-value">N/A</p>
             </div>
             <div class="stat-card">
               <h3>Last Updated</h3>
-              <p id="last-updated">Never</p>
+              <p id="last-updated" class="stat-value">Never</p>
+            </div>
+            <div class="stat-card">
+              <h3>Watchlist</h3>
+              <p id="watchlist-count" class="stat-value">0</p>
+            </div>
+            <div class="stat-card recruitment-card">
+              <h3>Recruitment Status</h3>
+              <div class="dashboard-recruitment-summary">
+                <div class="dashboard-summary-item" title="Recruits who have signed with your school">
+                  <span class="dashboard-summary-label">Signed</span>
+                  <span id="dashboard-summary-signed" class="dashboard-summary-value">0</span>
+                </div>
+                <div class="dashboard-summary-item" title="Unsigned recruits considering only your school">
+                  <span class="dashboard-summary-label">Green</span>
+                  <span id="dashboard-summary-green" class="dashboard-summary-value">0</span>
+                </div>
+                <div class="dashboard-summary-item" title="Unsigned recruits considering your school among others">
+                  <span class="dashboard-summary-label">Yellow</span>
+                  <span id="dashboard-summary-yellow" class="dashboard-summary-value">0</span>
+                </div>
+              </div>
             </div>
           </div>
           <div class="action-buttons">
             <button id="btn-scrape-recruits" class="action-btn">
               Initialize Season
-            </button>
-            <button id="btn-update-considering" class="action-btn">
-              Refresh Recruit Data
             </button>
           </div>
           <div class="status-box">
@@ -90,6 +121,20 @@
                 <label for="filter-distance">Distance:</label>
                 <select id="filter-distance" title="Filter by distance"></select>
               </div>
+              <div class="filter-item">
+                <label for="filter-school-input">Considering School:</label>
+                <div class="searchable-dropdown-container">
+                  <input type="text" id="filter-school-input" placeholder="Search considering schools..." title="Search and select school" autocomplete="off" />
+                  <div class="searchable-dropdown-list hidden" id="filter-school-list">
+                    <div class="dropdown-option" data-value="">All Schools</div>
+                  </div>
+                </div>
+              </div>
+              <div class="filter-item">
+                <button type="button" id="clear-filters-btn" class="clear-filters-button" title="Reset all filters to defaults">
+                  Clear Filters
+                </button>
+              </div>
             </div>
 
             <!-- Checkbox Filters Row -->
@@ -114,6 +159,32 @@
               </div>
             </div>
 
+            <!-- School Filters Row -->
+            <div class="filter-row-schools">
+              
+            </div>
+
+            <!-- School-Specific Summary (hidden by default) -->
+            <div class="school-specific-summary hidden" id="school-specific-summary">
+              <div class="summary-header">
+                <h4 id="school-summary-title">School Recruiting Summary</h4>
+              </div>
+              <div class="school-summary-stats">
+                <div class="summary-item" title="Recruits who have signed with this school">
+                  <span class="summary-label">Signed</span>
+                  <span id="school-summary-signed" class="summary-value">0</span>
+                </div>
+                <div class="summary-item" title="Unsigned recruits considering only this school">
+                  <span class="summary-label">Green</span>
+                  <span id="school-summary-green" class="summary-value">0</span>
+                </div>
+                <div class="summary-item" title="Unsigned recruits considering this school among others">
+                  <span class="summary-label">Yellow</span>
+                  <span id="school-summary-yellow" class="summary-value">0</span>
+                </div>
+              </div>
+            </div>
+
             <!-- Collapsible Attribute Filters Section -->
             <div class="attribute-filters-section">
               <div class="attribute-filters-header">
@@ -130,7 +201,6 @@
               </div>
             </div>
           </div>
-          
           <div class="pagination-controls">
             <div class="page-size-control">
               <label for="page-size-select">Results per page</label>
@@ -144,8 +214,30 @@
                 <option value="100">100</option>
               </select>
             </div>
+            <div class="refresh-button-control">
+              <button id="btn-update-considering" class="action-btn" title="Refresh current recruit data from the recruiting page">
+                Refresh Data
+              </button>
+            </div>
+            <div class="recruitment-summary">
+              <div class="summary-item" title="Recruits who have signed with your school">
+                <span class="summary-label">Signed</span>
+                <span id="summary-signed" class="summary-value">0</span>
+              </div>
+              <div class="summary-item" title="Unsigned recruits considering only your school">
+                <span class="summary-label">Green</span>
+                <span id="summary-green" class="summary-value">0</span>
+              </div>
+              <div class="summary-item" title="Unsigned recruits considering your school among others">
+                <span class="summary-label">Yellow</span>
+                <span id="summary-yellow" class="summary-value">0</span>
+              </div>
+            </div>
             <div class="table-controls">
-              <button id="btn-column-visibility" class="setting-btn">
+              <button id="btn-reset-column-order" class="action-btn">
+                Reset Column Order
+              </button>
+              <button id="btn-column-visibility" class="action-btn">
                 Show/Hide Columns
               </button>
             </div>
@@ -222,9 +314,8 @@
               <button 
                 id="btn-export-data"
                 class="setting-btn"
-                disabled
-                title="Export functionality not yet implemented"
-                hidden>
+                title="Export all recruit data to CSV file"
+                >
                 Export Data
               </button>
               <button
@@ -280,16 +371,6 @@
               </button>
               <button id="btn-reset-bold-attributes" class="setting-btn">
                 Reset to Defaults
-              </button>
-            </div>
-          </div>
-
-          <div class="settings-group">
-            <h3>Table Configuration</h3>
-            <p>Column visibility can be configured in the Recruits tab. Column order can be changed by dragging table headers directly.</p>
-            <div class="setting-row">
-              <button id="btn-reset-column-order" class="setting-btn">
-                Reset Column Order
               </button>
             </div>
           </div>

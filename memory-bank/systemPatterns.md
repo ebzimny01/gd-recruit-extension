@@ -26,8 +26,8 @@ Browser Extension (Manifest V3)
 #### 1. Popup Interface (Primary UI)
 **Location**: `popup/`
 - **popup.html**: Main UI structure with tabbed interface
-- **popup.css**: Responsive styling with accessibility features
-- **popup.js**: Core application logic and state management
+- **popup.css**: Responsive styling with accessibility features and custom table cell styling
+- **popup.js**: Core application logic, state management, and advanced column styling functions
 - **communications.js**: Background script communication layer
 - **error-handler.js**: Centralized error handling and user feedback
 
@@ -196,6 +196,184 @@ const ratingStrategies = {
 
 const rating = ratingStrategies[position](recruitAttributes);
 ```
+
+### 8. Custom Table Cell Styling Pattern (v0.5.0)
+**Implementation**: Dynamic column styling in `popup/popup.js`
+```javascript
+// Potential column with classes function
+{
+    data: 'potential',
+    title: 'Potential',
+    classes: function(cellData, type, rowData) {
+        const potentialClasses = {
+            '4': 'potential-vh',    // Very High - Green
+            '3': 'potential-h',     // High - Blue  
+            '2': 'potential-a',     // Average - Black
+            '1': 'potential-l',     // Low - Orange
+            '0': 'potential-vl'     // Very Low - Red
+        };
+        return potentialClasses[cellData] || '';
+    }
+}
+
+// Miles column with customStyle function
+{
+    data: 'miles',
+    title: 'Miles',
+    customStyle: function(cellData, type, rowData) {
+        if (type === 'display' && cellData !== null && cellData !== undefined) {
+            const miles = parseFloat(cellData);
+            if (!isNaN(miles)) {
+                const bgColor = calculateMilesBackgroundColor(miles);
+                const textColor = getContrastTextColor(bgColor);
+                return `<span style="background-color: ${bgColor}; color: ${textColor}; padding: 2px 4px; border-radius: 3px;">${cellData}</span>`;
+            }
+        }
+        return cellData;
+    }
+}
+```
+
+### 9. Shared Component Update Pattern (v0.5.1)
+**Implementation**: Multi-location component updates with shared data calculation in `popup/popup.js`
+```javascript
+// Shared data calculation function
+function updateRecruitmentSummary() {
+  try {
+    let signed_count = 0;
+    let green_count = 0;
+    let yellow_count = 0;
+
+    const currentTeamId = state.currentTeamId;
+    
+    // Data calculation logic to determine counts
+    state.filtered_recruits.forEach(recruit => {
+      // ... calculation logic ...
+    });
+
+    // Single function updates multiple UI locations
+    updateSummaryDisplay(signed_count, green_count, yellow_count);
+  } catch (error) {
+    console.error('Error in updateRecruitmentSummary:', error);
+    updateSummaryDisplay(0, 0, 0);
+  }
+}
+
+// Single function to update multiple UI components
+function updateSummaryDisplay(signedCount, greenCount, yellowCount) {
+  // Update recruits tab summary
+  if (elements.summary_signed) {
+    elements.summary_signed.textContent = signed.toString();
+    // ...more update code...
+  }
+  
+  // Update dashboard summary with the same data
+  if (elements.dashboard_summary_signed) {
+    elements.dashboard_summary_signed.textContent = signed.toString();
+    // ...more update code...
+  }
+}
+```
+
+### 10. Logical UI Element Placement Pattern (v0.5.2)
+**Implementation**: Strategic component placement based on functional relationship in `popup/popup.html`
+```html
+<!-- Pagination controls with integrated refresh button -->
+<div class="pagination-controls">
+  <div class="page-size-control">
+    <label for="page-size-select">Results per page</label>
+    <select id="page-size-select">
+      <!-- ... options ... -->
+    </select>
+  </div>
+  <div class="refresh-button-control">
+    <button id="btn-update-considering" class="action-btn compact-btn" 
+      title="Refresh current recruit data from the recruiting page">
+      Refresh Data
+    </button>
+  </div>
+  <div class="recruitment-summary">
+    <!-- ... summary items ... -->
+  </div>
+</div>
+```
+
+**Benefits**:
+- UI controls positioned based on logical relationship to affected data
+- Improved user workflow through intuitive component placement
+- Better screen space utilization by integrating related controls
+- Preserves functionality while enhancing usability
+- Maintains consistent UI design language and accessibility
+
+### 11. SIM AI Coaching Detection Pattern (v0.5.4)
+**Implementation**: Strategic recruiting opportunity identification through coach analysis in `popup/popup.js`
+```javascript
+// Check if all schools in considering list have "SIM AI" as coach
+function checkAllSchoolsHaveSimAI(considering) {
+  if (!considering || considering === 'undecided') {
+    return false;
+  }
+  
+  // Split by semicolon to get individual school entries
+  const schoolEntries = considering.split(';').map(entry => entry.trim()).filter(entry => entry.length > 0);
+  
+  // Check each school entry for "SIM AI" as coach
+  for (const entry of schoolEntries) {
+    // Find the last occurrence of a pattern like "XX | XX" (rankings)
+    const rankingsMatch = entry.match(/, (\d+) \| (\d+)$/);
+    if (!rankingsMatch) {
+      return false;
+    }
+    
+    // Remove the rankings part and parse from end
+    const withoutRankings = entry.substring(0, entry.lastIndexOf(rankingsMatch[0]));
+    const parts = withoutRankings.split(',').map(part => part.trim());
+    
+    // The coach name should be the last part (after removing rankings)
+    const coachName = parts[parts.length - 1];
+    if (coachName !== 'SIM AI') {
+      return false;
+    }
+  }
+  
+  return true; // All schools have SIM AI as coach
+}
+
+// Applied in both Name and Considering Schools columns
+classes: (() => {
+  const baseClasses = [];
+  
+  // Check for SIM AI coaching styling (recruit not signed and all schools have SIM AI)
+  if (recruit.considering && (recruit.signed !== 'Y' && recruit.signed !== 'Yes' && recruit.signed !== 1)) {
+    const allSchoolsHaveSimAI = checkAllSchoolsHaveSimAI(recruit.considering);
+    if (allSchoolsHaveSimAI) {
+      baseClasses.push('sim-ai-schools');
+    }
+  }
+  
+  return baseClasses;
+})()
+```
+
+**CSS Styling**:
+```css
+/* SIM AI schools formatting - for recruits not signed with all schools having SIM AI coaches */
+td.sim-ai-schools {
+  background-color: #e7f3ff;
+  color: #004085;
+  font-weight: 600;
+  border: 1px solid #b8daff;
+  font-style: italic;
+}
+```
+
+**Benefits**:
+- Strategic recruiting opportunity identification
+- Immediate visual feedback for computer-controlled competition scenarios
+- Robust parsing handles school names with commas (e.g., "University of Maine, Orono")
+- Enhanced competitive analysis for recruiting strategy
+- Professional, accessible styling for clear visual differentiation
+- Applied consistently to both Name and Considering Schools columns
 
 ## Data Flow Architecture
 

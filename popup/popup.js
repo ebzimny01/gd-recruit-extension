@@ -95,10 +95,6 @@ const ATTRIBUTE_COLUMNS = [
   { key: 'r6', label: 'R6', type: 'decimal', min: 0, max: 100, step: 0.1 }
 ];
 
-// Text search filter configuration - separate from numeric attribute filters
-const TEXT_SEARCH_COLUMNS = [
-  { key: 'considering_schools', label: 'Considering Schools', type: 'text', placeholder: 'Search...' }
-];
 
 // Column configuration for recruit table
 const COLUMNS = [
@@ -163,6 +159,9 @@ const elements = {
   team_division: document.getElementById('team-division'),
   team_world: document.getElementById('team-world'),
   recruit_count: document.getElementById('recruit-count'),
+  recruit_unsigned_count: document.getElementById('recruit-unsigned-count'),
+  recruit_signed_count: document.getElementById('recruit-signed-count'),
+  recruit_signed_percentage: document.getElementById('recruit-signed-percentage'),
   watchlist_count: document.getElementById('watchlist-count'),
   last_updated: document.getElementById('last-updated'),
   current_season: document.getElementById('current-season'),
@@ -177,7 +176,10 @@ const elements = {
   filter_division: document.getElementById('filter-division'),
   filter_priority: document.getElementById('filter-priority'),
   filter_distance: document.getElementById('filter-distance'),
+  filter_school_input: document.getElementById('filter-school-input'),
+  filter_school_list: document.getElementById('filter-school-list'),
   filter_hide_signed: document.getElementById('filter-hide-signed'),
+  clear_filters_btn: document.getElementById('clear-filters-btn'),
   recruits_list: document.getElementById('recruits-list'),
   
   // Dual pagination elements
@@ -187,8 +189,22 @@ const elements = {
   prev_page_btn_top: document.getElementById('prev-page-top'),
   next_page_btn_top: document.getElementById('next-page-top'),
   page_info_top: document.getElementById('page-info-top'),
-  
-  page_size_select: document.getElementById('page-size-select'),
+    page_size_select: document.getElementById('page-size-select'),
+
+  // Recruitment summary elements
+  summary_signed: document.getElementById('summary-signed'),
+  summary_green: document.getElementById('summary-green'),
+  summary_yellow: document.getElementById('summary-yellow'),
+  dashboard_summary_signed: document.getElementById('dashboard-summary-signed'),
+  dashboard_summary_green: document.getElementById('dashboard-summary-green'),
+  dashboard_summary_yellow: document.getElementById('dashboard-summary-yellow'),
+
+  // School-specific summary elements
+  school_specific_summary: document.getElementById('school-specific-summary'),
+  school_summary_title: document.getElementById('school-summary-title'),
+  school_summary_signed: document.getElementById('school-summary-signed'),
+  school_summary_green: document.getElementById('school-summary-green'),
+  school_summary_yellow: document.getElementById('school-summary-yellow'),
 
   // Column visibility elements
   btn_column_visibility: document.getElementById('btn-column-visibility'),
@@ -285,6 +301,7 @@ let state = {
     division: '',
     priority: '',
     distance: '',
+    school: '',
     hide_signed: false,
     undecided: false,
     attribute_filters: {
@@ -292,9 +309,6 @@ let state = {
       ath: '', spd: '', dur: '', we: '', sta: '', str: '',
       blk: '', tkl: '', han: '', gi: '', elu: '', tec: '',
       r1: '', r2: '', r3: '', r4: '', r5: '', r6: ''
-    },
-    text_search_filters: {
-      considering_schools: ''
     }
   },
   
@@ -357,8 +371,11 @@ let state = {
     considering: true
   },
   
+  // School dropdown data
+  schoolsData: null,
+  
   // Column order state - stores custom column ordering
-  column_order: null, // Will be initialized with default order or loaded from storage
+  column_order: COLUMNS.map(col => col.key), // Initialize with default order instead of null
     // Popup specific state
   is_popup_focused: true,
   last_data_refresh: null,
@@ -1178,6 +1195,7 @@ function clearAllFilters() {
     division: '',
     priority: '',
     distance: '',
+    school: '',
     hide_signed: false,
     undecided: false,
     attribute_filters: {
@@ -1185,9 +1203,6 @@ function clearAllFilters() {
       ath: '', spd: '', dur: '', we: '', sta: '', str: '',
       blk: '', tkl: '', han: '', gi: '', elu: '', tec: '',
       r1: '', r2: '', r3: '', r4: '', r5: '', r6: ''
-    },
-    text_search_filters: {
-      considering_schools: ''
     }
   };
   
@@ -1198,6 +1213,7 @@ function clearAllFilters() {
   if (elements.filter_division) elements.filter_division.value = '';
   if (elements.filter_priority) elements.filter_priority.value = '';
   if (elements.filter_distance) elements.filter_distance.value = '';
+  if (elements.filter_school_input) elements.filter_school_input.value = '';
   if (elements.filter_hide_signed) elements.filter_hide_signed.checked = false;
   if (elements.filter_undecided) elements.filter_undecided.checked = false;
   
@@ -1210,19 +1226,50 @@ function clearAllFilters() {
     }
   });
   
-  // Clear text search filter inputs
-  TEXT_SEARCH_COLUMNS.forEach(column => {
-    const input = document.getElementById(`filter-${column.key}`);
-    if (input) {
-      input.value = '';
-      input.classList.remove('filter-active');
-    }
-  });
   
   // Update filter summary
   updateFilterSummary();
+  updateSchoolSpecificSummary();
   
   console.log('✅ All filters cleared successfully');
+}
+
+// Clear main filters specifically requested by user (Position, Potential, Priority, Division, Distance, School, Watched Only, Hide Signed, Undecided Only)
+function clearAllMainFilters() {
+  console.log('🧹 Clearing main filters');
+  
+  // Reset specific main filter state
+  state.filters.position = '';
+  state.filters.potential = '';
+  state.filters.priority = '';
+  state.filters.division = '';
+  state.filters.distance = '';
+  state.filters.school = '';
+  state.filters.watched = '';
+  state.filters.hide_signed = false;
+  state.filters.undecided = false;
+  
+  // Reset UI elements to match cleared filters
+  if (elements.filter_position) elements.filter_position.value = '';
+  if (elements.filter_potential) elements.filter_potential.value = '';
+  if (elements.filter_priority) elements.filter_priority.value = '';
+  if (elements.filter_division) elements.filter_division.value = '';
+  if (elements.filter_distance) elements.filter_distance.value = '';
+  if (elements.filter_school_input) elements.filter_school_input.value = '';
+  if (elements.filter_watched) elements.filter_watched.checked = false;
+  if (elements.filter_hide_signed) elements.filter_hide_signed.checked = false;
+  if (elements.filter_undecided) elements.filter_undecided.checked = false;
+  
+  // Close school dropdown if open
+  if (elements.filter_school_list) {
+    elements.filter_school_list.classList.add('hidden');
+  }
+  
+  // Update summary and apply filters
+  updateSchoolSpecificSummary();
+  applyFilters();
+  
+  console.log('✅ Main filters cleared successfully');
 }
 
 // Check for team changes when popup gains focus
@@ -1724,9 +1771,42 @@ async function updateDashboardDisplay(stats) {
   
   // Update recruit counts - use stats data first, then fall back to state
   if (elements.recruit_count) {
-    const recruitCount = stats.recruitCount || state.recruits.length || 0;
-    elements.recruit_count.textContent = recruitCount;
-    console.log('Updated dashboard recruit count:', recruitCount, 'from stats:', stats.recruitCount, 'from state:', state.recruits.length);
+    const totalCount = stats.recruitCount || state.recruits.length || 0;
+    let signedCount = 0;
+    let unsignedCount = 0;
+    
+    // Calculate signed/unsigned counts from actual recruit data
+    if (state.recruits && Array.isArray(state.recruits)) {
+      state.recruits.forEach(recruit => {
+        if (recruit && (recruit.signed === 1 || recruit.signed === 'Y' || recruit.signed === 'Yes')) {
+          signedCount++;
+        } else {
+          unsignedCount++;
+        }
+      });
+    }
+    
+    // Calculate percentage
+    const signedPercentage = totalCount > 0 ? Math.round((signedCount / totalCount) * 100) : 0;
+    
+    // Update all recruit count displays
+    elements.recruit_count.textContent = totalCount;
+    if (elements.recruit_signed_count) {
+      elements.recruit_signed_count.textContent = signedCount;
+    }
+    if (elements.recruit_unsigned_count) {
+      elements.recruit_unsigned_count.textContent = unsignedCount;
+    }
+    if (elements.recruit_signed_percentage) {
+      elements.recruit_signed_percentage.textContent = `${signedPercentage}%`;
+    }
+    
+    console.log('Updated dashboard recruit counts:', {
+      total: totalCount,
+      signed: signedCount,
+      unsigned: unsignedCount,
+      percentage: signedPercentage
+    });
   }
   
   if (elements.watchlist_count) {
@@ -1747,9 +1827,13 @@ async function updateDashboardDisplay(stats) {
       elements.current_season.textContent = 'N/A';
     }
   }
-  
-  // Update button states based on season initialization status
+    // Update button states based on season initialization status
   updateDashboardButtonStates(stats);
+  
+  // Update recruitment summary if data is available
+  if (state.filtered_recruits && state.filtered_recruits.length > 0) {
+    updateRecruitmentSummary();
+  }
 }
 
 // Update school name displays with proper fallbacks
@@ -2016,6 +2100,64 @@ function checkCurrentSchoolInConsidering(considering, currentTeamId) {
   }
 }
 
+// Check if all schools in considering list have "SIM AI" as coach
+function checkAllSchoolsHaveSimAI(considering) {
+  if (!considering || considering === 'undecided') {
+    return false;
+  }
+  
+  // Split by semicolon to get individual school entries
+  const schoolEntries = considering.split(';').map(entry => entry.trim()).filter(entry => entry.length > 0);
+  
+  if (schoolEntries.length === 0) {
+    return false;
+  }
+  
+  console.log('🔍 DEBUG: Checking SIM AI for considering:', considering);
+  console.log('🔍 DEBUG: School entries:', schoolEntries);
+  
+  // Check each school entry for "SIM AI" as coach
+  for (const entry of schoolEntries) {
+    // Pattern: School Name (ID), miles, COACH_NAME, rankings
+    // Note: School names can contain commas, so we need to parse from the end
+    // Examples: 
+    // "Indiana State University (53517), 1011 miles, SIM AI, 15 | 15"
+    // "University of Maine, Orono (53286), 1239 miles, SIM AI, 18 | 18"
+    
+    // Find the last occurrence of a pattern like "XX | XX" (rankings)
+    const rankingsMatch = entry.match(/, (\d+) \| (\d+)$/);
+    if (!rankingsMatch) {
+      console.log('🔍 DEBUG: No rankings pattern found in entry:', entry);
+      return false;
+    }
+    
+    // Remove the rankings part to get the rest
+    const withoutRankings = entry.substring(0, entry.lastIndexOf(rankingsMatch[0]));
+    
+    // Now split by comma and take the last part as coach name
+    const parts = withoutRankings.split(',').map(part => part.trim());
+    console.log('🔍 DEBUG: Entry parts (without rankings):', parts);
+    
+    if (parts.length < 3) {
+      // Should have at least: school name with (ID), miles, coach
+      console.log('🔍 DEBUG: Not enough parts in entry:', entry);
+      return false;
+    }
+    
+    // The coach name should be the last part (after removing rankings)
+    const coachName = parts[parts.length - 1];
+    console.log('🔍 DEBUG: Coach name found:', coachName);
+    if (coachName !== 'SIM AI') {
+      console.log('🔍 DEBUG: Coach is not SIM AI:', coachName);
+      return false;
+    }
+  }
+  
+  // All schools have SIM AI as coach
+  console.log('🔍 DEBUG: All schools have SIM AI as coach!');
+  return true;
+}
+
 /**
  * Determine the signed status of a recruit relative to the current school
  * 
@@ -2096,6 +2238,113 @@ function setupFilterListeners() {
       applyFilters();
     });
   }
+
+  // Searchable school filter
+  if (elements.filter_school_input) {
+    let dropdownVisible = false;
+    let highlightedIndex = -1;
+    
+    // Input event for search filtering
+    elements.filter_school_input.addEventListener('input', (event) => {
+      const searchTerm = event.target.value;
+      populateSchoolDropdownOptions(searchTerm);
+      showDropdown();
+      highlightedIndex = -1;
+    });
+    
+    // Focus event to show dropdown
+    elements.filter_school_input.addEventListener('focus', () => {
+      populateSchoolDropdownOptions(elements.filter_school_input.value);
+      showDropdown();
+    });
+    
+    // Keyboard navigation
+    elements.filter_school_input.addEventListener('keydown', (event) => {
+      if (!dropdownVisible) return;
+      
+      const options = elements.filter_school_list.querySelectorAll('.dropdown-option:not(.separator)');
+      
+      switch (event.key) {
+        case 'ArrowDown':
+          event.preventDefault();
+          highlightedIndex = Math.min(highlightedIndex + 1, options.length - 1);
+          updateHighlight(options);
+          break;
+        case 'ArrowUp':
+          event.preventDefault();
+          highlightedIndex = Math.max(highlightedIndex - 1, -1);
+          updateHighlight(options);
+          break;
+        case 'Enter':
+          event.preventDefault();
+          if (highlightedIndex >= 0 && options[highlightedIndex]) {
+            selectOption(options[highlightedIndex]);
+          }
+          break;
+        case 'Escape':
+          hideDropdown();
+          break;
+      }
+    });
+    
+    // Click outside to close dropdown
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.searchable-dropdown-container')) {
+        hideDropdown();
+      }
+    });
+    
+    function showDropdown() {
+      if (elements.filter_school_list) {
+        elements.filter_school_list.classList.remove('hidden');
+        dropdownVisible = true;
+      }
+    }
+    
+    function hideDropdown() {
+      if (elements.filter_school_list) {
+        elements.filter_school_list.classList.add('hidden');
+        dropdownVisible = false;
+        highlightedIndex = -1;
+      }
+    }
+    
+    function updateHighlight(options) {
+      options.forEach((option, index) => {
+        option.classList.toggle('highlighted', index === highlightedIndex);
+      });
+    }
+    
+    function selectOption(option) {
+      const value = option.dataset.value;
+      const text = option.textContent;
+      
+      elements.filter_school_input.value = text;
+      state.filters.school = value;
+      updateSchoolSpecificSummary();
+      applyFilters();
+      hideDropdown();
+    }
+  }
+  
+  // School dropdown option clicks
+  if (elements.filter_school_list) {
+    elements.filter_school_list.addEventListener('click', (event) => {
+      if (event.target.classList.contains('dropdown-option') && !event.target.classList.contains('separator')) {
+        const value = event.target.dataset.value;
+        const text = event.target.textContent;
+        
+        elements.filter_school_input.value = text;
+        state.filters.school = value;
+        updateSchoolSpecificSummary();
+        applyFilters();
+        
+        elements.filter_school_list.classList.add('hidden');
+      }
+    });
+  }
+
+
   // Watched only checkbox
   if (elements.filter_watched) {
     elements.filter_watched.addEventListener('change', (event) => {
@@ -2131,6 +2380,11 @@ function setupFilterListeners() {
   // Clear attribute filters button
   if (elements.clear_attribute_filters) {
     elements.clear_attribute_filters.addEventListener('click', clearAttributeFilters);
+  }
+
+  // Clear all filters button
+  if (elements.clear_filters_btn) {
+    elements.clear_filters_btn.addEventListener('click', clearAllMainFilters);
   }
 
   // Setup attribute filter inputs
@@ -2209,68 +2463,6 @@ function setupAttributeFilters() {
   // Add the attribute filters grid container to the main container
   elements.attribute_filters_container.appendChild(attributeFiltersGridContainer);
 
-  // Create text search filters grid container
-  const textSearchFiltersGridContainer = document.createElement('div');
-  textSearchFiltersGridContainer.className = 'text-search-filters-grid-container';
-  
-  const textSearchFiltersGrid = document.createElement('div');
-  textSearchFiltersGrid.className = 'text-search-filters-grid';
-
-  TEXT_SEARCH_COLUMNS.forEach(column => {
-    // Create the filter group container
-    const filterGroup = document.createElement('div');
-    filterGroup.className = 'text-search-filter-group';
-
-    // Create the label
-    const label = document.createElement('label');
-    label.htmlFor = `filter-${column.key}`;
-    label.textContent = column.label;
-    label.className = 'text-search-filter-label';
-
-    // Create the input
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.id = `filter-${column.key}`;
-    input.className = 'text-search-filter-input';
-    input.placeholder = column.placeholder || 'Search...';
-    input.title = `Search in ${column.label}`;
-
-    // Add event listener
-    input.addEventListener('input', (event) => {
-      const value = event.target.value.trim();
-      state.filters.text_search_filters[column.key] = value;
-      
-      // Add visual indicator if filter is active
-      if (value) {
-        input.classList.add('filter-active');
-      } else {
-        input.classList.remove('filter-active');
-      }
-      
-      // Debounce the filter application
-      debounce(() => {
-        applyFilters();
-        updateFilterSummary();
-      }, 300, `text-search-filter-${column.key}`);
-    });
-
-    // Apply existing filter value if any
-    if (state.filters.text_search_filters[column.key]) {
-      input.value = state.filters.text_search_filters[column.key];
-      input.classList.add('filter-active');
-    }
-
-    // Assemble the filter group
-    filterGroup.appendChild(label);
-    filterGroup.appendChild(input);
-    textSearchFiltersGrid.appendChild(filterGroup);
-  });
-  
-  // Add the grid to its container
-  textSearchFiltersGridContainer.appendChild(textSearchFiltersGrid);
-  
-  // Add the text search filters grid container to the main container
-  elements.attribute_filters_container.appendChild(textSearchFiltersGridContainer);
 
   // Initialize filter summary
   updateFilterSummary();
@@ -2283,10 +2475,6 @@ function clearAttributeFilters() {
     state.filters.attribute_filters[key] = '';
   });
 
-  // Reset all text search filter values
-  Object.keys(state.filters.text_search_filters).forEach(key => {
-    state.filters.text_search_filters[key] = '';
-  });
 
   // Clear all input values and remove active indicators
   ATTRIBUTE_COLUMNS.forEach(column => {
@@ -2297,14 +2485,6 @@ function clearAttributeFilters() {
     }
   });
 
-  // Clear all text search input values and remove active indicators
-  TEXT_SEARCH_COLUMNS.forEach(column => {
-    const input = document.getElementById(`filter-${column.key}`);
-    if (input) {
-      input.value = '';
-      input.classList.remove('filter-active');
-    }
-  });
 
   // Update filter summary and apply filters
   updateFilterSummary();
@@ -2319,15 +2499,10 @@ function updateFilterSummary() {
   const activeAttributeFilterCount = Object.values(state.filters.attribute_filters)
     .filter(value => value && value.trim() !== '').length;
   
-  const activeTextSearchFilterCount = Object.values(state.filters.text_search_filters)
-    .filter(value => value && value.trim() !== '').length;
-  
-  const totalActiveFilterCount = activeAttributeFilterCount + activeTextSearchFilterCount;
-
   // Update toggle text with count
-  const baseText = 'Attribute & Text Filters';
-  if (totalActiveFilterCount > 0) {
-    toggleText.innerHTML = `${baseText} <span class="filter-summary-badge">${totalActiveFilterCount}</span>`;
+  const baseText = 'Attribute Filters';
+  if (activeAttributeFilterCount > 0) {
+    toggleText.innerHTML = `${baseText} <span class="filter-summary-badge">${activeAttributeFilterCount}</span>`;
   } else {
     toggleText.textContent = baseText;
   }
@@ -2360,34 +2535,6 @@ function matchesAttributeFilters(recruit) {
   return true;
 }
 
-// Check if recruit matches text search filters
-function matchesTextSearchFilters(recruit) {
-  for (const [filterKey, filterValue] of Object.entries(state.filters.text_search_filters)) {
-    if (!filterValue || filterValue.trim() === '') continue;
-
-    // Map filter keys to recruit data fields
-    let recruitValue = '';
-    switch (filterKey) {
-      case 'considering_schools':
-        recruitValue = recruit.considering || '';
-        break;
-      default:
-        console.warn(`Unknown text search filter key: ${filterKey}`);
-        continue;
-    }
-
-    // Convert both values to lowercase for case-insensitive search
-    const searchTerm = filterValue.toLowerCase().trim();
-    const recruitText = recruitValue.toLowerCase();
-
-    // Check if the recruit's text contains the search term
-    if (!recruitText.includes(searchTerm)) {
-      return false;
-    }
-  }
-
-  return true;
-}
 
 // Setup pagination event listeners
 function setupPaginationListeners() {
@@ -2432,11 +2579,11 @@ function changePage(direction) {
   
   const totalPages = Math.ceil(state.filtered_recruits.length / state.items_per_page);
   const newPage = state.current_page + direction;
-  
-  if (newPage >= 1 && newPage <= totalPages) {
+    if (newPage >= 1 && newPage <= totalPages) {
     state.current_page = newPage;
     updateRecruitsList();
     updatePaginationDisplay();
+    updateRecruitmentSummary();
   }
 }
 
@@ -2552,7 +2699,7 @@ function setupModalListeners() {
 // Handle export data functionality
 async function handleExportData() {
   try {
-    setStatusMessage('Preparing data export...', 'info');
+    setStatusMessage('Preparing CSV export...', 'info');
     
     // Get all data from background script
     const response = await popupComms.sendMessageToBackground({
@@ -2563,32 +2710,29 @@ async function handleExportData() {
       throw new Error(response.error);
     }
     
-    // Create export data structure
-    const exportData = {
-      exportDate: new Date().toISOString(),
-      version: await getFullVersionString(),
-      recruits: response.recruits || [],
-      settings: {
-        roleRatings: response.roleRatings || {},
-        boldAttributes: response.boldAttributes || {},
-        columnVisibility: state.column_visibility,
-        pageSize: state.items_per_page
-      },
-      metadata: {
-        totalRecruits: response.recruits ? response.recruits.length : 0,
-        currentSeason: response.currentSeason || null
-      }
-    };
+    if (!response.success) {
+      throw new Error('Export failed: ' + (response.error || 'Unknown error'));
+    }
     
-    // Create and download file
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json'
+    const recruits = response.data?.recruits || [];
+    
+    if (recruits.length === 0) {
+      setStatusMessage('No recruit data to export', 'warning');
+      return;
+    }
+    
+    // Generate CSV content
+    const csvContent = generateCSV(recruits);
+    
+    // Create and download CSV file
+    const blob = new Blob([csvContent], {
+      type: 'text/csv;charset=utf-8;'
     });
     
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `gd-recruit-data-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `gd-recruit-export-${new Date().toISOString().split('T')[0]}.csv`;
     
     // Trigger download
     document.body.appendChild(link);
@@ -2596,11 +2740,53 @@ async function handleExportData() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    setStatusMessage('Data exported successfully', 'success');
+    setStatusMessage(`Successfully exported ${recruits.length} recruits to CSV`, 'success');
     
   } catch (error) {
-    handleError(error, 'data export');
+    handleError(error, 'CSV export');
   }
+}
+
+// Generate CSV content from recruit data
+function generateCSV(recruits) {
+  if (!recruits || recruits.length === 0) {
+    return 'No data available';
+  }
+  
+  // Define CSV headers based on COLUMNS configuration
+  const headers = COLUMNS.map(col => col.label);
+  
+  // Convert data to CSV rows
+  const csvRows = [];
+  
+  // Add header row
+  csvRows.push(headers.join(','));
+  
+  // Add data rows
+  recruits.forEach(recruit => {
+    const row = COLUMNS.map(col => {
+      const value = recruit[col.key];
+      
+      // Handle different data types and ensure CSV safety
+      if (value === null || value === undefined) {
+        return '';
+      }
+      
+      // Convert value to string and escape CSV special characters
+      let cellValue = String(value);
+      
+      // If the value contains comma, newline, or quotes, wrap in quotes and escape quotes
+      if (cellValue.includes(',') || cellValue.includes('\n') || cellValue.includes('"')) {
+        cellValue = '"' + cellValue.replace(/"/g, '""') + '"';
+      }
+      
+      return cellValue;
+    });
+    
+    csvRows.push(row.join(','));
+  });
+  
+  return csvRows.join('\n');
 }
 
 // Handle import data functionality
@@ -3285,9 +3471,66 @@ function getRoleRatingTooltip(position, roleColumn, rating) {
       }
     }
   }
-  
-  // Fallback tooltip
+    // Fallback tooltip
   return `${roleColumn.toUpperCase()}: ${rating} (${position} role rating)`;
+}
+
+/**
+ * Calculate background color for miles column based on distance thresholds
+ * Color transitions: Light Bluish-Green (0) → Light Green (180) → Light Yellow (360) → Light Orange (1400) → Light Red (2000+)
+ * Uses lighter, more pleasant colors with intuitive progression for better readability and visual appeal
+ * @param {number} miles - Distance in miles
+ * @returns {string} - RGB color string
+ */
+function calculateMilesBackgroundColor(miles) {
+  // Clamp miles to reasonable range
+  const clampedMiles = Math.max(0, Math.min(miles, 2000));
+  
+  let r, g, b;
+  
+  if (clampedMiles <= 179) {
+    // 0-179 miles: Light Bluish-Green to Light Green
+    // Light Bluish-Green (175, 238, 238) to Light Green (144, 238, 144)
+    const ratio = clampedMiles / 179;
+    r = Math.round(175 + (144 - 175) * ratio);
+    g = Math.round(238 + (238 - 238) * ratio); // Stays at 238
+    b = Math.round(238 + (144 - 238) * ratio);
+  } else if (clampedMiles <= 359) {
+    // 180-359 miles: Light Green to Light Yellow
+    // Light Green (144, 238, 144) to Light Yellow (255, 255, 224)
+    const ratio = (clampedMiles - 180) / (359 - 180);
+    r = Math.round(144 + (255 - 144) * ratio);
+    g = Math.round(238 + (255 - 238) * ratio);
+    b = Math.round(144 + (224 - 144) * ratio);
+  } else if (clampedMiles <= 1399) {
+    // 360-1399 miles: Light Yellow to Light Orange
+    // Light Yellow (255, 255, 224) to Light Orange (255, 218, 185)
+    const ratio = (clampedMiles - 360) / (1399 - 360);
+    r = 255; // Stays at 255
+    g = Math.round(255 + (218 - 255) * ratio);
+    b = Math.round(224 + (185 - 224) * ratio);
+  } else {
+    // 1400+ miles: Light Orange to Light Red
+    // Light Orange (255, 218, 185) to Light Red (255, 204, 204)
+    const ratio = Math.min((clampedMiles - 1400) / 600, 1); // Cap transition at 2000 miles
+    r = 255; // Stays at 255
+    g = Math.round(218 + (204 - 218) * ratio);
+    b = Math.round(185 + (204 - 185) * ratio);
+  }
+  
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
+ * Calculate appropriate text color for contrast against background
+ * Always returns dark text for consistent readability
+ * @param {string} backgroundColor - RGB color string (parameter kept for consistency)
+ * @returns {string} - Text color (always dark)
+ */
+function getContrastTextColor(backgroundColor) {
+  // Always return dark text for consistent appearance
+  // This ensures all miles column text is dark regardless of background color
+  return '#1a1a1a'; // Use the same dark color as --text-primary
 }
 
 // Setup column visibility modal listeners
@@ -4397,6 +4640,12 @@ function getPositionDisplayName(positionKey) {
 // Apply column visibility to recruits table
 function applyColumnVisibility() {
   try {
+    // Check if column order is initialized
+    if (!state.column_order || !Array.isArray(state.column_order)) {
+      console.warn('Column order not yet initialized, skipping column visibility');
+      return;
+    }
+    
     const table = document.getElementById('recruits-table');
     if (!table) {
       console.warn('Recruits table not found for column visibility');
@@ -4550,6 +4799,12 @@ function refreshRecruitsDisplay() {
 
 // Enhanced table sorting functionality with accessibility and validation plus drag-and-drop
 function setupTableSorting() {
+  // Check if column order is initialized
+  if (!state.column_order || !Array.isArray(state.column_order)) {
+    console.warn('Column order not yet initialized, skipping table sorting setup');
+    return;
+  }
+  
   const table = document.getElementById('recruits-table');
   if (!table) {
     console.warn('Recruits table not found for sorting setup');
@@ -4761,6 +5016,12 @@ function parseHeightToInches(height) {
 
 // Update sort indicators in table headers with enhanced accessibility
 function updateSortIndicators() {
+  // Check if column order is initialized
+  if (!state.column_order || !Array.isArray(state.column_order)) {
+    console.warn('Column order not yet initialized, skipping sort indicators update');
+    return;
+  }
+  
   const table = document.getElementById('recruits-table');
   if (!table) return;
   
@@ -4876,6 +5137,10 @@ async function loadRecruitsData() {
     console.log('Setting up table sorting...');
     setupTableSorting();
     
+    // Refresh dashboard display now that recruit data is loaded
+    console.log('Refreshing dashboard display with recruit data...');
+    await refreshDashboardData();
+    
     state.last_data_refresh = Date.now();
     console.log('=== DEBUGGING loadRecruitsData END ===');
     
@@ -4915,6 +5180,7 @@ function populateFilterOptions() {
   populateDivisionFilter();
   populatePriorityFilter();
   populateDistanceFilter();
+  populateSchoolFilter();
 }
 
 // Populate position filter dropdown
@@ -5075,6 +5341,174 @@ function populateDistanceFilter() {
   });
 }
 
+// Populate searchable school filter dropdown
+function populateSchoolFilter() {
+  if (!elements.filter_school_list) return;
+  
+  try {
+    // Get current team info for prioritizing current school
+    const teamInfo = state.currentTeamInfo;
+    const currentTeamId = teamInfo ? teamInfo.teamId : null;
+    let currentSchoolName = teamInfo ? teamInfo.schoolName : null;
+    
+    // Fallback: try to get school name from DOM if teamInfo is not available
+    if (!currentSchoolName && elements.school_name) {
+      currentSchoolName = elements.school_name.textContent?.trim();
+    }
+    
+    
+    // Extract unique schools from considering schools data
+    const schoolsSet = new Set();
+    const schoolCounts = new Map();
+    
+    if (state.recruits && Array.isArray(state.recruits)) {
+      state.recruits.forEach(recruit => {
+        if (recruit.considering && recruit.considering !== 'undecided') {
+          // Parse semicolon-separated school entries
+          const schoolEntries = recruit.considering.split(';').map(entry => entry.trim());
+          
+          schoolEntries.forEach(entry => {
+            if (entry.length > 0) {
+              // Parse format: "School Name (School ID), miles, Coach Name, scholarships"
+              const match = entry.match(/^(.+?)\s*\((\d+)\),\s*\d+\s*miles,\s*(.+?),\s*\d+\s*\|\s*\d+$/);
+              
+              if (match) {
+                const schoolName = match[1].trim();
+                const schoolId = match[2].trim();
+                const coachName = match[3].trim();
+                
+                // Format: "School Name - coachId"
+                const schoolKey = `${schoolName} - ${coachName}`;
+                const schoolValue = schoolId; // Use school ID as the filter value
+                
+                schoolsSet.add(JSON.stringify({ key: schoolKey, value: schoolValue, name: schoolName, id: schoolId, coach: coachName }));
+                
+                // Count recruits considering this school
+                if (schoolCounts.has(schoolKey)) {
+                  schoolCounts.set(schoolKey, schoolCounts.get(schoolKey) + 1);
+                } else {
+                  schoolCounts.set(schoolKey, 1);
+                }
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    // Convert Set back to objects and sort
+    const schoolsList = Array.from(schoolsSet).map(item => JSON.parse(item));
+    
+    // Separate current school from others
+    let currentSchoolEntry = null;
+    const otherSchools = [];
+    
+    
+    schoolsList.forEach(school => {
+      if (currentSchoolName && school.name === currentSchoolName) {
+        currentSchoolEntry = school;
+      } else {
+        otherSchools.push(school);
+      }
+    });
+    
+    
+    // Sort other schools alphabetically by school name
+    otherSchools.sort((a, b) => a.name.localeCompare(b.name));
+    
+    // Store schools data for filtering
+    state.schoolsData = {
+      all: schoolsList,
+      current: currentSchoolEntry,
+      others: otherSchools,
+      counts: schoolCounts
+    };
+    
+    // Populate dropdown list
+    populateSchoolDropdownOptions();
+    
+    console.log(`Populated school filter with ${schoolsList.length} unique schools`);
+    
+  } catch (error) {
+    console.error('Error populating school filter:', error);
+    // Fallback: clear the dropdown list
+    if (elements.filter_school_list) {
+      elements.filter_school_list.innerHTML = '<div class="dropdown-option" data-value="">All Schools</div>';
+    }
+  }
+}
+
+// Populate dropdown options based on current filter
+function populateSchoolDropdownOptions(searchTerm = '') {
+  if (!elements.filter_school_list || !state.schoolsData) return;
+  
+  const { current, others, counts } = state.schoolsData;
+  const filteredOptions = [];
+  
+  
+  // Always add "All Schools" option
+  if (!searchTerm || 'all schools'.includes(searchTerm.toLowerCase())) {
+    filteredOptions.push({
+      value: '',
+      text: 'All Schools',
+      isDefault: true
+    });
+  }
+  
+  // Add current school first if it matches search
+  if (current) {
+    const schoolText = `${current.key} (${counts.get(current.key) || 0})`;
+    if (!searchTerm || schoolText.toLowerCase().includes(searchTerm.toLowerCase())) {
+      filteredOptions.push({
+        value: current.value,
+        text: schoolText,
+        isCurrent: true
+      });
+    }
+  }
+  
+  // Add separator before other schools if current school is shown and we have other matching schools
+  let needsSeparator = false;
+  if (current && filteredOptions.some(opt => opt.isCurrent)) {
+    // Check if there are any other schools that match the search
+    const hasMatchingOthers = others.some(school => {
+      const schoolText = `${school.key} (${counts.get(school.key) || 0})`;
+      return !searchTerm || schoolText.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+    needsSeparator = hasMatchingOthers;
+  }
+  
+  // Add other schools that match search
+  others.forEach(school => {
+    const schoolText = `${school.key} (${counts.get(school.key) || 0})`;
+    if (!searchTerm || schoolText.toLowerCase().includes(searchTerm.toLowerCase())) {
+      if (needsSeparator) {
+        filteredOptions.push({ isSeparator: true });
+        needsSeparator = false;
+      }
+      filteredOptions.push({
+        value: school.value,
+        text: schoolText,
+        isOther: true
+      });
+    }
+  });
+  
+  // Update dropdown HTML
+  let html = '';
+  filteredOptions.forEach(option => {
+    if (option.isSeparator) {
+      html += '<div class="dropdown-option separator"></div>';
+    } else {
+      let classes = 'dropdown-option';
+      if (option.isCurrent) classes += ' active-school';
+      html += `<div class="${classes}" data-value="${option.value}">${option.text}</div>`;
+    }
+  });
+  
+  elements.filter_school_list.innerHTML = html;
+}
+
 // Apply filters to recruit data with performance optimization
 function applyFilters() {
   try {
@@ -5187,6 +5621,12 @@ function applyFilters() {
         return false;
       }
       
+      // School filter
+      if (state.filters.school && !matchesSchoolFilter(recruit.considering, state.filters.school)) {
+        filterFailReasons.school = (filterFailReasons.school || 0) + 1;
+        return false;
+      }
+      
       // Watched filter
       if (state.filters.watched === 'true' && recruit.watched !== 1) {
         filterFailReasons.watched = (filterFailReasons.watched || 0) + 1;
@@ -5211,11 +5651,6 @@ function applyFilters() {
         return false;
       }
       
-      // Text search filters
-      if (!matchesTextSearchFilters(recruit)) {
-        filterFailReasons.text_search_filters = (filterFailReasons.text_search_filters || 0) + 1;
-        return false;
-      }
       
       filterPassCount++;
       return true;
@@ -5281,12 +5716,13 @@ function applyFilters() {
     if (endTime - startTime > 50) {
       console.log(`Filter performance: ${state.filtered_recruits.length} results in ${(endTime - startTime).toFixed(2)}ms`);
     }
-    
-    // Reset to first page when filters change
+      // Reset to first page when filters change
     state.current_page = 1;
     
     updateRecruitsList();
     updatePaginationDisplay();
+    updateRecruitmentSummary();
+    updateSchoolSpecificSummary();
     
   } catch (error) {
     console.error('Error in applyFilters:', error);
@@ -5319,9 +5755,43 @@ function matchesDistanceFilter(miles, distanceFilter) {
   }
 }
 
+// Check if recruit's considering schools matches school filter
+function matchesSchoolFilter(consideringSchools, schoolFilter) {
+  if (!consideringSchools || !schoolFilter) return true;
+  
+  // Handle 'undecided' case
+  if (consideringSchools === 'undecided') return false;
+  
+  try {
+    // Check if the selected school ID appears anywhere in the considering schools string
+    // This handles the format: "School Name (School ID), miles, Coach Name, scholarships"
+    
+    // Use a regex to find school IDs in parentheses
+    const schoolIdMatches = consideringSchools.match(/\((\d+)\)/g);
+    
+    if (!schoolIdMatches) return false;
+    
+    // Extract just the school IDs
+    const schoolIds = schoolIdMatches.map(match => match.slice(1, -1)); // Remove parentheses
+    
+    // Check if the selected school ID is in the list
+    return schoolIds.includes(schoolFilter);
+    
+  } catch (error) {
+    console.error('Error matching school filter:', error);
+    return true; // Fail safe - include recruit if there's an error
+  }
+}
+
 // Ensure table header matches the current column order
 function ensureTableHeaderMatchesColumnOrder() {
   try {
+    // Check if column order is initialized
+    if (!state.column_order || !Array.isArray(state.column_order)) {
+      console.warn('Column order not yet initialized, skipping header verification');
+      return;
+    }
+    
     const table = document.getElementById('recruits-table');
     if (!table) {
       console.warn('Table not found for header verification');
@@ -5535,6 +6005,12 @@ function createRecruitRow(recruit, teamInfo) {
       return null;
     }
     
+    // Check if column order is initialized
+    if (!state.column_order || !Array.isArray(state.column_order)) {
+      console.warn('Column order not yet initialized, cannot create recruit row');
+      return null;
+    }
+    
     const row = document.createElement('tr');
     
     // Add ARIA attributes for accessibility
@@ -5592,6 +6068,14 @@ function createRecruitRow(recruit, teamInfo) {
         classes: (() => {
           const baseClasses = [];
           
+          // Check for SIM AI coaching styling (recruit not signed and all schools have SIM AI)
+          if (recruit.considering && (recruit.signed !== 'Y' && recruit.signed !== 'Yes' && recruit.signed !== 1)) {
+            const allSchoolsHaveSimAI = checkAllSchoolsHaveSimAI(recruit.considering);
+            if (allSchoolsHaveSimAI) {
+              baseClasses.push('sim-ai-schools');
+            }
+          }
+          
           // Apply the same conditional formatting as "Considering Schools" column
           if (teamInfo && teamInfo.teamId && recruit.considering) {
             console.log('🔍 DEBUG: Applying considering status formatting to Name column for recruit:', recruit.name);
@@ -5632,9 +6116,42 @@ function createRecruitRow(recruit, teamInfo) {
       'watched': { content: recruit.watched === 1 ? '👁' : '', attribute: null, isLink: false,
         tooltip: recruit.watched === 1 ? 'On Watchlist' : 'Not Watched',
         classes: recruit.watched === 1 ? ['watched-indicator'] : []
-      },
-      'potential': { content: recruit.potential || '', attribute: null, isLink: false,
-        tooltip: recruit.potential ? `Potential: ${recruit.potential}` : null
+      },      'potential': { 
+        content: recruit.potential || '', 
+        attribute: null, 
+        isLink: false,
+        tooltip: recruit.potential ? `Potential: ${recruit.potential}` : null,
+        classes: (() => {
+          const baseClasses = [];
+          const potentialValue = recruit.potential;
+          
+          // Apply custom styling based on potential value
+          if (potentialValue) {
+            switch (potentialValue) {
+              case '4-VH':
+                baseClasses.push('potential-vh');
+                break;
+              case '3-H':
+                baseClasses.push('potential-h');
+                break;
+              case '2-A':
+                baseClasses.push('potential-a');
+                break;
+              case '1-L':
+                baseClasses.push('potential-l');
+                break;
+              case '0-VL':
+                baseClasses.push('potential-vl');
+                break;
+              case '?':
+              default:
+                // No special styling for '?' or unknown values
+                break;
+            }
+          }
+          
+          return baseClasses;
+        })()
       },
       'priority': { content: recruit.priority || '', attribute: null, isLink: false,
         tooltip: recruit.priority ? `Priority: ${recruit.priority}` : null
@@ -5665,9 +6182,38 @@ function createRecruitRow(recruit, teamInfo) {
       },
       'division': { content: recruit.division || '', attribute: null, isLink: false,
         tooltip: recruit.division ? `High School Division: ${recruit.division}` : null
-      },
-      'miles': { content: recruit.miles || '', attribute: null, isLink: false,
-        tooltip: recruit.miles ? `Distance: ${recruit.miles} miles from campus` : null
+      },      'miles': { 
+        content: recruit.miles || '', 
+        attribute: null, 
+        isLink: false,
+        tooltip: recruit.miles ? `Distance: ${recruit.miles} miles from campus` : null,
+        classes: (() => {
+          const baseClasses = [];
+          const milesValue = recruit.miles ? parseInt(recruit.miles, 10) : null;
+          
+          // Add distance-based styling class
+          if (milesValue !== null && !isNaN(milesValue)) {
+            baseClasses.push('miles-distance');
+          }
+          
+          return baseClasses;
+        })(),
+        // Add custom style property for dynamic background color
+        customStyle: (() => {
+          const milesValue = recruit.miles ? parseInt(recruit.miles, 10) : null;
+          
+          if (milesValue !== null && !isNaN(milesValue)) {
+            const backgroundColor = calculateMilesBackgroundColor(milesValue);
+            const textColor = getContrastTextColor(backgroundColor);
+            
+            return {
+              backgroundColor: backgroundColor,
+              color: textColor
+            };
+          }
+          
+          return {};
+        })()
       },
       'signed': { content: recruit.signed || '', attribute: null, isLink: false,
         tooltip: recruit.signed ? `Signed Status: ${recruit.signed}` : null,
@@ -5716,6 +6262,14 @@ function createRecruitRow(recruit, teamInfo) {
         classes: (() => {
           const baseClasses = recruit.considering ? ['considering-schools'] : [];
           
+          // Check for SIM AI coaching styling (recruit not signed and all schools have SIM AI)
+          if (recruit.considering && (recruit.signed !== 'Y' && recruit.signed !== 'Yes' && recruit.signed !== 1)) {
+            const allSchoolsHaveSimAI = checkAllSchoolsHaveSimAI(recruit.considering);
+            if (allSchoolsHaveSimAI) {
+              baseClasses.push('sim-ai-schools');
+            }
+          }
+          
           // Add conditional formatting based on current school status
           if (teamInfo && teamInfo.teamId && recruit.considering) {
             console.log('🔍 DEBUG: About to check considering status for recruit:', recruit.name);
@@ -5750,15 +6304,20 @@ function createRecruitRow(recruit, teamInfo) {
           return baseClasses;
         })()
       }
-    };
-
-    // Use the column order to create cells in the correct sequence
+    };    // Use the column order to create cells in the correct sequence
     state.column_order.forEach((columnKey, index) => {
-      const { content, attribute, tooltip, classes = [], isLink, linkUrl, isWatched } = allColumnData[columnKey] || { content: '', classes: [] };
+      const columnData = allColumnData[columnKey] || { content: '', classes: [] };
+      const { content, attribute, tooltip, classes = [], isLink, linkUrl, isWatched, customStyle = {} } = columnData;
+    
     const cell = document.createElement('td');
     
     // Add data attribute for column alignment
     cell.setAttribute('data-column', columnKey);
+    
+    // Apply custom inline styles if they exist
+    if (customStyle && Object.keys(customStyle).length > 0) {
+      Object.assign(cell.style, customStyle);
+    }
     
     // Create link or plain text content
     if (isLink && linkUrl && content) {
@@ -5981,10 +6540,192 @@ function updatePaginationDisplay() {
     if (elements.next_page_btn_top) {
       elements.next_page_btn_top.disabled = isLastPage;
     }
-    
-  } catch (error) {
+      } catch (error) {
     console.error('Error in updatePaginationDisplay:', error);
     handleError(error, 'updating pagination');
+  }
+}
+
+/**
+ * Calculate and update recruitment summary statistics
+ * Note: Always uses the complete unfiltered dataset (state.recruits) regardless of table filters
+ */
+function updateRecruitmentSummary() {
+  try {
+    let signed_count = 0;
+    let green_count = 0;
+    let yellow_count = 0;
+
+    const currentTeamId = state.currentTeamId;
+    
+    if (!currentTeamId || !state.recruits || !Array.isArray(state.recruits)) {
+      updateSummaryDisplay(0, 0, 0);
+      return;
+    }
+
+    state.recruits.forEach(recruit => {
+      if (!recruit) return;
+
+      const signedStatus = checkSignedStatus(recruit, currentTeamId);
+      
+      if (signedStatus === 'signed_to_school') {
+        signed_count++;
+      } else if (signedStatus === 'not_signed') {
+        const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, currentTeamId);
+        
+        if (consideringStatus === 'only') {
+          green_count++;
+        } else if (consideringStatus === 'included') {
+          yellow_count++;
+        }
+      }
+    });
+
+    updateSummaryDisplay(signed_count, green_count, yellow_count);
+
+  } catch (error) {
+    console.error('Error in updateRecruitmentSummary:', error);
+    updateSummaryDisplay(0, 0, 0);
+  }
+}
+
+/**
+ * Update the recruitment summary display elements
+ */
+function updateSummaryDisplay(signedCount, greenCount, yellowCount) {
+  try {
+    const signed = Number.isInteger(signedCount) ? signedCount : 0;
+    const green = Number.isInteger(greenCount) ? greenCount : 0;
+    const yellow = Number.isInteger(yellowCount) ? yellowCount : 0;
+    
+    // Update recruitment tab summary
+    if (elements.summary_signed) {
+      elements.summary_signed.textContent = signed.toString();
+      elements.summary_signed.title = `${signed} recruit${signed !== 1 ? 's' : ''} signed to your school`;
+    }
+
+    if (elements.summary_green) {
+      elements.summary_green.textContent = green.toString();
+      elements.summary_green.title = `${green} unsigned recruit${green !== 1 ? 's' : ''} considering only your school`;
+    }
+
+    if (elements.summary_yellow) {
+      elements.summary_yellow.textContent = yellow.toString();
+      elements.summary_yellow.title = `${yellow} unsigned recruit${yellow !== 1 ? 's' : ''} considering your school among others`;
+    }
+    
+    // Update dashboard summary
+    if (elements.dashboard_summary_signed) {
+      elements.dashboard_summary_signed.textContent = signed.toString();
+      elements.dashboard_summary_signed.title = `${signed} recruit${signed !== 1 ? 's' : ''} signed to your school`;
+    }
+
+    if (elements.dashboard_summary_green) {
+      elements.dashboard_summary_green.textContent = green.toString();
+      elements.dashboard_summary_green.title = `${green} unsigned recruit${green !== 1 ? 's' : ''} considering only your school`;
+    }
+
+    if (elements.dashboard_summary_yellow) {
+      elements.dashboard_summary_yellow.textContent = yellow.toString();
+      elements.dashboard_summary_yellow.title = `${yellow} unsigned recruit${yellow !== 1 ? 's' : ''} considering your school among others`;
+    }
+
+  } catch (error) {
+    console.error('Error in updateSummaryDisplay:', error);
+  }
+}
+
+// Update school-specific recruit summary display
+function updateSchoolSpecificSummary() {
+  try {
+    const selectedSchool = state.filters.school;
+    const summarySection = elements.school_specific_summary;
+    
+    if (!summarySection) {
+      console.warn('School-specific summary section not found');
+      return;
+    }
+    
+    // Hide summary if no school is selected
+    if (!selectedSchool) {
+      summarySection.classList.add('hidden');
+      return;
+    }
+    
+    // Show summary section
+    summarySection.classList.remove('hidden');
+    
+    // Get school name from dropdown for display
+    let schoolDisplayName = 'Selected School';
+    if (elements.filter_school && elements.filter_school.selectedIndex >= 0) {
+      const selectedOption = elements.filter_school.options[elements.filter_school.selectedIndex];
+      if (selectedOption && selectedOption.textContent) {
+        // Extract school name from "School Name - Coach (count)" format
+        const match = selectedOption.textContent.match(/^(.+?)\s*\(\d+\)/);
+        schoolDisplayName = match ? match[1] : selectedOption.textContent;
+      }
+    }
+    
+    // Update summary title
+    if (elements.school_summary_title) {
+      elements.school_summary_title.textContent = `${schoolDisplayName} - Recruiting Summary`;
+    }
+    
+    // Initialize counters
+    let signedCount = 0;
+    let greenCount = 0;
+    let yellowCount = 0;
+    
+    // Calculate counts from current recruit data
+    if (state.recruits && Array.isArray(state.recruits)) {
+      state.recruits.forEach(recruit => {
+        // Check if this recruit is considering the selected school
+        if (recruit.considering && matchesSchoolFilter(recruit.considering, selectedSchool)) {
+          if (recruit.signed === 'Yes' || recruit.signed === 'Y' || recruit.signed === 1) {
+            signedCount++;
+          } else {
+            // For unsigned recruits, determine if it's green (only) or yellow (among others)
+            const teamInfo = state.currentTeamInfo;
+            const currentTeamId = teamInfo ? teamInfo.teamId : null;
+            
+            if (currentTeamId && selectedSchool === currentTeamId) {
+              // If we're looking at our own school
+              const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, currentTeamId);
+              if (consideringStatus === 'only') {
+                greenCount++;
+              } else if (consideringStatus === 'included') {
+                yellowCount++;
+              }
+            } else {
+              // For other schools, we can't easily determine green vs yellow without more analysis
+              // For now, count all unsigned as yellow (considering among others)
+              yellowCount++;
+            }
+          }
+        }
+      });
+    }
+    
+    // Update display elements
+    if (elements.school_summary_signed) {
+      elements.school_summary_signed.textContent = signedCount.toString();
+    }
+    if (elements.school_summary_green) {
+      elements.school_summary_green.textContent = greenCount.toString();
+    }
+    if (elements.school_summary_yellow) {
+      elements.school_summary_yellow.textContent = yellowCount.toString();
+    }
+    
+    console.log(`School summary updated: ${schoolDisplayName} - Signed: ${signedCount}, Green: ${greenCount}, Yellow: ${yellowCount}`);
+    
+  } catch (error) {
+    console.error('Error updating school-specific summary:', error);
+    
+    // Hide summary on error
+    if (elements.school_specific_summary) {
+      elements.school_specific_summary.classList.add('hidden');
+    }
   }
 }
 
@@ -6487,6 +7228,12 @@ function rebuildTableWithNewOrder() {
 // Rebuild table header in the correct column order
 function rebuildTableHeader() {
   try {
+    // Check if column order is initialized
+    if (!state.column_order || !Array.isArray(state.column_order)) {
+      console.warn('Column order not yet initialized, skipping header rebuild');
+      return;
+    }
+    
     const table = document.getElementById('recruits-table');
     if (!table) {
       console.warn('Table not found for header rebuild');

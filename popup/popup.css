@@ -181,9 +181,49 @@ body {
 }
 
 .stat-value {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+/* Enhanced recruit breakdown card */
+.recruit-breakdown-card {
+  min-height: auto;
+}
+
+.recruit-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.recruit-stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid rgba(212, 208, 200, 0.3);
+}
+
+.recruit-stat-item:last-child {
+  border-bottom: none;
+}
+
+.recruit-stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.recruit-stat-value {
   font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--primary-color);
+}
+
+.recruit-percentage .recruit-stat-value {
+  color: var(--accent-color);
+  font-weight: 800;
 }
 
 /* Action buttons */
@@ -228,7 +268,7 @@ body {
 /* Status box */
 .status-box {
   background: var(--background-color);
-  border: 1px solid var(--border-color);
+  border: 
   border-radius: var(--border-radius-md);
   padding: var(--spacing-sm);
   text-align: center;
@@ -330,6 +370,207 @@ body {
   user-select: none;
 }
 
+/* School Filters Row - Similar to main filters */
+.filter-row-schools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  align-items: end;
+}
+
+.filter-row-schools .filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 150px;
+  flex: 1;
+}
+
+.filter-row-schools .filter-item label {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 1px;
+}
+
+.filter-row-schools .filter-item select,
+.filter-row-schools .filter-item input[type="text"] {
+  padding: 3px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.75rem;
+  background-color: var(--surface-color);
+  height: 28px;
+}
+
+.filter-row-schools .filter-item input[type="text"] {
+  padding: 3px 8px;
+}
+
+/* Searchable Dropdown Styles */
+.searchable-dropdown-container {
+  position: relative;
+  width: 100%;
+}
+
+.searchable-dropdown-container input[type="text"] {
+  width: 100%;
+  padding: 3px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.75rem;
+  background-color: var(--surface-color);
+  height: 28px;
+}
+
+.searchable-dropdown-container input[type="text"]:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-color: var(--primary-color);
+}
+
+.searchable-dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: var(--shadow-medium);
+}
+
+.dropdown-option {
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dropdown-option:last-child {
+  border-bottom: none;
+}
+
+.dropdown-option:hover {
+  background-color: var(--background-color);
+}
+
+.dropdown-option.highlighted {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.dropdown-option.active-school {
+  background-color: #e8f4e8;
+  font-weight: 600;
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.dropdown-option.separator {
+  height: 1px;
+  background-color: var(--border-color);
+  padding: 0;
+  margin: 2px 0;
+  cursor: default;
+}
+
+.dropdown-option.separator:hover {
+  background-color: var(--border-color);
+}
+
+/* Clear Filters Button */
+.clear-filters-button {
+  padding: 4px 12px;
+  background: linear-gradient(135deg, var(--leather-brown) 0%, #a0501c 100%);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 28px;
+  box-shadow: 0 1px 3px rgba(139, 69, 19, 0.3);
+}
+
+.clear-filters-button:hover {
+  background: linear-gradient(135deg, #a0501c 0%, var(--leather-brown) 100%);
+  box-shadow: 0 2px 4px rgba(139, 69, 19, 0.4);
+  transform: translateY(-1px);
+}
+
+.clear-filters-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(139, 69, 19, 0.4);
+}
+
+.clear-filters-button:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* School-Specific Summary */
+.school-specific-summary {
+  background: linear-gradient(135deg, #e8f4e8 0%, #f0f8f0 100%);
+  border: 1px solid #c8e6c8;
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* Align children to the right */
+}
+
+.school-specific-summary.hidden {
+  display: none;
+}
+
+.school-specific-summary .summary-header {
+  margin-bottom: var(--spacing-xs);
+}
+
+.school-specific-summary .summary-header h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.school-summary-stats {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.school-summary-stats .summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 60px;
+}
+
+.school-summary-stats .summary-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.school-summary-stats .summary-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
 /* Pagination controls */
 .pagination-controls {
   display: flex;
@@ -360,6 +601,18 @@ body {
   font-size: var(--font-size-xs);
 }
 
+.refresh-button-control {
+  display: flex;
+  align-items: center;
+  margin: 0 var(--spacing-md);
+}
+
+.compact-btn {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
 .table-controls {
   display: flex;
   align-items: center;
@@ -381,6 +634,86 @@ body {
 .table-controls .setting-btn:hover {
   background: var(--secondary-color);
   transform: translateY(-1px);
+}
+
+/* Recruitment Summary - Professional styling */
+.recruitment-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: var(--border-radius-md);
+  border: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm);
+  background: white;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid #e9ecef;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  min-width: 65px;
+}
+
+.summary-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.summary-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.summary-value {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  text-align: center;
+  min-width: 24px;
+  line-height: 1;
+}
+
+/* Color coding for summary values */
+#summary-signed {
+  color: #0066cc;
+  text-shadow: 0 1px 2px rgba(0, 102, 204, 0.2);
+}
+
+#summary-green {
+  color: #22c55e;
+  text-shadow: 0 1px 2px rgba(34, 197, 94, 0.2);
+}
+
+#summary-yellow {
+  color: #f59e0b;
+  text-shadow: 0 1px 2px rgba(245, 158, 11, 0.2);
+}
+
+/* Enhanced background colors for each summary type */
+.summary-item:has(#summary-signed) {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+  border-color: rgba(0, 102, 204, 0.15);
+}
+
+.summary-item:has(#summary-green) {
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  border-color: rgba(34, 197, 94, 0.15);
+}
+
+.summary-item:has(#summary-yellow) {
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+  border-color: rgba(245, 158, 11, 0.15);
 }
 
 /* Table container with horizontal scroll */
@@ -1338,8 +1671,8 @@ select:focus {
 }
 
 .signed-recruit-elsewhere {
-  background-color: #f8f9fa;
-  opacity: 0.7;
+  background-color:rgb(203, 204, 204);
+  opacity: 0.5;
   border-left: 4px solid #6c757d;
 }
 
@@ -1389,6 +1722,69 @@ td.considering-among-schools {
   color: #856404;
   font-weight: 500;
   border: 1px solid #ffeaa7;
+}
+
+/* SIM AI schools formatting - for recruits not signed with all schools having SIM AI coaches */
+td.sim-ai-schools {
+  background-color:rgb(248, 217, 236);
+  color:rgb(77, 79, 82);
+  font-weight: 600;
+  border: 1px solid #b8daff;
+  font-style: italic;
+}
+
+/* Potential value conditional formatting */
+td.potential-vh {
+  color: #28a745; /* Green */
+  font-weight: bold;
+}
+
+td.potential-h {
+  color: #007bff; /* Blue */
+  font-weight: bold;
+}
+
+td.potential-a {
+  color: #000000; /* Black */
+  font-weight: bold;
+}
+
+td.potential-l {
+  color: #fd7e14; /* Orange */
+  font-weight: bold;
+}
+
+td.potential-vl {
+  color: #dc3545; /* Red */
+  font-weight: bold;
+}
+
+/* Miles Distance Column Dynamic Styling */
+.miles-distance {
+  font-weight: 600;
+  text-align: center;
+  border-radius: 4px;
+  padding: 4px 8px;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+}
+
+.miles-distance:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Ensure text remains readable with dynamic backgrounds */
+.miles-distance::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  border-radius: inherit;
+  z-index: -1;
 }
 
 .recruits-table td.has-tooltip {
@@ -2039,7 +2435,7 @@ textarea:focus-visible {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
   gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
+  padding: var(--spacing-xs);
   background: var(--surface-color);
 }
 
@@ -3031,65 +3427,6 @@ textarea:focus-visible {
   gap: var(--spacing-sm);
 }
 
-/* Text Search Filters Grid Container */
-.text-search-filters-grid-container {
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-md);
-  padding: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
-  display: flex;
-  justify-content: flex-end;
-}
-
-.text-search-filters-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--spacing-sm);
-}
-
-.text-search-filter-group {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.text-search-filter-label {
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--text-primary);
-  white-space: nowrap;
-  flex-shrink: 0;
-  min-width: 140px;
-}
-
-.text-search-filter-input {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-md);
-  font-size: var(--font-size-sm);
-  flex: 1;
-  min-width: 300px;
-  max-width: 400px;
-  background-color: var(--surface-color);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.text-search-filter-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-}
-
-.text-search-filter-input:hover {
-  border-color: var(--primary-color);
-}
-
-.text-search-filter-input.filter-active {
-  border-color: var(--primary-color);
-  background-color: #e3f2fd;
-  box-shadow: 0 0 0 1px var(--primary-color);
-}
 
 /* Donation Support Styles */
 .donation-options {
@@ -3413,3 +3750,54 @@ textarea:focus-visible {
     display: none;
   }
 }
+
+/* Dashboard recruitment summary styling */
+.recruitment-card h3 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.dashboard-recruitment-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.dashboard-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-xs);
+  flex: 1;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-light);
+  min-width: 50px;
+}
+
+.dashboard-summary-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.dashboard-summary-value {
+  font-weight: bold;
+  font-size: var(--font-size-lg);
+}
+
+/* Color-coded summary values */
+#dashboard-summary-signed,
+#summary-signed {
+  color: #0d6efd; /* Blue for signed */
+}
+
+#dashboard-summary-green,
+#summary-green {
+  color: #198754; /* Green for considering only user's school */
+}
+
+#dashboard-summary-yellow,
+#summary-yellow {
+  color: #ffc107; /* Yellow for considering among others */

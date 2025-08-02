@@ -408,6 +408,36 @@ body {
   padding: 3px 8px;
 }
 
+/* Distance Filter Container */
+.distance-filter-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.distance-filter-container select {
+  width: 100%;
+  min-width: 120px;
+}
+
+.distance-filter-container input[type="number"] {
+  width: 100%;
+  padding: 3px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.75rem;
+  height: 28px;
+  text-align: center;
+  margin-top: 2px;
+}
+
+.distance-filter-container input[type="number"]:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(45, 80, 22, 0.1);
+}
+
 /* Searchable Dropdown Styles */
 .searchable-dropdown-container {
   position: relative;

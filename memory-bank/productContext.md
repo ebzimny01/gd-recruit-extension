@@ -46,20 +46,22 @@ Transform Gridiron Dynasty recruiting from manual, fragmented data management to
 - **Version Control**: Track data changes and maintain historical information
 
 #### Enhanced Decision Making
-- **Advanced Filtering**: Filter by position, potential, division, priority, distance, and more
+- **Advanced Filtering**: Filter by position, potential, division, priority, distance (with 10 preset ranges plus custom input), and more
 - **Role Ratings**: Customizable position-specific attribute weights for recruit evaluation
 - **Bold Attributes**: Highlight critical attributes for each position type
 - **Visual Indicators**: Color-coded rows, status indicators, and detailed tooltips
+- **Team Management**: Manual team sync functionality for reliable multi-team operation
 
 ## User Experience Goals
 
 ### Primary User Journey
 1. **Setup**: User installs extension and navigates to GD recruiting pages
-2. **Data Import**: One-click scraping imports all available recruit data
-3. **Configuration**: User customizes role ratings and bold attributes for their strategy
-4. **Analysis**: Advanced filtering and sorting to identify target recruits
-5. **Decision Making**: Enhanced visualization aids in recruiting decisions
-6. **Data Management**: Export/import for backup and cross-season continuity
+2. **Team Detection**: Extension automatically detects team or user manually syncs via "Sync Team" button
+3. **Data Import**: One-click scraping imports all available recruit data
+4. **Configuration**: User customizes role ratings and bold attributes for their strategy
+5. **Analysis**: Advanced filtering and sorting to identify target recruits (including custom distance ranges)
+6. **Decision Making**: Enhanced visualization aids in recruiting decisions
+7. **Data Management**: Export/import for backup and cross-season continuity
 
 ### Key User Personas
 

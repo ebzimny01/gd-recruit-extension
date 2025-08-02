@@ -90,6 +90,9 @@
             <button id="btn-scrape-recruits" class="action-btn">
               Initialize Season
             </button>
+            <button id="btn-manual-sync" class="action-btn secondary">
+              Sync Active Team
+            </button>
           </div>
           <div class="status-box">
             <p id="status-message">Ready</p>
@@ -119,7 +122,10 @@
               </div>
               <div class="filter-item">
                 <label for="filter-distance">Distance:</label>
-                <select id="filter-distance" title="Filter by distance"></select>
+                <div class="distance-filter-container">
+                  <select id="filter-distance" title="Filter by distance"></select>
+                  <input type="number" id="filter-distance-custom" placeholder="Enter distance" min="1" step="1" title="Enter custom distance in miles" style="display: none;" />
+                </div>
               </div>
               <div class="filter-item">
                 <label for="filter-school-input">Considering School:</label>

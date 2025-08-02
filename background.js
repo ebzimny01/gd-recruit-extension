@@ -115,19 +115,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 
 // Add this code near the top of your background file, where other initialization happens
 
-// Check all existing tabs when extension is first loaded
-chrome.runtime.onStartup.addListener(async () => {
-  // Run existing tab checking
-  checkAllTabsForGDOffice();
-  
-  // Also ensure defaults are initialized on startup
-  try {
-    await initializeDefaultRatings();
-    console.log('Default role ratings verified on startup');
-  } catch (error) {
-    console.error('Error verifying default role ratings on startup:', error);
-  }
-});
+// Note: Main startup handler is located later in the file with team monitoring
 
 // Also check when the extension is installed or updated
 chrome.runtime.onInstalled.addListener(checkAllTabsForGDOffice);
@@ -1260,6 +1248,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       })();
       return true;
 
+    case 'manualTeamSync':
+      // Force a manual team sync/refresh to detect current team from cookies
+      console.log('Manual team sync requested');
+      (async () => {
+        try {
+          // Force a fresh cookie check and team initialization
+          await teamCookieMonitor.forceTeamSync();
+          
+          // Get current team info to return
+          const teamInfo = await getTeamInfoFromCookies();
+          
+          if (teamInfo && teamInfo.teamId) {
+            sendResponse({ 
+              success: true, 
+              teamInfo,
+              message: `Successfully synced to team ${teamInfo.teamId} (${teamInfo.schoolName})`
+            });
+          } else {
+            sendResponse({ 
+              success: false, 
+              error: 'No team detected. Please navigate to a Gridiron Dynasty page first.'
+            });
+          }
+        } catch (error) {
+          console.error('Error during manual team sync:', error);
+          sendResponse({ success: false, error: error.message });
+        }
+      })();
+      return true;
+
     default:
       console.warn('Unknown message action:', message.action);
       sendResponse({ success: false, error: `Unknown action: ${message.action}` });
@@ -2362,7 +2380,7 @@ class TeamCookieMonitor {
   async checkTeamCookie() {
     try {
       const cookie = await chrome.cookies.get({
-        url: "https://whatifsports.com",
+        url: "https://www.whatifsports.com",
         name: "wispersisted"
       });
       
@@ -2559,6 +2577,52 @@ class TeamCookieMonitor {
   getCurrentTeamId() {
     return this.currentTeamId;
   }
+  
+  async forceTeamSync() {
+    console.log('Force team sync requested - checking for current team');
+    
+    try {
+      // Force check the current cookie regardless of last known value
+      const cookie = await chrome.cookies.get({
+        url: "https://www.whatifsports.com",
+        name: "wispersisted"
+      });
+      
+      const currentValue = cookie ? cookie.value : null;
+      console.log('Current cookie value:', currentValue ? 'found' : 'not found');
+      
+      if (currentValue) {
+        // Store the cookie value
+        await multiTeamStorage.saveGlobalConfig('wispersistedCookie', currentValue);
+        
+        // Extract team ID
+        const teamId = this.extractTeamIdFromCookie(currentValue);
+        console.log('Extracted team ID:', teamId);
+        
+        if (teamId) {
+          // Force initialize the team even if it's the same as current
+          await this.initializeTeamFromCookie(teamId);
+          
+          // Update our tracking variables
+          this.currentTeamId = teamId;
+          this.lastKnownCookieValue = currentValue;
+          this.consecutiveFailures = 0;
+          
+          console.log(`Force sync complete - team ${teamId} is now active`);
+          return true;
+        } else {
+          console.warn('No team ID found in cookie value');
+          return false;
+        }
+      } else {
+        console.warn('No wispersisted cookie found');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error during force team sync:', error);
+      throw error;
+    }
+  }
 }
 
 // Create global team cookie monitor instance
@@ -2583,6 +2647,18 @@ chrome.runtime.onStartup.addListener(async () => {
   try {
     await teamCookieMonitor.startMonitoring();
     console.log('Team cookie monitoring started successfully');
+    
+    // Immediately attempt to detect current team on startup
+    try {
+      const detectedTeam = await teamCookieMonitor.forceTeamSync();
+      if (detectedTeam) {
+        console.log('Successfully detected team on startup');
+      } else {
+        console.log('No team detected on startup - monitoring will continue');
+      }
+    } catch (error) {
+      console.warn('Initial team detection failed on startup:', error);
+    }
   } catch (error) {
     console.error('Error starting team cookie monitoring:', error);
   }

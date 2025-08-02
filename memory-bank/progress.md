@@ -96,12 +96,12 @@
 1. **Data Scraping**: Reliable extraction from GD recruiting pages
 2. **Multi-Team Storage**: Complete multi-team architecture with proper data isolation
 3. **User Interface**: Complete tabbed interface with responsive design
-4. **Filtering System**: Advanced multi-criteria filtering with real-time updates
+4. **Filtering System**: Advanced multi-criteria filtering with real-time updates, expanded distance options, and preserved column sorting
 5. **Accessibility**: Full keyboard navigation and screen reader support
-6. **Enhanced Dashboard**: Comprehensive recruit breakdown with signed/unsigned metrics (v0.5.5)
-6. **Performance**: Optimized for large datasets with virtual scrolling
-7. **Configuration**: Customizable role ratings and bold attributes
-8. **Team Management**: Automatic team detection and context switching
+6. **Enhanced Dashboard**: Comprehensive recruit breakdown with signed/unsigned metrics and manual team sync
+7. **Performance**: Optimized for large datasets with virtual scrolling
+8. **Configuration**: Customizable role ratings and bold attributes
+9. **Team Management**: Automatic team detection, context switching, and manual sync functionality
 
 ### 🟡 Areas Requiring Validation
 1. **Cross-Browser Testing**: Need to verify Firefox compatibility thoroughly
@@ -737,6 +737,48 @@ The extension is fully production-ready with comprehensive multi-team support an
   - **Filter State Management**: Proper state management for searchable dropdown selection
 - **Status**: School filtering system overhaul successfully completed. Users now have a streamlined, efficient school filtering experience with active school prioritization and enhanced search capabilities, eliminating previous confusion from multiple competing filters.
 
+### 2025-08-02 - Team Detection Enhancement, Distance Filter Expansion, and Column Sorting Fix ✅
+- **Status**: COMPLETED
+- **Major Feature Enhancement**: Enhanced team detection reliability, comprehensive distance filtering expansion, and column sorting preservation
+- **Team Detection Improvements**:
+  - **URL Mismatch Fix**: Corrected cookie monitoring URL discrepancy between `checkTeamCookie()` and `getWispersistedCookie()` functions
+  - **Startup Handler Consolidation**: Removed duplicate startup handler that lacked team monitoring initialization
+  - **Proactive Team Detection**: Added immediate team detection attempt on extension startup via `forceTeamSync()` call
+  - **Manual Sync Feature**: Implemented "Sync Team" button in dashboard for user-initiated team detection and recovery
+  - **Enhanced Error Recovery**: Added `forceTeamSync()` method to TeamCookieMonitor class for fresh cookie checks
+- **Distance Filter Expansion**:
+  - **Expanded Range Options**: Increased from 3 to 10 preset distance ranges: 100, 150, 250, 360, 500, 750, 1000, 1400, 2000, 2500 miles
+  - **Custom Distance Input**: Added number input field allowing users to enter any positive whole number for precise distance filtering
+  - **Dynamic UI Management**: Custom input appears below select when "Custom..." is selected, with auto-focus and validation
+  - **Enhanced Filter Logic**: Updated `matchesDistanceFilter()` to dynamically parse preset ranges and handle custom values
+  - **Layout Optimization**: Stacked layout prevents UI overlap with adjacent filters while maintaining clean design
+- **Column Sorting Preservation**:
+  - **Bug Fix**: Fixed issue where column sorting was lost when applying filters to the recruit table
+  - **Helper Function**: Added `applySortToFilteredResults()` function to reapply existing sort state after filtering
+  - **Seamless Integration**: Sorting is automatically preserved without changing user's sort preferences
+  - **Visual Consistency**: Sort indicators remain visible and accurate after filter operations
+- **Technical Implementation**:
+  - **Background Script Fixes**: Fixed cookie URL inconsistencies and consolidated startup handlers in `background.js`
+  - **TeamCookieMonitor Enhancement**: Added `forceTeamSync()` method with comprehensive error handling and team initialization
+  - **Popup Interface Updates**: Added manual sync button with loading states and user feedback in `popup.html` and `popup.js`
+  - **Filter System Enhancement**: Updated `populateDistanceFilter()` with expanded ranges and custom option in `popup.js`
+  - **CSS Layout Improvements**: Added `.distance-filter-container` styling with flex-column layout preventing horizontal overflow
+  - **Event Handler Integration**: Comprehensive event listeners for custom input appearance, validation, and filter clearing
+  - **Sorting Fix Implementation**: Added `applySortToFilteredResults()` helper function and integrated into `applyFilters()` workflow
+- **Files Modified**:
+  - `background.js` - Fixed URL mismatch, consolidated startup handlers, added manual sync handler, enhanced TeamCookieMonitor
+  - `popup/popup.html` - Added "Sync Team" button and enhanced distance filter container structure
+  - `popup/popup.js` - Added manual sync functionality, expanded distance ranges, enhanced filter logic, added event handlers
+  - `popup/popup.css` - Added distance filter container styling with stacked layout and focus states
+- **User Experience Benefits**:
+  - **Reliable Team Detection**: Eliminates team detection failures on extension startup through multiple detection methods
+  - **User Control**: Manual sync button provides immediate resolution for team detection issues
+  - **Flexible Distance Filtering**: Comprehensive range options plus custom input covers all recruiting scenarios
+  - **Clean Interface**: Stacked layout eliminates UI overlap while maintaining professional appearance
+  - **Enhanced Accessibility**: Proper focus management and keyboard navigation for custom distance input
+  - **Improved Data Analysis**: Column sorting is now preserved when applying filters, maintaining user workflow continuity
+- **Status**: Team detection enhancement, distance filter expansion, and column sorting fix successfully completed, providing robust team detection, comprehensive distance filtering capabilities, and improved data analysis workflow
+
 ### 2025-06-29 - CSV Export Functionality Implementation ✅
 - **Status**: COMPLETED
 - **Major Feature Addition**: Full CSV export functionality for recruit data with comprehensive data export capabilities
@@ -778,4 +820,4 @@ The extension is fully production-ready with comprehensive multi-team support an
   - **Result**: Export now correctly accesses recruit data and generates valid CSV files
 - **Status**: CSV export functionality successfully implemented and tested. Users can now export complete recruit databases to CSV format for external analysis, providing valuable data portability and backup capabilities. The feature integrates seamlessly with existing extension functionality while providing professional-grade data export capabilities.
 
-The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams. Version 0.5.5 development enhances dashboard analytics while maintaining core functionality and performance.
+The GD Recruit Assistant browser extension is in excellent condition with a comprehensive feature set, strong multi-team architecture, and attention to performance, accessibility, and security. The project has successfully evolved from a basic sidebar implementation to a sophisticated full-screen application with complete multi-team support that meets professional recruiting management needs across multiple teams. Version 0.5.8 development enhances team detection reliability and distance filtering capabilities while maintaining core functionality and performance, providing coaches with robust tools for managing recruiting across multiple teams with confidence.

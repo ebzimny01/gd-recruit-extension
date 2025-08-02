@@ -19,10 +19,11 @@ The GD Recruit Assistant transforms the Gridiron Dynasty recruiting experience b
 - **Status Monitoring**: Current season tracking and data freshness indicators
 
 ### 👥 Recruit Management
-- **Advanced Filtering**: Filter by position, potential, division, priority, distance, and more
+- **Advanced Filtering**: Filter by position, potential, division, priority, distance (with custom ranges), and more
 - **Smart Pagination**: Configurable page sizes with "show all" option
 - **Enhanced Display**: Color-coded rows, tooltips, and status indicators
 - **Bulk Operations**: Export/import functionality with full data preservation
+- **Team Synchronization**: Manual team sync for reliable team detection and switching
 
 ### ⚙️ Configuration
 - **Role Ratings**: Customize position-specific attribute weights
@@ -61,16 +62,18 @@ The GD Recruit Assistant transforms the Gridiron Dynasty recruiting experience b
 ### Getting Started
 1. **Navigate to GD Recruiting**: Go to your Gridiron Dynasty recruiting pages
 2. **Open Extension**: Click the extension icon to open the management interface
-3. **Initial Setup**: Set your current season in the dashboard
-4. **Scrape Data**: Use "Scrape Recruits" to import your recruiting data
+3. **Team Detection**: Use "Sync Team" button if team isn't detected automatically
+4. **Initial Setup**: Set your current season in the dashboard
+5. **Scrape Data**: Use "Scrape Recruits" to import your recruiting data
 
 ### Dashboard Tab
 - **View Statistics**: See recruit counts, watchlist status, and team info
-- **Quick Actions**: Scrape new data or update considering schools
+- **Quick Actions**: Scrape new data, sync team, or update considering schools
 - **Monitor Status**: Check data freshness and current season
+- **Team Management**: Manual team sync for reliable multi-team support
 
 ### Recruits Tab
-- **Apply Filters**: Use the filter section to narrow down recruits
+- **Apply Filters**: Use the filter section to narrow down recruits (includes custom distance ranges)
 - **Sort Data**: Click column headers to sort by different criteria
 - **Navigate Results**: Use pagination controls or "Show All" for large datasets
 - **View Details**: Hover over cells for detailed tooltips
@@ -170,6 +173,7 @@ The GD Recruit Assistant transforms the Gridiron Dynasty recruiting experience b
 - Confirm you're on a Gridiron Dynasty recruiting page
 - Check that the page has loaded completely
 - Verify browser permissions for the extension
+- Try the "Sync Team" button to refresh team detection
 
 **Performance Issues**
 - Large datasets (>1000 recruits) may take time to load
@@ -215,6 +219,15 @@ cd gd-recruit-extension
 - **Cross-Browser Testing**: Chrome, Edge, and Firefox compatibility
 
 ## 📋 Changelog
+
+### Version 0.5.8 (Latest)
+- ✅ Enhanced distance filtering with 10 preset ranges (100-2500 miles)
+- ✅ Custom distance input for precise filtering control
+- ✅ Manual team sync functionality for reliable team detection
+- ✅ Improved team switching architecture with cookie monitoring fixes
+- ✅ Enhanced startup team detection with proactive cookie checking
+- ✅ Stacked distance filter layout preventing UI overlap issues
+- ✅ Fixed column sorting preservation when applying filters
 
 ### Version 0.2.0
 - ✅ Complete migration from sidebar to full-screen tab interface

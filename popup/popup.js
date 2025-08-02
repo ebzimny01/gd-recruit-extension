@@ -166,6 +166,7 @@ const elements = {
   last_updated: document.getElementById('last-updated'),
   current_season: document.getElementById('current-season'),
   btn_scrape_recruits: document.getElementById('btn-scrape-recruits'),
+  btn_manual_sync: document.getElementById('btn-manual-sync'),
   btn_update_considering: document.getElementById('btn-update-considering'),
   status_message: document.getElementById('status-message'),
 
@@ -176,6 +177,7 @@ const elements = {
   filter_division: document.getElementById('filter-division'),
   filter_priority: document.getElementById('filter-priority'),
   filter_distance: document.getElementById('filter-distance'),
+  filter_distance_custom: document.getElementById('filter-distance-custom'),
   filter_school_input: document.getElementById('filter-school-input'),
   filter_school_list: document.getElementById('filter-school-list'),
   filter_hide_signed: document.getElementById('filter-hide-signed'),
@@ -1255,6 +1257,10 @@ function clearAllMainFilters() {
   if (elements.filter_priority) elements.filter_priority.value = '';
   if (elements.filter_division) elements.filter_division.value = '';
   if (elements.filter_distance) elements.filter_distance.value = '';
+  if (elements.filter_distance_custom) {
+    elements.filter_distance_custom.value = '';
+    elements.filter_distance_custom.style.display = 'none';
+  }
   if (elements.filter_school_input) elements.filter_school_input.value = '';
   if (elements.filter_watched) elements.filter_watched.checked = false;
   if (elements.filter_hide_signed) elements.filter_hide_signed.checked = false;
@@ -1462,6 +1468,11 @@ function setupDashboardListeners() {
     elements.btn_scrape_recruits.addEventListener('click', handleScrapeRecruits);
   }
   
+  // Manual Team Sync button
+  if (elements.btn_manual_sync) {
+    elements.btn_manual_sync.addEventListener('click', handleManualSync);
+  }
+  
   // Refresh Recruit Data button
   if (elements.btn_update_considering) {
     elements.btn_update_considering.addEventListener('click', handleUpdateConsidering);
@@ -1493,6 +1504,42 @@ async function handleScrapeRecruits() {
     
   } catch (error) {
     handleError(error, 'season initialization');
+  }
+}
+
+// Handle Manual Team Sync button click
+async function handleManualSync() {
+  try {
+    // Update button to show it's processing
+    if (elements.btn_manual_sync) {
+      elements.btn_manual_sync.disabled = true;
+      elements.btn_manual_sync.textContent = 'Syncing...';
+    }
+    
+    setStatusMessage('Syncing team information...', 'info');
+    
+    // Send manual sync request to background script
+    const response = await chrome.runtime.sendMessage({ action: 'manualTeamSync' });
+    
+    if (response.success) {
+      setStatusMessage(response.message, 'success');
+      
+      // Refresh the dashboard data to show updated team info
+      await loadDashboardData();
+      
+    } else {
+      setStatusMessage(`Sync failed: ${response.error}`, 'error');
+    }
+    
+  } catch (error) {
+    handleError(error, 'manual sync');
+    setStatusMessage('Sync failed - check console for details', 'error');
+  } finally {
+    // Restore button state
+    if (elements.btn_manual_sync) {
+      elements.btn_manual_sync.disabled = false;
+      elements.btn_manual_sync.textContent = 'Sync Active Team';
+    }
   }
 }
 
@@ -2234,8 +2281,42 @@ function setupFilterListeners() {
   // Distance filter
   if (elements.filter_distance) {
     elements.filter_distance.addEventListener('change', (event) => {
-      state.filters.distance = event.target.value;
+      const value = event.target.value;
+      state.filters.distance = value;
+      
+      // Show/hide custom input based on selection
+      if (elements.filter_distance_custom) {
+        if (value === 'custom') {
+          elements.filter_distance_custom.style.display = 'inline-block';
+          elements.filter_distance_custom.focus();
+        } else {
+          elements.filter_distance_custom.style.display = 'none';
+          elements.filter_distance_custom.value = '';
+        }
+      }
+      
       applyFilters();
+    });
+  }
+  
+  // Custom distance input
+  if (elements.filter_distance_custom) {
+    elements.filter_distance_custom.addEventListener('input', (event) => {
+      // Only apply filter if custom option is selected
+      if (state.filters.distance === 'custom') {
+        applyFilters();
+      }
+    });
+    
+    // Clear custom input when it loses focus if invalid
+    elements.filter_distance_custom.addEventListener('blur', (event) => {
+      const value = parseInt(event.target.value);
+      if (isNaN(value) || value <= 0) {
+        event.target.value = '';
+        if (state.filters.distance === 'custom') {
+          applyFilters();
+        }
+      }
     });
   }
 
@@ -4978,6 +5059,49 @@ function sortTable(columnKey) {
   updateSortIndicators();
 }
 
+// Helper function to apply current sorting to filtered results without changing sort state
+function applySortToFilteredResults() {
+  // Only apply sorting if there's an active sort column
+  if (!state.sorting.column) {
+    return;
+  }
+  
+  console.log(`Reapplying sort: ${state.sorting.column} (${state.sorting.direction}) to ${state.filtered_recruits.length} filtered recruits`);
+  
+  const columnKey = state.sorting.column;
+  
+  // Sort the filtered recruits using the same logic as sortTable()
+  state.filtered_recruits.sort((a, b) => {
+    let valueA = a[columnKey] || '';
+    let valueB = b[columnKey] || '';
+    
+    // Handle numeric columns
+    if (isNumericColumn(columnKey)) {
+      valueA = parseFloat(valueA) || 0;
+      valueB = parseFloat(valueB) || 0;
+    } else if (columnKey === 'height') {
+      // Special handling for height
+      valueA = parseHeightToInches(valueA);
+      valueB = parseHeightToInches(valueB);
+    } else {
+      // String comparison
+      valueA = valueA.toString().toLowerCase();
+      valueB = valueB.toString().toLowerCase();
+    }
+    
+    let comparison = 0;
+    if (valueA > valueB) {
+      comparison = 1;
+    } else if (valueA < valueB) {
+      comparison = -1;
+    }
+    
+    return state.sorting.direction === 'desc' ? -comparison : comparison;
+  });
+  
+  console.log(`Sort reapplied successfully for ${columnKey}: ${state.sorting.direction}`);
+}
+
 // Check if column contains numeric data
 function isNumericColumn(columnKey) {
   const numericColumns = [
@@ -5305,29 +5429,26 @@ function populatePriorityFilter() {
 function populateDistanceFilter() {
   if (!elements.filter_distance) return;
   
-  // Create distance ranges - updated to match requirements
+  // Create distance ranges with expanded options
   const distanceRanges = [
-    { value: '< 180', label: '< 180' },
+    { value: '< 100', label: '< 100' },
+    { value: '< 150', label: '< 150' },
+    { value: '< 250', label: '< 250' },
     { value: '< 360', label: '< 360' },
-    { value: '< 1400', label: '< 1400' }
+    { value: '< 500', label: '< 500' },
+    { value: '< 750', label: '< 750' },
+    { value: '< 1000', label: '< 1000' },
+    { value: '< 1400', label: '< 1400' },
+    { value: '< 2000', label: '< 2000' },
+    { value: '< 2500', label: '< 2500' }
   ];
   
   elements.filter_distance.innerHTML = '<option value="">Any Distance</option>';
   
   distanceRanges.forEach(range => {
     // Calculate count for this distance range
-    let count = 0;
-    switch (range.value) {
-      case '< 180':
-        count = state.recruits.filter(r => r.miles && r.miles < 180).length;
-        break;
-      case '< 360':
-        count = state.recruits.filter(r => r.miles && r.miles < 360).length;
-        break;
-      case '< 1400':
-        count = state.recruits.filter(r => r.miles && r.miles < 1400).length;
-        break;
-    }
+    const threshold = parseInt(range.value.replace('< ', ''));
+    const count = state.recruits.filter(r => r.miles && parseFloat(r.miles) < threshold).length;
     
     const option = document.createElement('option');
     option.value = range.value;
@@ -5339,6 +5460,12 @@ function populateDistanceFilter() {
     
     elements.filter_distance.appendChild(option);
   });
+  
+  // Add custom option
+  const customOption = document.createElement('option');
+  customOption.value = 'custom';
+  customOption.textContent = 'Custom...';
+  elements.filter_distance.appendChild(customOption);
 }
 
 // Populate searchable school filter dropdown
@@ -5716,10 +5843,15 @@ function applyFilters() {
     if (endTime - startTime > 50) {
       console.log(`Filter performance: ${state.filtered_recruits.length} results in ${(endTime - startTime).toFixed(2)}ms`);
     }
-      // Reset to first page when filters change
+    
+    // Reapply current sorting to the newly filtered results
+    applySortToFilteredResults();
+    
+    // Reset to first page when filters change
     state.current_page = 1;
     
     updateRecruitsList();
+    updateSortIndicators();
     updatePaginationDisplay();
     updateRecruitmentSummary();
     updateSchoolSpecificSummary();
@@ -5743,16 +5875,25 @@ function matchesDistanceFilter(miles, distanceFilter) {
   const numMiles = parseFloat(miles);
   if (isNaN(numMiles)) return true;
   
-  switch (distanceFilter) {
-    case '< 180':
-      return numMiles < 180;
-    case '< 360':
-      return numMiles < 360;
-    case '< 1400':
-      return numMiles < 1400;
-    default:
-      return true; // 'Any Distance' case
+  // Handle predefined ranges
+  if (distanceFilter.startsWith('< ')) {
+    const threshold = parseInt(distanceFilter.replace('< ', ''));
+    return numMiles < threshold;
   }
+  
+  // Handle custom distance filter
+  if (distanceFilter === 'custom') {
+    const customValue = elements.filter_distance_custom?.value;
+    if (customValue) {
+      const customThreshold = parseInt(customValue);
+      if (!isNaN(customThreshold) && customThreshold > 0) {
+        return numMiles < customThreshold;
+      }
+    }
+    return true; // If no valid custom value, show all
+  }
+  
+  return true; // 'Any Distance' case
 }
 
 // Check if recruit's considering schools matches school filter

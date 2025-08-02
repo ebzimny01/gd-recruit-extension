@@ -2,6 +2,32 @@
 
 ## Latest Developments
 
+### Team Detection Enhancement and Distance Filter Expansion (2025-08-02) ✅
+
+**Completed Task**: Enhanced team detection reliability and expanded distance filtering capabilities for improved user experience.
+
+**Team Detection Improvements**:
+- **Fixed URL Mismatch Bug**: Corrected cookie monitoring URL from `"https://whatifsports.com"` to `"https://www.whatifsports.com"` to match working cookie retrieval
+- **Eliminated Duplicate Startup Handlers**: Removed conflicting startup handler that didn't initialize team monitoring 
+- **Enhanced Startup Detection**: Added proactive team detection on extension startup with immediate cookie checking
+- **Manual Team Sync**: Added "Sync Team" button in dashboard for user-initiated team detection and switching
+- **Improved Error Recovery**: Added `forceTeamSync()` method for forcing fresh cookie checks regardless of cached values
+
+**Distance Filter Expansion**:
+- **Expanded Range Options**: Added 10 preset distance ranges: 100, 150, 250, 360, 500, 750, 1000, 1400, 2000, 2500 miles
+- **Custom Distance Input**: Added number input field for user-defined distance values (positive whole numbers only)
+- **Enhanced UI Layout**: Stacked custom input below select dropdown to prevent overlap with other filters
+- **Smart Input Management**: Custom input appears/disappears based on selection with auto-focus and validation
+- **Integrated Filter Clearing**: Custom input properly resets when filters are cleared
+
+**Technical Implementation**:
+- **Background Script Fixes**: Fixed cookie monitoring URLs and consolidated startup handlers in `background.js`
+- **Enhanced TeamCookieMonitor**: Added `forceTeamSync()` method for manual team detection
+- **Updated Filter Logic**: Enhanced `matchesDistanceFilter()` to handle dynamic range parsing and custom values
+- **CSS Layout Improvements**: Added `.distance-filter-container` styling with stacked layout preventing UI overlap
+- **Event Handler Integration**: Added comprehensive event listeners for custom input validation and state management
+- **Column Sorting Fix**: Added `applySortToFilteredResults()` helper function to preserve column sorting when filters are applied
+
 ### UI Enhancement: Column Order Button Relocation (2025-06-26) ✅
 
 **Completed Task**: Moved the "Column Order Reset" button from the Settings tab to the Recruits tab for improved user experience and logical placement.

@@ -737,6 +737,27 @@ The extension is fully production-ready with comprehensive multi-team support an
   - **Filter State Management**: Proper state management for searchable dropdown selection
 - **Status**: School filtering system overhaul successfully completed. Users now have a streamlined, efficient school filtering experience with active school prioritization and enhanced search capabilities, eliminating previous confusion from multiple competing filters.
 
+### 2025-08-31 - Version 0.5.9 CSV Parsing Fix ✅
+- **Status**: IN PROGRESS (Uncommitted Changes)
+- **Version Bump**: Updated from version 0.5.8 to 0.5.9
+- **Bug Fix**: Enhanced CSV parsing for school data to handle quoted fields with commas
+- **Problem Addressed**: School names containing commas (e.g., "Rutgers, State University of New Jersey, New Brunswick") were being incorrectly parsed when loading GDR data
+- **Technical Implementation**:
+  - **New parseCSVLine() Helper Function**: Added proper CSV parsing with quote handling support
+  - **Quote State Management**: Tracks whether parser is inside or outside quoted strings
+  - **Escaped Quote Support**: Handles double quotes ("") within quoted strings
+  - **Comma Handling**: Only treats commas as field separators when outside quoted strings
+  - **Enhanced loadGdrData() Function**: Updated to use new parsing method instead of simple string.split(',')
+  - **Data Cleaning**: Added quote removal and whitespace trimming for field values
+- **Files Modified**:
+  - `manifest.json` - Version bump from 0.5.8 to 0.5.9
+  - `background.js` - Added parseCSVLine() function and enhanced CSV parsing logic (+41 lines)
+- **User Experience Benefits**:
+  - **Accurate School Names**: School names with commas now parse correctly in dropdown filters
+  - **Data Integrity**: Proper CSV parsing ensures all school data fields are correctly loaded
+  - **Improved Reliability**: Eliminates parsing errors that could affect team detection and school filtering
+- **Status**: Bug fix implementation complete but uncommitted, resolves CSV parsing issues for school data
+
 ### 2025-08-02 - Team Detection Enhancement, Distance Filter Expansion, and Column Sorting Fix ✅
 - **Status**: COMPLETED
 - **Major Feature Enhancement**: Enhanced team detection reliability, comprehensive distance filtering expansion, and column sorting preservation

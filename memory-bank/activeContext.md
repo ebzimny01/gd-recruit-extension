@@ -2,6 +2,26 @@
 
 ## Latest Developments
 
+### CSV Parsing Fix for School Data (2025-08-31) 🔧
+
+**Current Task**: Enhanced CSV parsing to properly handle school names with commas in the GDR data file.
+
+**Problem Identified**: The original CSV parsing logic used simple `string.split(',')` which incorrectly parsed school names containing commas, such as "Rutgers, State University of New Jersey, New Brunswick", causing data integrity issues in school filtering and team detection.
+
+**Solution Implemented**:
+- **Proper CSV Parser**: Added `parseCSVLine()` helper function with quote-aware parsing
+- **Quote State Tracking**: Parser correctly handles quoted strings and escaped quotes
+- **Field Validation**: Proper removal of surrounding quotes and whitespace trimming
+- **Enhanced Data Loading**: Updated `loadGdrData()` function to use new parser
+
+**Technical Details**:
+- **Branch**: `debug-school-parsing-issues` 
+- **Version Bump**: 0.5.8 → 0.5.9 (patch release)
+- **Files Modified**: `background.js` (+41 lines), `manifest.json`
+- **Status**: Implementation complete, changes staged but not yet committed
+
+**Impact**: Resolves school name parsing errors that could affect dropdown filters, team detection, and overall data integrity for schools with complex names containing commas.
+
 ### Team Detection Enhancement and Distance Filter Expansion (2025-08-02) ✅
 
 **Completed Task**: Enhanced team detection reliability and expanded distance filtering capabilities for improved user experience.

@@ -1932,6 +1932,41 @@ async function checkLogin() {
 // Module-level variable to cache GDR data
 let gdrDataCache = null;
 
+// Helper function to parse CSV line with proper quote handling
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  let i = 0;
+  
+  while (i < line.length) {
+    const char = line[i];
+    
+    if (char === '"') {
+      // Handle double quotes (escaped quotes within quoted strings)
+      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+        current += '"';
+        i += 2;
+        continue;
+      }
+      // Toggle quote state
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      // End of field
+      result.push(current.trim());
+      current = '';
+    } else {
+      // Regular character
+      current += char;
+    }
+    i++;
+  }
+  
+  // Add the last field
+  result.push(current.trim());
+  return result;
+}
+
 // Load team data from CSV file
 async function loadGdrData() {
   try {
@@ -1943,15 +1978,16 @@ async function loadGdrData() {
     const response = await fetch(chrome.runtime.getURL('data/gdr.csv'));
     const csvText = await response.text();
 
-    // Parse CSV data
+    // Parse CSV data with proper handling of quoted values
     const lines = csvText.split('\n').filter(line => line.trim() && !line.startsWith('//'));
-    const headers = lines[0].split(',');
+    const headers = parseCSVLine(lines[0]);
 
     const data = lines.slice(1).map(line => {
-      const values = line.split(',');
+      const values = parseCSVLine(line);
       const row = {};
       headers.forEach((header, index) => {
-        row[header] = values[index];
+        // Remove quotes and trim whitespace
+        row[header] = values[index] ? values[index].replace(/^"(.*)"$/, '$1').trim() : '';
       });
       return row;
     });

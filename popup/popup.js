@@ -6825,21 +6825,11 @@ function updateSchoolSpecificSummary() {
           if (recruit.signed === 'Yes' || recruit.signed === 'Y' || recruit.signed === 1) {
             signedCount++;
           } else {
-            // For unsigned recruits, determine if it's green (only) or yellow (among others)
-            const teamInfo = state.currentTeamInfo;
-            const currentTeamId = teamInfo ? teamInfo.teamId : null;
-            
-            if (currentTeamId && selectedSchool === currentTeamId) {
-              // If we're looking at our own school
-              const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, currentTeamId);
-              if (consideringStatus === 'only') {
-                greenCount++;
-              } else if (consideringStatus === 'included') {
-                yellowCount++;
-              }
-            } else {
-              // For other schools, we can't easily determine green vs yellow without more analysis
-              // For now, count all unsigned as yellow (considering among others)
+            // For unsigned recruits, determine if it's green (only school being considered) or yellow (among others)
+            const consideringStatus = checkCurrentSchoolInConsidering(recruit.considering, selectedSchool);
+            if (consideringStatus === 'only') {
+              greenCount++;
+            } else if (consideringStatus === 'included') {
               yellowCount++;
             }
           }

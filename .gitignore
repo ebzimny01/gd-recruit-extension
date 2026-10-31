@@ -1,4 +1,6 @@
 _metadata/generated_indexed_rulesets/_ruleset1
 .github/*
+!.github/pull_request_template.md
+!.github/workflows/
 .clinerules/*
 .claude/settings.local.json

@@ -7,41 +7,43 @@ Using the extension? See the [User Guide](docs/USER_GUIDE.md).
 ## 🎯 Overview
 
 The GD Recruit Assistant transforms the Gridiron Dynasty recruiting experience by providing:
-- **Comprehensive Data Management**: Import, export, and organize recruit data
+- **Comprehensive Data Management**: Load, export, and organize recruit data
 - **Advanced Filtering**: Multi-criteria filtering with real-time updates
 - **Visual Enhancements**: Enhanced tables with tooltips, sorting, and highlighting
 - **Customizable Interface**: Configurable columns, bold attributes, and role ratings
-- **Accessibility**: Full keyboard navigation and screen reader support
+- **Accessibility**: Keyboard shortcuts and screen reader support
 
 ## ✨ Key Features
 
 ### 📊 Dashboard
 - **Real-time Statistics**: Recruit counts, watchlist status, and team information
-- **Quick Actions**: One-click data scraping and updates
+- **Quick Actions**: One-click season setup and team sync
 - **Status Monitoring**: Current season tracking and data freshness indicators
 
 ### 👥 Recruit Management
 - **Advanced Filtering**: Filter by position, potential, division, priority, distance (with custom ranges), and more
-- **Smart Pagination**: Configurable page sizes with "show all" option
+- **Smart Pagination**: Configurable page sizes (10, 25, 50, or 100 results)
 - **Enhanced Display**: Color-coded rows, tooltips, and status indicators
-- **Bulk Operations**: Export/import functionality with full data preservation
+- **CSV Export**: Export recruit data for use in a spreadsheet
 - **Team Synchronization**: Manual team sync for reliable team detection and switching
 
 ### ⚙️ Configuration
 - **Role Ratings**: Customize position-specific attribute weights
 - **Bold Attributes**: Highlight important attributes by position
 - **Column Visibility**: Show/hide table columns based on preferences
-- **Data Management**: Clear, refresh, and backup data with ease
+- **Data Management**: Clear, refresh, and export data with ease
 
 ### 🎨 User Experience
 - **Full-Screen Interface**: Opens as a browser tab for maximum visibility
 - **Responsive Design**: Optimized for desktop, tablet, and mobile
-- **Keyboard Shortcuts**: Ctrl+1/2/3 for tabs, Ctrl+F for filters, arrow keys for navigation
-- **Accessibility**: WCAG 2.1 AA compliant with screen reader support
+- **Keyboard Shortcuts**: Ctrl+1/2/3 for tabs, Ctrl+F for filters
+- **Accessibility**: Screen reader labels, high contrast, and reduced motion support
 
 ## 🚀 Installation
 
-### From Source
+Install [GD Recruit Assistant from the Chrome Web Store](https://chromewebstore.google.com/detail/ngoneggcfpeebpmmicndaflpmghjikfh). Chrome keeps it up to date automatically.
+
+### From Source (for developers)
 1. **Clone the repository**:
    ```bash
    git clone [repository-url]
@@ -62,29 +64,31 @@ The GD Recruit Assistant transforms the Gridiron Dynasty recruiting experience b
 ## 🛠️ Usage
 
 ### Getting Started
-1. **Navigate to GD Recruiting**: Go to your Gridiron Dynasty recruiting pages
+1. **Log In**: Log in to WhatIfSports and open your team in Gridiron Dynasty
 2. **Open Extension**: Click the extension icon to open the management interface
-3. **Team Detection**: Use "Sync Team" button if team isn't detected automatically
-4. **Initial Setup**: Set your current season in the dashboard
-5. **Scrape Data**: Use "Scrape Recruits" to import your recruiting data
+3. **Team Detection**: Use the "Sync Active Team" button if your team isn't detected automatically
+4. **Load Recruits**: Use "Initialize Season" to enter the season number, choose divisions, and load your recruits
+
+See the [User Guide](docs/USER_GUIDE.md) for full instructions.
 
 ### Dashboard Tab
 - **View Statistics**: See recruit counts, watchlist status, and team info
-- **Quick Actions**: Scrape new data, sync team, or update considering schools
+- **Quick Actions**: Initialize a season or sync the active team
 - **Monitor Status**: Check data freshness and current season
 - **Team Management**: Manual team sync for reliable multi-team support
 
 ### Recruits Tab
 - **Apply Filters**: Use the filter section to narrow down recruits (includes custom distance ranges)
 - **Sort Data**: Click column headers to sort by different criteria
-- **Navigate Results**: Use pagination controls or "Show All" for large datasets
+- **Navigate Results**: Use the pagination controls and page size selector
+- **Customize Columns**: Reorder columns by dragging headers, and show or hide them
+- **Refresh Data**: Update watched, potential, priority, signed, and considering data
 - **View Details**: Hover over cells for detailed tooltips
 
 ### Settings Tab
 - **Role Ratings**: Configure position-specific attribute importance
 - **Bold Attributes**: Set which attributes to highlight for each position
-- **Column Visibility**: Customize which table columns are displayed
-- **Data Management**: Export, import, clear, or refresh your data
+- **Data Management**: Export to CSV or clear your data
 
 ## 🔧 Technical Details
 
@@ -106,7 +110,8 @@ The GD Recruit Assistant transforms the Gridiron Dynasty recruiting experience b
 │   └── bold-attributes-config.js
 ├── lib/                  # Utility libraries
 │   ├── calculator.js     # Role rating calculations
-│   ├── storage.js        # Data persistence
+│   ├── multi-team-storage.js # Data persistence
+│   ├── debug-tools.js    # Debugging utilities
 │   └── version.js        # Version management
 └── data/                 # Default configurations
     ├── role_ratings_defaults.json
@@ -133,17 +138,14 @@ The GD Recruit Assistant transforms the Gridiron Dynasty recruiting experience b
 - `Ctrl/Cmd + 3`: Switch to Settings tab
 - `Ctrl/Cmd + F`: Focus filter controls
 - `Escape`: Close open modals
-- `Arrow Keys`: Navigate table rows
 
-### Data Export/Import
-- **JSON Format**: Complete data preservation including settings
-- **Metadata Included**: Export date, version, and record counts
-- **Settings Backup**: Role ratings and configuration included
-- **Cross-Season**: Import data across different seasons
+### Data Export
+- **CSV Format**: Exports every recruit and column for the active team
+- **Spreadsheet Use**: Export is not a backup, because the extension cannot import the file
 
 ### Accessibility Features
-- **Screen Reader Support**: Full ARIA compliance
-- **Keyboard Navigation**: Complete functionality without mouse
+- **Screen Reader Support**: ARIA labels on recruit table rows
+- **Keyboard Navigation**: Shortcuts for tabs and filters, and sortable column headers
 - **High Contrast**: Supports high contrast display modes
 - **Reduced Motion**: Respects motion sensitivity preferences
 - **Focus Management**: Clear focus indicators and logical tab order
@@ -167,7 +169,7 @@ The GD Recruit Assistant transforms the Gridiron Dynasty recruiting experience b
 ### Common Issues
 
 **Extension Not Loading**
-- Ensure Developer Mode is enabled in Chrome
+- If you loaded it from source, ensure Developer Mode is enabled in Chrome
 - Check browser console for error messages
 - Verify all files are present in extension directory
 
@@ -175,11 +177,11 @@ The GD Recruit Assistant transforms the Gridiron Dynasty recruiting experience b
 - Confirm you're on a Gridiron Dynasty recruiting page
 - Check that the page has loaded completely
 - Verify browser permissions for the extension
-- Try the "Sync Team" button to refresh team detection
+- Try the "Sync Active Team" button to refresh team detection
 
 **Performance Issues**
 - Large datasets (>1000 recruits) may take time to load
-- Use pagination instead of "Show All" for better performance
+- Use a smaller page size for better performance
 - Clear browser cache if extension becomes sluggish
 
 **Display Issues**
@@ -222,7 +224,11 @@ cd gd-recruit-extension
 
 ## 📋 Changelog
 
-### Version 0.5.8 (Latest)
+### Version 0.6.0 (Latest)
+- ✅ Fixed CSV parsing for school names with commas
+- ✅ Added a packaging script for the Chrome extension
+
+### Version 0.5.8
 - ✅ Enhanced distance filtering with 10 preset ranges (100-2500 miles)
 - ✅ Custom distance input for precise filtering control
 - ✅ Manual team sync functionality for reliable team detection
@@ -250,7 +256,7 @@ cd gd-recruit-extension
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+See the [LICENSE](LICENSE) file for license terms.
 
 ## 🤝 Contributing
 

@@ -17,7 +17,7 @@ This is a Chrome extension for Gridiron Dynasty recruiting management. The exten
 ### Testing the Extension
 1. Navigate to Gridiron Dynasty recruiting pages (`https://*.whatifsports.com/gd/recruiting/*`)
 2. Click the extension icon to open the management interface
-3. Use "Scrape Recruits" to test data extraction functionality
+3. Use "Initialize Season" to test data extraction functionality
 4. Test multi-team switching by switching teams in Gridiron Dynasty
 
 ## Architecture Overview
@@ -161,6 +161,17 @@ This is a pure browser extension project with no build tools or package managers
 2. Use conditional formatting functions for dynamic styling
 3. Ensure accessibility compliance with ARIA labels
 4. Test responsive design across screen sizes
+
+## Documentation
+
+Review the docs as part of any change that users can notice:
+
+- **`docs/USER_GUIDE.md`**: update it when a user-facing feature, button label, message, default, or workflow changes.
+- **`README.md`**: update it when features, installation, project structure, shortcuts, or the version change. Add a changelog entry for each release.
+- **`TODO.md`**: remove a bug when it is fixed, and remove its workaround from the user guide.
+- **User guide style**: describe what players see and do. Leave out internals such as page names, headers, and storage details.
+
+If a code change needs no doc update, say so in the pull request by ticking "No docs update needed" in the template.
 
 ## Debugging
 

@@ -2,6 +2,8 @@
 
 A comprehensive browser extension for Gridiron Dynasty recruiting management, featuring advanced data visualization, filtering, and management capabilities.
 
+Using the extension? See the [User Guide](docs/USER_GUIDE.md).
+
 ## 🎯 Overview
 
 The GD Recruit Assistant transforms the Gridiron Dynasty recruiting experience by providing:

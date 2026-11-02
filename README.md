@@ -256,7 +256,7 @@ cd gd-recruit-extension
 
 ## 📄 License
 
-See the [LICENSE](LICENSE) file for license terms.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🤝 Contributing
 
